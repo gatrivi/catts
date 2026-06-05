@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CatIntAssist TTS smoke test</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 640px; margin: 2rem auto; padding: 0 1rem; }
+    label { display: block; margin-top: 1rem; font-weight: 600; }
+    textarea, select { width: 100%; margin-top: 0.25rem; }
+    button { margin-top: 1rem; padding: 0.5rem 1rem; }
+    #status { margin-top: 1rem; color: #444; white-space: pre-wrap; }
+    audio { width: 100%; margin-top: 1rem; }
+  </style>
+</head>
+<body>
+  <h1>TTS smoke test</h1>
+  <p>Default server: <code id="base">http://127.0.0.1:59125</code></p>
+
+  <label for="text">Text</label>
+  <textarea id="text" rows="4">The interpreter will read this aloud to both headphones and the virtual cable.</textarea>
+
+  <label for="lang">Language</label>
+  <select id="lang">
+    <option value="en">English</option>
+    <option value="es">Spanish</option>
+  </select>
+
+  <label for="sink">Output device (setSinkId)</label>
+  <select id="sink"><option value="">Default output</option></select>
+
+  <button id="speak">Synthesize &amp; play</button>
+  <div id="status"></div>
+  <audio id="player" controls></audio>
+
+  <script>
+    const base = location.origin.includes('59125') ? location.origin : 'http://127.0.0.1:59125';
+    document.getElementById('base').textContent = base;
+
+    const sink = document.getElementById('sink');
+    const player = document.getElementById('player');
+    const status = document.getElementById('status');
+
+    async function loadDevices() {
+      if (!navigator.mediaDevices?.enumerateDevices) return;
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      devices.filter(d => d.kind === 'audiooutput').forEach(d => {
+        const opt = document.createElement('option');
+        opt.value = d.deviceId;
+        opt.textContent = d.label || `Output ${d.deviceId.slice(0, 8)}`;
+        sink.appendChild(opt);
+      });
+    }
+
+  document.getElementById('speak').onclick = async () => {
+      status.textContent = 'Requesting…';
+      const t0 = performance.now();
+      const res = await fetch(`${base}/tts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: document.getElementById('text').value,
+          lang: document.getElementById('lang').value,
+        }),
+      });
+      if (!res.ok) {
+        status.textContent = `Error ${res.status}: ${await res.text()}`;
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      player.src = url;
+      if (sink.value && player.setSinkId) {
+        await player.setSinkId(sink.value);
+      }
+      await player.play();
+      const ms = Math.round(performance.now() - t0);
+      status.textContent = `OK ${blob.size} bytes, ${ms}ms round-trip\nVoice: ${res.headers.get('X-TTS-Voice')}`;
+    };
+
+    loadDevices().catch(() => {});
+  </script>
+</body>
+</html>
