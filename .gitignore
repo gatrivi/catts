@@ -149,3 +149,4 @@ __pycache__/
 .venv/
 venv/
 catts/
+pdf2txt.py
