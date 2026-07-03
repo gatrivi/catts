@@ -41,6 +41,27 @@ def available() -> bool:
     return bool(sp and (sp / "TTS").is_dir() and WORKER_SCRIPT.is_file())
 
 
+def worker_status() -> dict:
+    """UI-facing readiness (installed vs model hot)."""
+    if not available():
+        return {
+            "installed": False,
+            "ready": False,
+            "message": "XTTS not installed — run scripts/setup_xtts.ps1",
+        }
+    if _worker_proc is not None and _worker_proc.poll() is None:
+        return {
+            "installed": True,
+            "ready": True,
+            "message": "XTTS ready (model loaded)",
+        }
+    return {
+        "installed": True,
+        "ready": False,
+        "message": "XTTS installed — model loading (first start ~1 min) or idle",
+    }
+
+
 def _start_worker() -> subprocess.Popen:
     global _worker_proc
     if _worker_proc and _worker_proc.poll() is None:

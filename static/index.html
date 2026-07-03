@@ -113,11 +113,17 @@
     .action-group { margin-top:.55rem; }
     .action-group-label { font-size:.7rem; color:var(--muted); margin-bottom:.2rem; }
     .empty-state { font-size:.85rem; color:var(--muted); padding:.5rem 0; }
+    .status-box { margin:.5rem 0; padding:.55rem .7rem; border-radius:8px; font-size:.82rem; line-height:1.4; border:1px solid #3a4150; background:#12151b; }
+    .status-box.idle { color:var(--muted); border-color:#2a2f3a; }
+    .status-box.ok { color:var(--ok); border-color:#1a3d2e; background:#0f1a14; }
+    .status-box.busy { color:var(--warn); border-color:#5a4520; background:#1a1508; }
+    .status-box.err { color:var(--err); border-color:#5a2828; background:#1a0f0f; }
+    .status-box strong { color:var(--text); }
   </style>
 </head>
 <body>
   <header>
-    <h1>CATTS <span class="ver">v0.6</span></h1>
+    <h1>CATTS <span class="ver">v0.6.2</span></h1>
     <div id="health">checking…</div>
   </header>
   <main>
@@ -216,6 +222,7 @@
           <span class="file-name" id="voiceFileName">WAV / MP3, 1–5 min</span>
         </div>
         <button type="button" class="action-btn" id="voiceBtn">Save voice sample</button>
+        <div id="voicePlayStatus" class="status-box idle">Hear sample plays your recording (not Live TTS). Status appears here.</div>
         <div id="voices" style="margin-top:1rem"></div>
       </div>
     </section>
@@ -262,7 +269,8 @@
         <span class="panel-chevron">▼</span>
       </button>
       <div class="panel-body">
-        <p class="instructions">Uses your cloned voice (XTTS). <strong>First phrase after server start ~1 min</strong> (model load); then ~5–15s. Check header says <code>xtts</code>.</p>
+        <p class="instructions">Clones your voice with XTTS (CPU). Watch the status box — first run after server start can take <strong>~1 minute</strong>.</p>
+        <div id="liveStatus" class="status-box idle">Checking TTS…</div>
         <label>Short phrase (max ~12 words)</label>
         <input id="liveText" placeholder="Hello, this is a test." />
         <label>Voice</label>
@@ -642,15 +650,70 @@
       }
     }
 
-    async function playVoiceSample(id, label) {
-      openVoices.add(id);
-      const item = document.querySelector(`.voice-item[data-id="${id}"]`);
-      if (item) item.classList.add('open');
-      const r = await fetch(API + `/voices/${id}/sample`, { headers: headers() });
-      if (!r.ok) return alert('No sample audio for this voice');
-      const blob = await r.blob();
-      await mountWavePlayer(document.getElementById(`voice-player-${id}`), blob, label, { autoplay: true, cacheKey: `voice:${id}` });
+    let uiBusy = false;
+    let lastHealth = null;
+    let statusTimer = null;
+
+    function setStatus(elId, kind, html) {
+      const el = document.getElementById(elId);
+      if (!el) return;
+      el.className = 'status-box ' + (kind || 'idle');
+      el.innerHTML = html;
     }
+
+    function startElapsed(elId, baseHtml) {
+      const t0 = Date.now();
+      if (statusTimer) clearInterval(statusTimer);
+      const tick = () => {
+        const s = Math.round((Date.now() - t0) / 1000);
+        setStatus(elId, 'busy', baseHtml + ` <strong>${s}s</strong> elapsed…`);
+      };
+      tick();
+      statusTimer = setInterval(tick, 500);
+      return () => { if (statusTimer) { clearInterval(statusTimer); statusTimer = null; } };
+    }
+
+    window.playVoiceSample = async (id, label) => {
+      openVoices.add(id);
+      document.querySelector(`.voice-item[data-id="${id}"]`)?.classList.add('open');
+      document.querySelector('[data-panel="voice"]')?.classList.add('open');
+      uiBusy = true;
+      const stopElapsed = startElapsed(
+        'voicePlayStatus',
+        `Loading sample for <strong>${label || id}</strong> —`,
+      );
+      openGlobalDock();
+      document.getElementById('globalPlayerHost').innerHTML =
+        '<div class="wave-player"><div class="wave-status subtle">Loading your recording…</div></div>';
+      try {
+        const r = await fetch(API + `/voices/${id}/sample`, { headers: headers() });
+        if (!r.ok) {
+          const detail = (await r.json().catch(() => ({}))).detail || r.statusText;
+          throw new Error(detail || 'No sample audio for this voice');
+        }
+        const blob = await r.blob();
+        if (!blob || blob.size < 1000) {
+          throw new Error('Sample file is empty or missing — save a voice sample again');
+        }
+        stopElapsed();
+        setStatus('voicePlayStatus', 'busy', 'Decoding waveform…');
+        await playInGlobalDock(blob, `Sample — ${label || id}`, `voice:${id}`);
+        setStatus(
+          'voicePlayStatus',
+          'ok',
+          `Playing your <strong>recording</strong> (${Math.round(blob.size / 1024)} KB). This is the sample, not Live TTS clone.`,
+        );
+      } catch (e) {
+        stopElapsed();
+        const msg = e.message || String(e);
+        setStatus('voicePlayStatus', 'err', `Hear sample failed: <strong>${msg}</strong>`);
+        document.getElementById('globalPlayerHost').innerHTML =
+          `<div class="wave-silent">⚠ ${msg}</div>`;
+        alert('Hear sample failed: ' + msg);
+      } finally {
+        uiBusy = false;
+      }
+    };
 
     const API = '';
     const jobFilesCache = {};
@@ -1024,13 +1087,25 @@ Gracias. Esta muestra enseñará a CATTS a sonar como yo.`
 
     async function refreshHealth() {
       const h = await api('/health');
+      lastHealth = h;
       defaultVoiceId = h.default_voice_id || defaultVoiceId;
       const el = document.getElementById('health');
-      const voiceHint = defaultVoiceId ? ' · default voice on' : '';
+      const xttsBit = h.xtts_ready ? 'XTTS hot' : (h.xtts_installed ? 'XTTS loading' : 'XTTS off');
       el.textContent = h.worker_reachable
         ? 'GPU worker connected'
-        : `local · TTS:${h.tts_engine || '?'} · STT:${h.stt_engine || 'none'}${voiceHint}`;
-      el.title = 'TTS=xtts clone. STT=faster-whisper. Translate=Argos offline EN↔ES.';
+        : `local · ${xttsBit} · STT:${h.stt_engine || 'none'}`;
+      el.title = h.xtts_message || 'TTS / STT status';
+      el.style.color = h.xtts_ready ? 'var(--ok)' : (h.xtts_installed ? 'var(--warn)' : 'var(--err)');
+
+      if (!uiBusy) {
+        if (!h.xtts_installed) {
+          setStatus('liveStatus', 'err', '<strong>Live TTS unavailable.</strong> XTTS not installed — run <code>scripts/setup_xtts.ps1</code> and restart the server.');
+        } else if (!h.xtts_ready) {
+          setStatus('liveStatus', 'busy', '<strong>XTTS model loading…</strong> First start ~1 min. Speak will wait until ready (or fail with an error).');
+        } else {
+          setStatus('liveStatus', 'ok', '<strong>Ready.</strong> Speak uses your voice clone (XTTS). Expect ~5–30s per phrase on CPU.');
+        }
+      }
       const banner = document.getElementById('ttsBanner');
       if (localStorage.getItem('catts_hide_tts_banner') === '1') {
         banner.style.display = 'none';
@@ -1157,22 +1232,42 @@ Gracias. Esta muestra enseñará a CATTS a sonar como yo.`
 
     document.getElementById('liveBtn').onclick = async () => {
       const btn = document.getElementById('liveBtn');
+      if (uiBusy) {
+        setStatus('liveStatus', 'busy', 'Already working — wait for the current request to finish.');
+        return;
+      }
       const voice_id = resolveVoiceId();
-      if (!voice_id) return alert('Train a voice first (Train voice panel).');
+      if (!voice_id) {
+        setStatus('liveStatus', 'err', '<strong>No voice selected.</strong> Save a sample under Train voice, or pick a voice in the dropdown.');
+        return alert('No voice selected — save a voice sample first.');
+      }
       const liveSel = document.getElementById('liveVoice');
       const text = document.getElementById('liveText').value.trim();
-      if (!text) return alert('Type a short phrase first (max 12 words).');
+      if (!text) {
+        setStatus('liveStatus', 'err', '<strong>No text.</strong> Type a short phrase (max 12 words).');
+        return alert('Type a short phrase first (max 12 words).');
+      }
+      const words = text.split(/\s+/).filter(Boolean);
+      if (words.length > 12) {
+        setStatus('liveStatus', 'err', '<strong>Too long.</strong> Live TTS is limited to 12 words.');
+        return alert('Live TTS limited to 12 words.');
+      }
       const lang = (liveSel.selectedOptions[0]?.dataset?.lang)
         || (document.getElementById('bookVoice').selectedOptions[0]?.dataset?.lang)
         || 'en';
 
       document.querySelector('[data-panel="live"]')?.classList.add('open');
+      uiBusy = true;
       const prevLabel = btn.textContent;
       btn.disabled = true;
-      btn.textContent = 'Synthesizing…';
+      btn.textContent = 'Working…';
+      const stopElapsed = startElapsed(
+        'liveStatus',
+        `<strong>Synthesizing with XTTS</strong> (voice ${voice_id.slice(0, 8)}…) — CPU, can take 5–60s.`,
+      );
       openGlobalDock();
       document.getElementById('globalPlayerHost').innerHTML =
-        '<div class="wave-player"><div class="wave-label">Live TTS (your voice)</div><div class="wave-status subtle">Loading XTTS model if cold — can take ~1 min first time, then faster…</div></div>';
+        '<div class="wave-player"><div class="wave-label">Live TTS</div><div class="wave-status subtle">Request sent — waiting for audio…</div></div>';
 
       try {
         const r = await fetch(API + '/tts/live', {
@@ -1181,23 +1276,43 @@ Gracias. Esta muestra enseñará a CATTS a sonar como yo.`
           body: JSON.stringify({ text, voice_id, lang }),
         });
         if (!r.ok) {
-          const detail = (await r.json().catch(() => ({}))).detail || await r.text();
-          throw new Error(detail || r.statusText);
+          let detail = r.statusText;
+          try {
+            const j = await r.json();
+            detail = j.detail || JSON.stringify(j);
+          } catch (_) {
+            detail = await r.text().catch(() => detail);
+          }
+          throw new Error(detail || `HTTP ${r.status}`);
         }
         const engine = r.headers.get('X-TTS-Engine') || 'unknown';
         const latency = r.headers.get('X-TTS-Latency-Ms');
         const blob = await r.blob();
-        if (!isPlayableBlob(blob)) throw new Error('TTS returned empty audio');
-        if (engine === 'edge') throw new Error('Got generic Edge voice instead of clone — restart server and check XTTS');
-        const cacheKey = `live:${voice_id}:${text.slice(0, 48)}`;
+        if (!blob || blob.size < 1000) throw new Error('TTS returned empty audio');
+        if (engine === 'edge') {
+          throw new Error('Server used generic Edge voice instead of your clone — restart API and wait for XTTS hot');
+        }
+        stopElapsed();
+        setStatus('liveStatus', 'busy', 'Decoding waveform…');
         const label = `Live TTS · ${engine}${latency ? ' · ' + latency + 'ms' : ''}`;
-        await playInGlobalDock(blob, label, cacheKey);
-        document.getElementById('livePlayer').innerHTML = `<p class="subtle">Engine: <strong>${engine}</strong> — playing in bottom player.</p>`;
+        await playInGlobalDock(blob, label, `live:${voice_id}:${text.slice(0, 48)}`);
+        setStatus(
+          'liveStatus',
+          'ok',
+          `<strong>Playing clone</strong> · engine <code>${engine}</code>${latency ? ' · ' + latency + 'ms' : ''} · ${Math.round(blob.size / 1024)} KB. Bottom player.`,
+        );
+        document.getElementById('livePlayer').innerHTML =
+          `<p class="subtle">OK — ${engine}${latency ? ' in ' + latency + 'ms' : ''}. Use bottom player.</p>`;
       } catch (e) {
-        alert('Live TTS failed: ' + (e.message || e));
+        stopElapsed();
+        const msg = e.message || String(e);
+        setStatus('liveStatus', 'err', `<strong>Live TTS failed:</strong> ${msg}`);
         document.getElementById('globalPlayerHost').innerHTML =
-          '<div class="wave-silent">⚠ ' + (e.message || e) + '</div>';
+          `<div class="wave-silent">⚠ ${msg}</div>`;
+        document.getElementById('livePlayer').innerHTML = '';
+        alert('Live TTS failed: ' + msg);
       } finally {
+        uiBusy = false;
         btn.disabled = false;
         btn.textContent = prevLabel;
       }
@@ -1254,9 +1369,15 @@ Gracias. Esta muestra enseñará a CATTS a sonar como yo.`
     async function tick() {
       try {
         await refreshHealth();
-        if (!refreshPaused) await refreshJobs();
-        if (!refreshPaused) await refreshVoices();
-      } catch (e) { console.error(e); }
+        // Do not wipe voice/job lists while audio is loading (was killing Hear sample UI)
+        if (!refreshPaused && !uiBusy) await refreshJobs();
+        if (!refreshPaused && !uiBusy) await refreshVoices();
+      } catch (e) {
+        console.error(e);
+        if (!uiBusy) {
+          setStatus('liveStatus', 'err', `<strong>Status check failed:</strong> ${e.message || e}. Is the server running on :59200?`);
+        }
+      }
     }
     initPanels();
     bindJobActions();

@@ -28,6 +28,9 @@ class HealthResponse(BaseModel):
     stt_engine: str  # whisper | none
     translate_ready: bool
     default_voice_id: str | None = None
+    xtts_installed: bool = False
+    xtts_ready: bool = False
+    xtts_message: str = ""
 
 
 class JobProgress(BaseModel):
