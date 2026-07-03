@@ -32,11 +32,9 @@ def _site_packages() -> Path | None:
 
 def available() -> bool:
     sp = _site_packages()
-    if not sp or not (sp / "argostranslate").is_dir():
+    if not sp or not SCRIPT.is_file():
         return False
-    # language packs live under .../argostranslate/package/...
-    pkg_dir = sp / "argostranslate" / "package"
-    return pkg_dir.is_dir() and any(pkg_dir.iterdir())
+    return (sp / "argostranslate").is_dir() and (sp / "ctranslate2").is_dir()
 
 
 def translate(text: str, from_lang: str, to_lang: str) -> str:
