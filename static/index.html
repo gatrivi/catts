@@ -117,7 +117,7 @@
 </head>
 <body>
   <header>
-    <h1>CATTS <span class="ver">v0.5</span></h1>
+    <h1>CATTS <span class="ver">v0.5.1</span></h1>
     <div id="health">checking…</div>
   </header>
   <main>
@@ -226,6 +226,7 @@
         <span class="panel-chevron">▼</span>
       </button>
       <div class="panel-body">
+        <p class="instructions">Test your cloned voice. First run can take <strong>20–60 seconds</strong> on CPU — watch the bottom player.</p>
         <label>Short phrase (max ~12 words)</label>
         <input id="liveText" placeholder="Hello, this is a test." />
         <label>Voice</label>
@@ -925,7 +926,7 @@ Gracias. Esta muestra enseñará a CATTS a sonar como yo.`
       const sel = document.getElementById(selectId);
       const prev = sel.value;
       const opts = voices.filter(v => v.ready).map(v =>
-        `<option value="${v.id}">${v.display_name || v.name}</option>`
+        `<option value="${v.id}" data-lang="${v.lang || 'en'}">${v.display_name || v.name}</option>`
       ).join('');
       sel.innerHTML = `<option value="">${placeholder}</option>` + opts;
       if (prev && [...sel.options].some(o => o.value === prev)) {
@@ -1050,19 +1051,47 @@ Gracias. Esta muestra enseñará a CATTS a sonar como yo.`
     };
 
     document.getElementById('liveBtn').onclick = async () => {
-      let voice_id = document.getElementById('liveVoice').value;
-      if (!voice_id) voice_id = document.getElementById('bookVoice').value;
-      if (!voice_id) return alert('Choose a voice in the Live TTS dropdown (or New book → Voice).');
+      const btn = document.getElementById('liveBtn');
+      const liveSel = document.getElementById('liveVoice');
+      let voice_id = liveSel.value || document.getElementById('bookVoice').value;
+      if (!voice_id) return alert('Choose a voice in the Live TTS dropdown first.');
       const text = document.getElementById('liveText').value.trim();
-      if (!text) return alert('Type a short phrase first.');
-      const r = await fetch(API + '/tts/live', {
-        method: 'POST',
-        headers: { ...headers(), 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, voice_id, lang: document.getElementById('voiceLang').value })
-      });
-      if (!r.ok) throw new Error(await r.text());
-      const blob = await r.blob();
-      await mountWavePlayer(document.getElementById('livePlayer'), blob, 'Live TTS', { autoplay: true });
+      if (!text) return alert('Type a short phrase first (max 12 words).');
+      const lang = liveSel.value
+        ? (liveSel.selectedOptions[0]?.dataset?.lang || 'en')
+        : (document.getElementById('bookVoice').selectedOptions[0]?.dataset?.lang || 'en');
+
+      document.querySelector('[data-panel="live"]')?.classList.add('open');
+      const prevLabel = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Synthesizing…';
+      openGlobalDock();
+      document.getElementById('globalPlayerHost').innerHTML =
+        '<div class="wave-player"><div class="wave-label">Live TTS</div><div class="wave-status subtle">Generating speech — CPU may take 20–60 seconds…</div></div>';
+
+      try {
+        const r = await fetch(API + '/tts/live', {
+          method: 'POST',
+          headers: { ...headers(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text, voice_id, lang }),
+        });
+        if (!r.ok) {
+          const detail = (await r.json().catch(() => ({}))).detail || await r.text();
+          throw new Error(detail || r.statusText);
+        }
+        const blob = await r.blob();
+        if (!isPlayableBlob(blob)) throw new Error('TTS returned empty audio — check voice sample exists');
+        const cacheKey = `live:${voice_id}:${text.slice(0, 48)}`;
+        await playInGlobalDock(blob, 'Live TTS', cacheKey);
+        document.getElementById('livePlayer').innerHTML = '<p class="subtle">Playing in the bottom player.</p>';
+      } catch (e) {
+        alert('Live TTS failed: ' + (e.message || e));
+        document.getElementById('globalPlayerHost').innerHTML =
+          '<div class="wave-silent">⚠ ' + (e.message || e) + '</div>';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = prevLabel;
+      }
     };
 
     window.regenerateJob = async (id) => {
