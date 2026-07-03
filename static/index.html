@@ -8,6 +8,7 @@
     :root { --bg:#0f1115; --card:#1a1d24; --text:#e8eaed; --muted:#9aa0a6; --accent:#6ea8fe; --ok:#3dd68c; --warn:#f5a524; --err:#f87171; }
     * { box-sizing: border-box; }
     body { margin:0; font-family: system-ui, sans-serif; background:var(--bg); color:var(--text); }
+    body.player-open { padding-bottom: 11rem; }
     header { padding:1rem 1.5rem; border-bottom:1px solid #2a2f3a; display:flex; justify-content:space-between; align-items:center; }
     h1 { margin:0; font-size:1.25rem; }
     main { max-width:960px; margin:0 auto; padding:1rem 1.25rem 2rem; display:grid; gap:.65rem; }
@@ -91,11 +92,14 @@
     @keyframes pulse { 50% { opacity:.65; } }
     .rec-status { font-size:.85rem; color:var(--warn); }
     #health { font-size:.85rem; color:var(--muted); cursor:help; }
-    #globalPlayerDock { position:fixed; bottom:0; left:0; right:0; z-index:100; background:#1a1d24; border-top:2px solid var(--accent); padding:.75rem 1rem 1rem; box-shadow:0 -4px 24px rgba(0,0,0,.45); }
+    #globalPlayerDock { position:fixed; bottom:0; left:0; right:0; z-index:100; background:#1a1d24; border-top:2px solid var(--accent); padding:.75rem 1rem 1rem; box-shadow:0 -4px 24px rgba(0,0,0,.45); max-height:42vh; overflow:auto; }
     #globalPlayerDock[hidden] { display:none !important; }
-    #globalPlayerLabel { font-size:.85rem; color:var(--text); margin-bottom:.35rem; font-weight:600; }
-    #globalAudio { width:100%; max-width:960px; display:block; margin:0 auto; }
-    #globalWaveform { width:100%; max-width:960px; height:48px; display:block; margin:.35rem auto 0; background:#0a0c10; border-radius:4px; }
+    #globalPlayerHost { max-width:960px; margin:0 auto; }
+    #globalPlayerHost .wave-main { height:80px; min-height:80px; }
+    #globalPlayerHost audio { display:none; }
+    .dock-close { max-width:960px; margin:0 auto .35rem; display:flex; justify-content:flex-end; }
+    .dock-close button { width:auto; margin:0; padding:.2rem .55rem; font-size:.8rem; background:#2a3140; color:var(--muted); border:1px solid #3a4150; border-radius:6px; cursor:pointer; }
+    .dock-close button:hover { color:var(--text); }
     .ver { font-size:.7rem; color:var(--muted); margin-left:.5rem; }
     .word-chip { display:inline-block; padding:.2rem .5rem; margin:.15rem .2rem 0 0; background:#2a3140; border-radius:4px; cursor:pointer; font-size:.85rem; }
     .word-chip:hover { background:#3a4a60; }
@@ -113,7 +117,7 @@
 </head>
 <body>
   <header>
-    <h1>CATTS <span class="ver">v0.4</span></h1>
+    <h1>CATTS <span class="ver">v0.5</span></h1>
     <div id="health">checking…</div>
   </header>
   <main>
@@ -126,7 +130,7 @@
         <span class="panel-chevron">▼</span>
       </button>
       <div class="panel-body">
-        <p class="job-help">Click a book title to expand. <strong>Play</strong> opens the player at the bottom of the screen.</p>
+        <p class="job-help">Click <strong>▶</strong> on a book for the waveform player at the bottom. Click the waveform to seek.</p>
         <div id="jobs"></div>
       </div>
     </section>
@@ -232,73 +236,78 @@
     </section>
   </main>
   <div id="globalPlayerDock" hidden>
-    <div id="globalPlayerLabel">Audio</div>
-    <audio id="globalAudio" controls preload="auto"></audio>
-    <canvas id="globalWaveform"></canvas>
+    <div class="dock-close"><button type="button" id="globalPlayerClose" title="Close player">✕ Close</button></div>
+    <div id="globalPlayerHost" class="player"></div>
   </div>
   <script>
     function chapterAudioUrl(jobId, chapterNum) {
       return `/jobs/${jobId}/chapters/${chapterNum}/audio`;
     }
 
-    function showGlobalPlayer(label, src) {
+    function openGlobalDock() {
       const dock = document.getElementById('globalPlayerDock');
-      const audio = document.getElementById('globalAudio');
-      document.getElementById('globalPlayerLabel').textContent = label;
       dock.removeAttribute('hidden');
       dock.style.display = 'block';
-      audio.src = src;
-      audio.load();
-      audio.play().catch(() => {});
-      dock.scrollIntoView({ block: 'nearest' });
+      document.body.classList.add('player-open');
+      dock.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     }
 
-    async function loadGlobalWaveform(src, label) {
-      const canvas = document.getElementById('globalWaveform');
-      if (!canvas) return;
-      try {
-        const r = await fetch(src);
-        if (!r.ok) return;
-        const blob = await r.blob();
-        if (!isPlayableBlob(blob)) {
-          const g = canvas.getContext('2d');
-          g.fillStyle = '#3d3018';
-          g.fillRect(0, 0, canvas.width, canvas.height);
-          return;
-        }
-        const { peaks, duration, maxPeak } = await decodePeaks(blob, 400);
-        drawWaveform(canvas, peaks, duration, 0, duration, 0, { playhead: false });
-        document.getElementById('globalPlayerLabel').textContent =
-          `${label} · ${maxPeak < 0.008 ? '⚠ low signal' : 'signal ok'}`;
-      } catch (_) { /* waveform optional */ }
+    function closeGlobalDock() {
+      const dock = document.getElementById('globalPlayerDock');
+      dock.setAttribute('hidden', '');
+      dock.style.display = 'none';
+      document.body.classList.remove('player-open');
+      stopActivePlayer();
+      document.getElementById('globalPlayerHost').innerHTML = '';
     }
 
-    function playBook(id) {
+    async function playInGlobalDock(blob, label, cacheKey) {
+      openGlobalDock();
+      const host = document.getElementById('globalPlayerHost');
+      host.innerHTML = '<div class="wave-player"><div class="wave-label">' + (label || 'Audio') + '</div><div class="wave-status subtle">Decoding waveform…</div></div>';
+      stopActivePlayer();
+      await mountWavePlayer(host, blob, label, { autoplay: true, cacheKey });
+    }
+
+    async function playBook(id) {
       openJobs.add(id);
       document.querySelector(`.job-item[data-id="${id}"]`)?.classList.add('open');
-      const url = chapterAudioUrl(id, 1);
-      showGlobalPlayer('Chapter 1 — loading…', url);
-      loadGlobalWaveform(url, 'Chapter 1');
-      getJobFiles(id).then(f => {
-        const ch = f.chapters?.[0];
-        if (ch) {
-          document.getElementById('globalPlayerLabel').textContent = ch.title || 'Chapter 1';
-          if (ch.index !== 1) {
-            const u = chapterAudioUrl(id, ch.index);
-            showGlobalPlayer(ch.title || `Chapter ${ch.index}`, u);
-            loadGlobalWaveform(u, ch.title || `Chapter ${ch.index}`);
-          }
+      openGlobalDock();
+      const host = document.getElementById('globalPlayerHost');
+      host.innerHTML = '<div class="wave-player"><div class="wave-status subtle">Loading chapter…</div></div>';
+      try {
+        const f = await getJobFiles(id);
+        let lastErr = null;
+        for (const ch of f.chapters || []) {
+          try {
+            const blob = await fetchChapterBlob(id, ch.index);
+            const label = ch.title || `Chapter ${ch.index}`;
+            await playInGlobalDock(blob, label, `job:${id}:ch${ch.index}`);
+            return;
+          } catch (e) { lastErr = e; }
         }
-      }).catch(err => alert('Play failed: ' + (err.message || err)));
+        throw lastErr || new Error('No playable chapter — use Re-record book');
+      } catch (err) {
+        host.innerHTML = '<div class="wave-silent">⚠ ' + (err.message || err) + '</div>';
+      }
     }
 
-    function playChapter(id, num) {
+    async function playChapter(id, num) {
       if (!num) return;
       openJobs.add(id);
       document.querySelector(`.job-item[data-id="${id}"]`)?.classList.add('open');
-      const url = chapterAudioUrl(id, num);
-      showGlobalPlayer(`Chapter ${num}`, url);
-      loadGlobalWaveform(url, `Chapter ${num}`);
+      openGlobalDock();
+      const host = document.getElementById('globalPlayerHost');
+      host.innerHTML = '<div class="wave-player"><div class="wave-status subtle">Loading chapter…</div></div>';
+      try {
+        const blob = await fetchChapterBlob(id, num);
+        const f = await getJobFiles(id);
+        const ch = (f.chapters || []).find(c => String(c.index) === String(num));
+        const label = ch?.title || `Chapter ${num}`;
+        await playInGlobalDock(blob, label, `job:${id}:ch${num}`);
+      } catch (err) {
+        host.innerHTML = '<div class="wave-silent">⚠ ' + (err.message || err) + '</div>';
+      }
     }
 
     async function delJob(id) {
@@ -389,6 +398,45 @@
       return `${m}:${String(s).padStart(2, '0')}`;
     }
 
+    const wavePeaksCache = new Map();
+    const WAVE_CACHE_PREFIX = 'catts_wave_v1:';
+
+    function peaksFromStorage(cacheKey) {
+      try {
+        const raw = sessionStorage.getItem(WAVE_CACHE_PREFIX + cacheKey);
+        if (!raw) return null;
+        const data = JSON.parse(raw);
+        return { peaks: new Float32Array(data.peaks), duration: data.duration, maxPeak: data.maxPeak };
+      } catch (_) { return null; }
+    }
+
+    function peaksToStorage(cacheKey, entry) {
+      try {
+        sessionStorage.setItem(WAVE_CACHE_PREFIX + cacheKey, JSON.stringify({
+          peaks: Array.from(entry.peaks),
+          duration: entry.duration,
+          maxPeak: entry.maxPeak,
+        }));
+      } catch (_) { /* quota */ }
+    }
+
+    async function getPeaks(blob, cacheKey, buckets = 720) {
+      if (cacheKey) {
+        if (wavePeaksCache.has(cacheKey)) return wavePeaksCache.get(cacheKey);
+        const stored = peaksFromStorage(cacheKey);
+        if (stored) {
+          wavePeaksCache.set(cacheKey, stored);
+          return stored;
+        }
+      }
+      const entry = await decodePeaks(blob, buckets);
+      if (cacheKey) {
+        wavePeaksCache.set(cacheKey, entry);
+        peaksToStorage(cacheKey, entry);
+      }
+      return entry;
+    }
+
     async function decodePeaks(blob, buckets = 720) {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
       const buf = await ctx.decodeAudioData(await blob.arrayBuffer());
@@ -454,7 +502,7 @@
       activePlayerHostId = null;
     }
 
-    async function mountWavePlayer(container, blob, label, { autoplay = true, lookaheadSec = 5 } = {}) {
+    async function mountWavePlayer(container, blob, label, { autoplay = true, lookaheadSec = 5, cacheKey = null } = {}) {
       if (!container) return;
       if (!isPlayableBlob(blob)) {
         container.innerHTML = '<div class="wave-silent">⚠ Audio file is empty or too small — use <strong>Re-record book</strong>.</div>';
@@ -463,23 +511,18 @@
 
       const url = URL.createObjectURL(blob);
       activePlayerHostId = container.id || null;
-
-      // Show a working audio control immediately (user already clicked Play)
       container.innerHTML = `
         <div class="wave-player">
           <div class="wave-label">${label || 'Audio'}</div>
-          <audio controls ${autoplay ? 'autoplay' : ''} style="width:100%" src="${url}"></audio>
-          <div class="wave-status subtle" style="margin-top:.35rem">Loading waveform…</div>
+          <div class="wave-status subtle">Decoding waveform…</div>
         </div>`;
-      const audio = container.querySelector('audio');
-      activeAudio = audio;
-      if (autoplay) audio.play().catch(() => {});
 
       let peaks, duration, maxPeak;
       try {
-        ({ peaks, duration, maxPeak } = await decodePeaks(blob));
+        ({ peaks, duration, maxPeak } = await getPeaks(blob, cacheKey));
       } catch (_) {
-        container.querySelector('.wave-status').textContent = 'Waveform unavailable — use the player above.';
+        container.innerHTML = '<div class="wave-silent">⚠ Could not decode audio for waveform.</div>';
+        URL.revokeObjectURL(url);
         return;
       }
 
@@ -489,30 +532,28 @@
       wrap.innerHTML = `
         <div class="wave-meta">
           <span class="wave-label"></span>
-          <span class="wave-level ${silent ? 'warn' : 'ok'}">${silent ? 'Low signal' : 'Signal OK'} · peak ${(maxPeak * 100).toFixed(1)}%</span>
+          <span class="wave-level ${silent ? 'warn' : 'ok'}">${silent ? 'Low signal' : 'Signal OK'} · ${fmtTime(duration)}</span>
         </div>
-        <div class="wave-silent" ${silent ? '' : 'hidden'}>⚠ Waveform looks flat — file may be silent.</div>
+        <div class="wave-silent" ${silent ? '' : 'hidden'}>⚠ Waveform looks flat — file may be silent. Try <strong>Re-record book</strong>.</div>
         <canvas class="wave-main" style="height:72px"></canvas>
         <div class="wave-lookahead-wrap">
-          <div class="wave-lookahead-title">Next ${lookaheadSec}s from playhead</div>
-          <canvas class="wave-lookahead" style="height:56px"></canvas>
+          <div class="wave-lookahead-title">Next ${lookaheadSec}s</div>
+          <canvas class="wave-lookahead" style="height:48px"></canvas>
         </div>
         <div class="wave-controls">
           <button type="button" class="wave-play action-btn play">▶</button>
           <input type="range" class="wave-seek" min="0" max="1000" value="0" />
           <span class="wave-time">0:00 / ${fmtTime(duration)}</span>
         </div>`;
-      const keepAudio = audio.cloneNode(true);
-      keepAudio.src = url;
-      if (!autoplay) keepAudio.removeAttribute('autoplay');
+      const audio = document.createElement('audio');
+      audio.src = url;
+      audio.preload = 'auto';
       container.innerHTML = '';
       container.appendChild(wrap);
-      wrap.insertBefore(keepAudio, wrap.firstChild);
-      keepAudio.style.width = '100%';
-      keepAudio.style.marginBottom = '.5rem';
+      wrap.insertBefore(audio, wrap.firstChild);
+      activeAudio = audio;
       wrap.querySelector('.wave-label').textContent = label || 'Audio';
-      activeAudio = keepAudio;
-      const playerAudio = keepAudio;
+      const playerAudio = audio;
       const mainCanvas = wrap.querySelector('.wave-main');
       const laCanvas = wrap.querySelector('.wave-lookahead');
       const seek = wrap.querySelector('.wave-seek');
@@ -552,8 +593,16 @@
         if (playerAudio.paused && autoplay) playerAudio.play().then(() => { playBtn.textContent = '⏸'; redraw(); });
       };
       playerAudio.onended = () => { playBtn.textContent = '▶'; if (activeRaf) cancelAnimationFrame(activeRaf); };
-      redraw();
-      if (autoplay) playerAudio.play().then(() => { playBtn.textContent = '⏸'; redraw(); }).catch(() => {});
+      requestAnimationFrame(() => {
+        redraw();
+        if (autoplay) playerAudio.play().then(() => { playBtn.textContent = '⏸'; redraw(); }).catch(() => {});
+      });
+      const onResize = () => redraw();
+      if (typeof ResizeObserver !== 'undefined') {
+        const ro = new ResizeObserver(onResize);
+        ro.observe(mainCanvas);
+        ro.observe(laCanvas);
+      }
     }
 
     async function playVoiceSample(id, label) {
@@ -563,7 +612,7 @@
       const r = await fetch(API + `/voices/${id}/sample`, { headers: headers() });
       if (!r.ok) return alert('No sample audio for this voice');
       const blob = await r.blob();
-      await mountWavePlayer(document.getElementById(`voice-player-${id}`), blob, label, { autoplay: true });
+      await mountWavePlayer(document.getElementById(`voice-player-${id}`), blob, label, { autoplay: true, cacheKey: `voice:${id}` });
     }
 
     const API = '';
@@ -1073,6 +1122,7 @@ Gracias. Esta muestra enseñará a CATTS a sonar como yo.`
     }
     initPanels();
     bindJobActions();
+    document.getElementById('globalPlayerClose').onclick = closeGlobalDock;
     syncBookFileName = wireFilePicker('bookFile', 'bookFileBtn', 'bookFileName', 'No file selected');
     syncVoiceFileName = wireFilePicker('voiceFile', 'voiceFileBtn', 'voiceFileName', 'WAV / MP3, 1–5 min');
     tick();

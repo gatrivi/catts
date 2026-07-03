@@ -1,4 +1,4 @@
-# CATTS context (v0.4)
+# CATTS context (v0.5)
 
 ## What works on AMD / CPU (no NVIDIA)
 - Ingest PDF/EPUB → polished manuscript + chapter audiobook
