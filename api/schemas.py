@@ -25,6 +25,7 @@ class HealthResponse(BaseModel):
     worker_url: str
     ocr_engine: str
     tts_engine: str  # xtts | edge | gptsovits
+    default_voice_id: str | None = None
 
 
 class JobProgress(BaseModel):

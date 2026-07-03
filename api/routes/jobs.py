@@ -13,6 +13,7 @@ from services.job_manifest import backfill_all_readmes, write_job_readme
 from services.job_runner import cancel_job, enqueue_audiobook
 from services.job_regenerate import regenerate_job_audio
 from services.reveal import reveal_in_folder
+from services.voice_default import resolve_default_voice_id
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
 
@@ -100,7 +101,13 @@ async def create_audiobook_job(
         "generate_audio": generate_audio.lower() not in ("false", "0", "no"),
         "lang": lang,
     }
-    job_id = create_job("audiobook", voice_id=voice_id, lang=lang, callback_url=callback_url, meta=meta)
+    job_id = create_job(
+        "audiobook",
+        voice_id=voice_id or resolve_default_voice_id(),
+        lang=lang,
+        callback_url=callback_url,
+        meta=meta,
+    )
     jdir = job_dir(job_id)
 
     fname = (upload.filename or "").lower()
@@ -282,7 +289,10 @@ async def regenerate_audiobook(
     if job["status"] == "running":
         raise HTTPException(409, "Job is still running")
     try:
-        await regenerate_job_audio(job_id, voice_id=voice_id or job.get("voice_id"))
+        await regenerate_job_audio(
+            job_id,
+            voice_id=voice_id or job.get("voice_id") or resolve_default_voice_id(),
+        )
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from exc
     return {"job_id": job_id, "status": "queued"}

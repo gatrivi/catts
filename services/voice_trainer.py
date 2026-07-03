@@ -39,6 +39,11 @@ async def run_voice_training(voice_id: str) -> None:
             artifact_path=str(artifact),
         )
         sync_voice_labeled_files(voice_id)
+        try:
+            from services.voice_ref import prepare_xtts_reference
+            prepare_xtts_reference(artifact)
+        except Exception:
+            logger.exception("Could not build XTTS reference clip for %s", voice_id)
         return
 
     try:

@@ -117,7 +117,7 @@
 </head>
 <body>
   <header>
-    <h1>CATTS <span class="ver">v0.5.1</span></h1>
+    <h1>CATTS <span class="ver">v0.5.2</span></h1>
     <div id="health">checking…</div>
   </header>
   <main>
@@ -226,7 +226,7 @@
         <span class="panel-chevron">▼</span>
       </button>
       <div class="panel-body">
-        <p class="instructions">Test your cloned voice. First run can take <strong>20–60 seconds</strong> on CPU — watch the bottom player.</p>
+        <p class="instructions">Uses your cloned voice (XTTS). <strong>First phrase after server start ~1 min</strong> (model load); then ~5–15s. Check header says <code>xtts</code>.</p>
         <label>Short phrase (max ~12 words)</label>
         <input id="liveText" placeholder="Hello, this is a test." />
         <label>Voice</label>
@@ -922,23 +922,33 @@ Gracias. Esta muestra enseñará a CATTS a sonar como yo.`
       await hydrateJobExtras(jobs);
     }
 
-    function fillVoiceSelect(selectId, voices, placeholder) {
+    let defaultVoiceId = null;
+
+    function resolveVoiceId() {
+      return document.getElementById('liveVoice').value
+        || document.getElementById('bookVoice').value
+        || defaultVoiceId
+        || '';
+    }
+
+    function fillVoiceSelect(selectId, voices, placeholder, preferId) {
       const sel = document.getElementById(selectId);
       const prev = sel.value;
       const opts = voices.filter(v => v.ready).map(v =>
         `<option value="${v.id}" data-lang="${v.lang || 'en'}">${v.display_name || v.name}</option>`
       ).join('');
       sel.innerHTML = `<option value="">${placeholder}</option>` + opts;
-      if (prev && [...sel.options].some(o => o.value === prev)) {
-        sel.value = prev;
+      const pick = prev || preferId || defaultVoiceId;
+      if (pick && [...sel.options].some(o => o.value === pick)) {
+        sel.value = pick;
       }
     }
 
     async function refreshVoices() {
       const voices = await api('/voices');
       document.getElementById('voicesCount').textContent = voices.length;
-      fillVoiceSelect('bookVoice', voices, 'Preview voice (auto)');
-      fillVoiceSelect('liveVoice', voices, 'Choose your voice…');
+      fillVoiceSelect('bookVoice', voices, 'Your voice (default)', defaultVoiceId);
+      fillVoiceSelect('liveVoice', voices, 'Your voice (default)', defaultVoiceId);
       document.getElementById('voices').innerHTML = voices.map(v => {
         const files = [v.labeled_sample, v.labeled_reference].filter(Boolean).join(', ');
         const safeName = (v.display_name || v.name || '').replace(/'/g, '');
@@ -978,11 +988,13 @@ Gracias. Esta muestra enseñará a CATTS a sonar como yo.`
 
     async function refreshHealth() {
       const h = await api('/health');
+      defaultVoiceId = h.default_voice_id || defaultVoiceId;
       const el = document.getElementById('health');
+      const voiceHint = defaultVoiceId ? ' · default voice on' : '';
       el.textContent = h.worker_reachable
         ? 'GPU worker connected'
-        : `local · TTS: ${h.tts_engine || 'edge'}`;
-      el.title = 'chatterbox=your voice (CPU). edge=Microsoft generic. gptsovits=remote NVIDIA worker.';
+        : `local · TTS: ${h.tts_engine || 'edge'}${voiceHint}`;
+      el.title = 'xtts=your voice (CPU). edge=Microsoft generic. First xtts run loads model (~1 min), then faster.';
       const banner = document.getElementById('ttsBanner');
       if (localStorage.getItem('catts_hide_tts_banner') === '1') {
         banner.style.display = 'none';
@@ -1052,14 +1064,14 @@ Gracias. Esta muestra enseñará a CATTS a sonar como yo.`
 
     document.getElementById('liveBtn').onclick = async () => {
       const btn = document.getElementById('liveBtn');
+      const voice_id = resolveVoiceId();
+      if (!voice_id) return alert('Train a voice first (Train voice panel).');
       const liveSel = document.getElementById('liveVoice');
-      let voice_id = liveSel.value || document.getElementById('bookVoice').value;
-      if (!voice_id) return alert('Choose a voice in the Live TTS dropdown first.');
       const text = document.getElementById('liveText').value.trim();
       if (!text) return alert('Type a short phrase first (max 12 words).');
-      const lang = liveSel.value
-        ? (liveSel.selectedOptions[0]?.dataset?.lang || 'en')
-        : (document.getElementById('bookVoice').selectedOptions[0]?.dataset?.lang || 'en');
+      const lang = (liveSel.selectedOptions[0]?.dataset?.lang)
+        || (document.getElementById('bookVoice').selectedOptions[0]?.dataset?.lang)
+        || 'en';
 
       document.querySelector('[data-panel="live"]')?.classList.add('open');
       const prevLabel = btn.textContent;
@@ -1067,7 +1079,7 @@ Gracias. Esta muestra enseñará a CATTS a sonar como yo.`
       btn.textContent = 'Synthesizing…';
       openGlobalDock();
       document.getElementById('globalPlayerHost').innerHTML =
-        '<div class="wave-player"><div class="wave-label">Live TTS</div><div class="wave-status subtle">Generating speech — CPU may take 20–60 seconds…</div></div>';
+        '<div class="wave-player"><div class="wave-label">Live TTS (your voice)</div><div class="wave-status subtle">Loading XTTS model if cold — can take ~1 min first time, then faster…</div></div>';
 
       try {
         const r = await fetch(API + '/tts/live', {
@@ -1079,11 +1091,15 @@ Gracias. Esta muestra enseñará a CATTS a sonar como yo.`
           const detail = (await r.json().catch(() => ({}))).detail || await r.text();
           throw new Error(detail || r.statusText);
         }
+        const engine = r.headers.get('X-TTS-Engine') || 'unknown';
+        const latency = r.headers.get('X-TTS-Latency-Ms');
         const blob = await r.blob();
-        if (!isPlayableBlob(blob)) throw new Error('TTS returned empty audio — check voice sample exists');
+        if (!isPlayableBlob(blob)) throw new Error('TTS returned empty audio');
+        if (engine === 'edge') throw new Error('Got generic Edge voice instead of clone — restart server and check XTTS');
         const cacheKey = `live:${voice_id}:${text.slice(0, 48)}`;
-        await playInGlobalDock(blob, 'Live TTS', cacheKey);
-        document.getElementById('livePlayer').innerHTML = '<p class="subtle">Playing in the bottom player.</p>';
+        const label = `Live TTS · ${engine}${latency ? ' · ' + latency + 'ms' : ''}`;
+        await playInGlobalDock(blob, label, cacheKey);
+        document.getElementById('livePlayer').innerHTML = `<p class="subtle">Engine: <strong>${engine}</strong> — playing in bottom player.</p>`;
       } catch (e) {
         alert('Live TTS failed: ' + (e.message || e));
         document.getElementById('globalPlayerHost').innerHTML =

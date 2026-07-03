@@ -136,7 +136,8 @@ async def _synthesize_gptsovits(
     return output_path
 
 
-async def live_tts(text: str, voice_id: str, lang: str = "en", ref_audio: Path | None = None) -> bytes:
+async def live_tts(text: str, voice_id: str, lang: str = "en", ref_audio: Path | None = None) -> tuple[bytes, str]:
+    """Returns (audio_bytes, engine_used)."""
     if TTS_ENGINE == "gptsovits" and WORKER_URL:
         async with httpx.AsyncClient(timeout=30.0) as client:
             r = await client.post(
@@ -144,19 +145,23 @@ async def live_tts(text: str, voice_id: str, lang: str = "en", ref_audio: Path |
                 json={"text": text, "voice_id": voice_id, "lang": lang},
             )
             r.raise_for_status()
-            return r.content
+            return r.content, "gptsovits"
 
     with tempfile.TemporaryDirectory() as tmp:
         out = Path(tmp) / "live.wav"
         if ref_audio and _clone_engines():
-            try:
-                await _local_clone(text, out, ref_audio, lang)
-                return out.read_bytes()
-            except Exception as exc:
-                logger.warning("Local clone live failed (%s)", exc)
+            await _local_clone(text, out, ref_audio, lang)
+            return out.read_bytes(), engine_label()
+
+        if voice_id:
+            raise RuntimeError(
+                "Voice clone failed — your sample may be missing. "
+                "Re-train voice or check reference.wav in the voice folder."
+            )
+
         try:
             result = await _edge_tts(text, out, lang)
-            return result.read_bytes()
+            return result.read_bytes(), "edge"
         except Exception:
             _silent_wav(out, duration_sec=0.5)
-            return out.read_bytes()
+            return out.read_bytes(), "silent"

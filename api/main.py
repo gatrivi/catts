@@ -1,6 +1,7 @@
 """CATTS FastAPI application."""
 
 import logging
+import threading
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -14,6 +15,7 @@ from db import init_db
 from services.job_manifest import backfill_all_readmes
 from services.voice_fixup import fix_legacy_voice_names
 from services.voice_labels import sync_all_voice_labels, backfill_all_job_labels
+from services.xtts_tts import warmup_worker
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 
@@ -38,6 +40,7 @@ async def lifespan(app: FastAPI):
             logging.info("Labeled audio files for %d jobs", jl)
     except Exception:
         logging.exception("Startup backfill failed")
+    threading.Thread(target=warmup_worker, daemon=True, name="xtts-warmup").start()
     yield
 
 
