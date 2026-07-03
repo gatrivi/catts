@@ -35,7 +35,7 @@ async def run_voice_training(voice_id: str) -> None:
             voice_id,
             status="ready",
             progress=100,
-            message="Ready — preview sample saved",
+            message="Ready — voice sample saved for XTTS clone",
             artifact_path=str(artifact),
         )
         sync_voice_labeled_files(voice_id)

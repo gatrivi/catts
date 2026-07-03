@@ -9,13 +9,14 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from api.routes import health, jobs, voices
+from api.routes import health, jobs, stt, voices
 from config import API_HOST, API_PORT
 from db import init_db
 from services.job_manifest import backfill_all_readmes
 from services.voice_fixup import fix_legacy_voice_names
 from services.voice_labels import sync_all_voice_labels, backfill_all_job_labels
-from services.xtts_tts import warmup_worker
+from services.stt_client import warmup_worker as stt_warmup
+from services.xtts_tts import warmup_worker as xtts_warmup
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 
@@ -40,7 +41,8 @@ async def lifespan(app: FastAPI):
             logging.info("Labeled audio files for %d jobs", jl)
     except Exception:
         logging.exception("Startup backfill failed")
-    threading.Thread(target=warmup_worker, daemon=True, name="xtts-warmup").start()
+    threading.Thread(target=xtts_warmup, daemon=True, name="xtts-warmup").start()
+    threading.Thread(target=stt_warmup, daemon=True, name="stt-warmup").start()
     yield
 
 
@@ -48,6 +50,7 @@ app = FastAPI(title="CATTS", description="PDF/EPUB to Audiobook + Voice API", ve
 app.include_router(health.router)
 app.include_router(jobs.router)
 app.include_router(voices.router)
+app.include_router(stt.router)
 
 if STATIC_DIR.exists():
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")

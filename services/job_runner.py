@@ -105,6 +105,7 @@ async def _run_audiobook(job_id: str) -> None:
     text_path = jdir / "input.txt"
     pdf_path = jdir / "input.pdf"
     epub_path = jdir / "input.epub"
+    docx_path = jdir / "input.docx"
     text = ""
     book_title = meta.get("title", "Audiobook")
     book_author = meta.get("author", "")
@@ -117,6 +118,10 @@ async def _run_audiobook(job_id: str) -> None:
     elif epub_path.exists():
         update_job(job_id, stage="ingest", progress=10, message="Extracting EPUB text")
         text = extract_text(epub_path)
+        (jdir / "extracted.txt").write_text(text, encoding="utf-8")
+    elif docx_path.exists():
+        update_job(job_id, stage="ingest", progress=10, message="Extracting DOCX text")
+        text = extract_text(docx_path)
         (jdir / "extracted.txt").write_text(text, encoding="utf-8")
     elif pdf_path.exists():
         update_job(job_id, stage="ingest", progress=10, message="Extracting PDF text")

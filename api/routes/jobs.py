@@ -115,6 +115,8 @@ async def create_audiobook_job(
         dest = jdir / "input.pdf"
     elif fname.endswith(".epub") or upload is epub:
         dest = jdir / "input.epub"
+    elif fname.endswith(".docx"):
+        dest = jdir / "input.docx"
     else:
         dest = jdir / "input.txt"
 

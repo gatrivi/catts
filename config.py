@@ -14,6 +14,7 @@ WORKER_URL = os.getenv("CATTS_WORKER_URL", "").rstrip("/")
 OCR_ENGINE = os.getenv("CATTS_OCR_ENGINE", "none")  # unlimited | none
 TTS_ENGINE = os.getenv("CATTS_TTS_ENGINE", "xtts")  # xtts | edge | chatterbox | gptsovits
 DEFAULT_VOICE_ID = os.getenv("CATTS_DEFAULT_VOICE_ID", "").strip()
+STT_MODEL = os.getenv("CATTS_STT_MODEL", "small")  # faster-whisper: tiny|base|small|medium
 
 MAX_CONCURRENT_JOBS = int(os.getenv("CATTS_MAX_CONCURRENT_JOBS", "1"))
 TTS_CHUNK_MIN = int(os.getenv("CATTS_TTS_CHUNK_MIN", "200"))

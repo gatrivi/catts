@@ -74,10 +74,31 @@ def pdf_to_text(pdf_path: Path) -> str:
     return text
 
 
+def docx_to_text(docx_path: Path) -> str:
+    try:
+        from docx import Document
+    except ImportError as exc:
+        raise RuntimeError("python-docx required for DOCX support") from exc
+    doc = Document(str(docx_path))
+    parts = [p.text.strip() for p in doc.paragraphs if p.text.strip()]
+    for table in doc.tables:
+        for row in table.rows:
+            for cell in row.cells:
+                t = cell.text.strip()
+                if t:
+                    parts.append(t)
+    text = "\n\n".join(parts).strip()
+    if len(text) < 10:
+        raise ValueError("DOCX appears empty or unreadable")
+    return text
+
+
 def extract_text(source_path: Path) -> str:
     suffix = source_path.suffix.lower()
     if suffix in (".txt", ".md", ".markdown"):
         return source_path.read_text(encoding="utf-8", errors="ignore")
+    if suffix == ".docx":
+        return docx_to_text(source_path)
     if suffix == ".epub":
         try:
             return epub_to_text(source_path)

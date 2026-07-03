@@ -117,7 +117,7 @@
 </head>
 <body>
   <header>
-    <h1>CATTS <span class="ver">v0.5.2</span></h1>
+    <h1>CATTS <span class="ver">v0.6</span></h1>
     <div id="health">checking…</div>
   </header>
   <main>
@@ -137,13 +137,13 @@
 
     <section class="panel" data-panel="newbook">
       <button type="button" class="panel-head" aria-expanded="false">
-        <span class="panel-title">New book <span class="panel-hint">— upload PDF / EPUB</span></span>
+        <span class="panel-title">New book <span class="panel-hint">— PDF / EPUB / DOCX</span></span>
         <span class="panel-chevron">▼</span>
       </button>
       <div class="panel-body">
         <label>Book file</label>
         <div class="file-picker">
-          <input type="file" id="bookFile" class="file-input-hidden" accept=".pdf,.epub,.txt,.md" />
+          <input type="file" id="bookFile" class="file-input-hidden" accept=".pdf,.epub,.docx,.txt,.md" />
           <button type="button" class="file-btn" id="bookFileBtn"><span class="file-btn-icon">📄</span><span>Choose file…</span></button>
           <span class="file-name" id="bookFileName">No file selected</span>
         </div>
@@ -215,8 +215,44 @@
           <button type="button" class="file-btn" id="voiceFileBtn"><span class="file-btn-icon">🎵</span><span>Choose audio…</span></button>
           <span class="file-name" id="voiceFileName">WAV / MP3, 1–5 min</span>
         </div>
-        <button type="button" class="action-btn" id="voiceBtn">Start training</button>
+        <button type="button" class="action-btn" id="voiceBtn">Save voice sample</button>
         <div id="voices" style="margin-top:1rem"></div>
+      </div>
+    </section>
+
+    <section class="panel" data-panel="speech">
+      <button type="button" class="panel-head" aria-expanded="false">
+        <span class="panel-title">Speech tools <span class="panel-hint">— transcribe &amp; translate</span></span>
+        <span class="panel-chevron">▼</span>
+      </button>
+      <div class="panel-body">
+        <p class="instructions">Local Whisper STT (EN/ES) + offline Argos translation. Run <code>scripts/setup_stt.ps1</code> once.</p>
+        <label>Transcribe audio (EN / ES)</label>
+        <div class="file-picker">
+          <input type="file" id="sttFile" class="file-input-hidden" accept="audio/*" />
+          <button type="button" class="file-btn" id="sttFileBtn"><span class="file-btn-icon">🎙</span><span>Choose audio…</span></button>
+          <span class="file-name" id="sttFileName">WAV / MP3 / M4A</span>
+        </div>
+        <label>Language hint</label>
+        <select id="sttLang"><option value="">auto-detect</option><option value="en">English</option><option value="es">Spanish</option></select>
+        <button type="button" class="action-btn" id="sttBtn">Transcribe</button>
+        <label>Transcription</label>
+        <textarea id="sttOut" rows="4" readonly placeholder="Transcription appears here…" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #3a4150;background:#12151b;color:var(--text);"></textarea>
+        <label>Translate</label>
+        <textarea id="translateIn" rows="3" placeholder="Paste text to translate…" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #3a4150;background:#12151b;color:var(--text);"></textarea>
+        <div class="row">
+          <div>
+            <label>From</label>
+            <select id="translateFrom"><option value="en">English</option><option value="es">Spanish</option></select>
+          </div>
+          <div>
+            <label>To</label>
+            <select id="translateTo"><option value="es">Spanish</option><option value="en">English</option></select>
+          </div>
+        </div>
+        <button type="button" class="action-btn secondary" id="translateBtn">Translate</button>
+        <label>Translation</label>
+        <textarea id="translateOut" rows="4" readonly placeholder="Translation appears here…" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #3a4150;background:#12151b;color:var(--text);"></textarea>
       </div>
     </section>
 
@@ -993,8 +1029,8 @@ Gracias. Esta muestra enseñará a CATTS a sonar como yo.`
       const voiceHint = defaultVoiceId ? ' · default voice on' : '';
       el.textContent = h.worker_reachable
         ? 'GPU worker connected'
-        : `local · TTS: ${h.tts_engine || 'edge'}${voiceHint}`;
-      el.title = 'xtts=your voice (CPU). edge=Microsoft generic. First xtts run loads model (~1 min), then faster.';
+        : `local · TTS:${h.tts_engine || '?'} · STT:${h.stt_engine || 'none'}${voiceHint}`;
+      el.title = 'TTS=xtts clone. STT=faster-whisper. Translate=Argos offline EN↔ES.';
       const banner = document.getElementById('ttsBanner');
       if (localStorage.getItem('catts_hide_tts_banner') === '1') {
         banner.style.display = 'none';
@@ -1060,6 +1096,63 @@ Gracias. Esta muestra enseñará a CATTS a sonar como yo.`
       syncVoiceFileName();
       document.querySelector('[data-panel="voice"]')?.classList.add('open');
       await refreshVoices();
+    };
+
+    document.getElementById('sttBtn').onclick = async () => {
+      const input = document.getElementById('sttFile');
+      const file = input.files[0];
+      if (!file) return alert('Choose an audio file first.');
+      const btn = document.getElementById('sttBtn');
+      btn.disabled = true;
+      btn.textContent = 'Transcribing…';
+      document.getElementById('sttOut').value = 'Working… (first run loads Whisper model ~30s)';
+      try {
+        const fd = new FormData();
+        fd.append('file', file);
+        const lang = document.getElementById('sttLang').value;
+        if (lang) fd.append('lang', lang);
+        const r = await fetch(API + '/stt/transcribe', { method: 'POST', headers: headers(), body: fd });
+        if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail || r.statusText);
+        const data = await r.json();
+        document.getElementById('sttOut').value = data.text || '';
+        document.getElementById('translateIn').value = data.text || '';
+        if (data.language?.startsWith('es')) {
+          document.getElementById('translateFrom').value = 'es';
+          document.getElementById('translateTo').value = 'en';
+        } else if (data.language?.startsWith('en')) {
+          document.getElementById('translateFrom').value = 'en';
+          document.getElementById('translateTo').value = 'es';
+        }
+      } catch (e) {
+        alert('Transcribe failed: ' + (e.message || e));
+        document.getElementById('sttOut').value = '';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Transcribe';
+      }
+    };
+
+    document.getElementById('translateBtn').onclick = async () => {
+      const text = document.getElementById('translateIn').value.trim();
+      if (!text) return alert('Enter text to translate.');
+      const btn = document.getElementById('translateBtn');
+      btn.disabled = true;
+      try {
+        const data = await api('/stt/translate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            text,
+            from_lang: document.getElementById('translateFrom').value,
+            to_lang: document.getElementById('translateTo').value,
+          }),
+        });
+        document.getElementById('translateOut').value = data.text || '';
+      } catch (e) {
+        alert('Translate failed: ' + (e.message || e));
+      } finally {
+        btn.disabled = false;
+      }
     };
 
     document.getElementById('liveBtn').onclick = async () => {
@@ -1170,6 +1263,7 @@ Gracias. Esta muestra enseñará a CATTS a sonar como yo.`
     document.getElementById('globalPlayerClose').onclick = closeGlobalDock;
     syncBookFileName = wireFilePicker('bookFile', 'bookFileBtn', 'bookFileName', 'No file selected');
     syncVoiceFileName = wireFilePicker('voiceFile', 'voiceFileBtn', 'voiceFileName', 'WAV / MP3, 1–5 min');
+    wireFilePicker('sttFile', 'sttFileBtn', 'sttFileName', 'WAV / MP3 / M4A');
     tick();
     setInterval(tick, 3000);
   </script>

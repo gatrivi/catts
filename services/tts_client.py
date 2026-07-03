@@ -102,6 +102,8 @@ async def synthesize(
         try:
             return await _local_clone(text, output_path, ref_audio, lang)
         except Exception as exc:
+            if voice_id:
+                raise RuntimeError(f"Voice clone failed: {exc}") from exc
             logger.warning("Local clone failed (%s), falling back to Edge TTS", exc)
 
     try:
