@@ -101,6 +101,7 @@ That stack is:
 4. **Old jobs** — tiny silent MP3s; use **Re-record book**
 5. **Two duplicate "My main voice" entries** — pick one or delete folder
 6. **RAM** — simultaneous XTTS + Whisper may OOM during pip or inference
+7. **Translate subprocess** — first call ~60–90s (Argos/Stanza cold); fixed v0.6.1 to run in `.venv` not global Python
 
 ---
 
