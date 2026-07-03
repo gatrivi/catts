@@ -1,0 +1,9 @@
+CHAPTER 1
+
+This is a short test book for CATTS.
+
+It has two chapters for the audiobook pipeline.
+
+CHAPTER 2
+
+The second chapter verifies chapter splitting and TTS chunking work correctly.

@@ -150,3 +150,4 @@ __pycache__/
 venv/
 catts/
 pdf2txt.py
+data/

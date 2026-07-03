@@ -1,0 +1,27 @@
+# NVIDIA GPU worker: Unlimited-OCR (SGLang) + GPT-SoVITS
+# Requires: docker build --gpus all -f docker/Dockerfile.worker .
+FROM nvidia/cuda:12.4.1-runtime-ubuntu22.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 python3-pip python3-venv ffmpeg git curl \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+COPY requirements.txt requirements-worker.txt ./
+RUN pip3 install --no-cache-dir -r requirements.txt -r requirements-worker.txt
+
+COPY . .
+ENV PYTHONPATH=/app
+ENV WORKER_HOST=0.0.0.0
+ENV WORKER_PORT=59201
+ENV WORKER_VOICES_DIR=/data/voices
+ENV WORKER_OCR_MODE=sglang
+ENV WORKER_TTS_MODE=gptsovits
+ENV SGLANG_URL=http://127.0.0.1:10000
+ENV GPT_SOVITS_API_URL=http://127.0.0.1:9880
+ENV GPT_SOVITS_ROOT=/opt/GPT-SoVITS
+
+EXPOSE 59201
+VOLUME ["/data"]
+CMD ["python3", "-m", "worker.main"]

@@ -1,0 +1,1082 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CATTS</title>
+  <style>
+    :root { --bg:#0f1115; --card:#1a1d24; --text:#e8eaed; --muted:#9aa0a6; --accent:#6ea8fe; --ok:#3dd68c; --warn:#f5a524; --err:#f87171; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: system-ui, sans-serif; background:var(--bg); color:var(--text); }
+    header { padding:1rem 1.5rem; border-bottom:1px solid #2a2f3a; display:flex; justify-content:space-between; align-items:center; }
+    h1 { margin:0; font-size:1.25rem; }
+    main { max-width:960px; margin:0 auto; padding:1rem 1.25rem 2rem; display:grid; gap:.65rem; }
+    .panel { background:var(--card); border:1px solid #2a2f3a; border-radius:10px; overflow:hidden; }
+    .panel-head { width:100%; display:flex; align-items:center; gap:.6rem; padding:.85rem 1rem; background:transparent; border:none; color:var(--text); cursor:pointer; text-align:left; margin:0; font:inherit; }
+    .panel-head:hover { background:#22262f; }
+    .panel-title { font-size:.95rem; font-weight:600; flex:1; }
+    .panel-hint { font-size:.75rem; color:var(--muted); font-weight:400; }
+    .panel-badge { font-size:.72rem; padding:.15rem .45rem; border-radius:99px; background:#2a3140; color:var(--muted); }
+    .panel-chevron { color:var(--muted); transition:transform .2s; font-size:.85rem; }
+    .panel.open .panel-chevron { transform:rotate(180deg); }
+    .panel-body { display:none; padding:0 1rem 1rem; border-top:1px solid #252a35; }
+    .panel.open .panel-body { display:block; }
+    .panel-body > :first-child { margin-top:.85rem; }
+    .subtle { font-size:.8rem; color:var(--muted); }
+    label { display:block; font-size:.8rem; color:var(--muted); margin:.55rem 0 .25rem; }
+    label.inline { display:inline-flex; align-items:center; gap:.35rem; margin:.25rem .75rem .25rem 0; width:auto; }
+    input:not([type=file]):not([type=checkbox]):not([type=radio]), select, button.action-btn { width:100%; padding:.55rem .7rem; border-radius:8px; border:1px solid #3a4150; background:#12151b; color:var(--text); }
+    button.action-btn { cursor:pointer; background:var(--accent); color:#0b1020; border:none; font-weight:600; margin-top:.65rem; }
+    button.action-btn.secondary { background:#2a3140; color:var(--text); border:1px solid #3a4150; }
+    button.action-btn.play { background:#3dd68c; color:#0b1020; }
+    .row { display:grid; grid-template-columns:1fr 1fr; gap:.75rem; }
+    @media (max-width:640px) { .row { grid-template-columns:1fr; } }
+    .file-picker { display:flex; flex-wrap:wrap; align-items:center; gap:.5rem; margin:.25rem 0 .5rem; }
+    .file-input-hidden { position:absolute; width:0; height:0; opacity:0; pointer-events:none; }
+    .file-btn { display:inline-flex; align-items:center; gap:.45rem; padding:.5rem .85rem; border-radius:8px; border:1px dashed #4a5568; background:#161a22; color:var(--text); cursor:pointer; font-size:.85rem; font-weight:500; margin:0; width:auto; transition:border-color .15s, background .15s; }
+    .file-btn:hover { border-color:var(--accent); background:#1c2230; color:var(--accent); }
+    .file-btn-icon { opacity:.85; }
+    .file-name { font-size:.8rem; color:var(--muted); max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .file-name.has-file { color:var(--ok); font-weight:500; }
+    .job-item { border:1px solid #2a2f3a; border-radius:8px; margin-bottom:.5rem; overflow:hidden; background:#14181f; }
+    .job-item.running { border-color:#5a4520; }
+    .job-item.failed { border-color:#5a2828; }
+    .job-head { width:100%; display:flex; align-items:center; gap:.5rem; padding:.6rem .75rem; background:transparent; border:none; color:var(--text); cursor:pointer; text-align:left; margin:0; font:inherit; }
+    .job-head:hover { background:#1c2129; }
+    .job-title { font-weight:600; font-size:.9rem; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .status-badge { font-size:.7rem; padding:.12rem .4rem; border-radius:4px; text-transform:uppercase; letter-spacing:.03em; flex-shrink:0; }
+    .status-badge.done { background:#1a3d2e; color:var(--ok); }
+    .status-badge.running, .status-badge.queued { background:#3d3018; color:var(--warn); }
+    .status-badge.failed { background:#3d1f1f; color:var(--err); }
+    .status-badge.ready { background:#1a3d2e; color:var(--ok); }
+    .status-badge.training { background:#3d3018; color:var(--warn); }
+    .job-chevron { color:var(--muted); transition:transform .2s; }
+    .job-item.open .job-chevron { transform:rotate(90deg); }
+    .job-top { display:flex; align-items:stretch; }
+    .job-top .job-head { flex:1; min-width:0; }
+    .job-quick-play { flex-shrink:0; width:auto; margin:0; padding:.55rem .7rem; border:none; border-left:1px solid #2a2f3a; border-radius:0; background:#1a3d2e; color:var(--ok); font-weight:700; cursor:pointer; font-size:.9rem; }
+    .job-quick-play:hover { background:#245a42; }
+    .job-body { display:none; padding:0 .75rem .75rem; }
+    .job-item.open .job-body { display:block; }
+    .job-item.running .job-body { display:block; }
+    .bar { height:6px; background:#2a2f3a; border-radius:99px; overflow:hidden; margin:.4rem 0; }
+    .bar>i { display:block; height:100%; background:var(--accent); width:0; transition:width .3s; }
+    .status { font-size:.8rem; }
+    .status.done { color:var(--ok); } .status.failed { color:var(--err); } .status.running { color:var(--warn); }
+    .path { font-size:.75rem; color:var(--muted); word-break:break-all; margin-top:.35rem; }
+    .actions { display:flex; flex-wrap:wrap; gap:.4rem; margin-top:.5rem; align-items:center; }
+    .actions button, .actions select, .actions .action-btn { width:auto; margin:0; padding:.35rem .6rem; font-size:.78rem; }
+    .actions select { width:auto; min-width:7rem; padding:.35rem .5rem; }
+    .player { margin-top:.5rem; }
+    .wave-player { margin-top:.5rem; padding:.6rem; background:#12151b; border:1px solid #3a4150; border-radius:8px; }
+    .wave-meta { display:flex; justify-content:space-between; align-items:center; gap:.5rem; margin-bottom:.35rem; font-size:.8rem; }
+    .wave-label { color:var(--muted); }
+    .wave-level { font-size:.75rem; }
+    .wave-level.ok { color:var(--ok); }
+    .wave-level.warn { color:var(--warn); }
+    .wave-silent { font-size:.8rem; color:var(--warn); margin-bottom:.35rem; }
+    .wave-main, .wave-lookahead { width:100%; display:block; border-radius:4px; background:#0a0c10; cursor:pointer; }
+    .wave-lookahead-wrap { margin-top:.45rem; }
+    .wave-lookahead-title { font-size:.72rem; color:var(--muted); margin:.25rem 0 .15rem; }
+    .wave-controls { display:flex; align-items:center; gap:.5rem; margin-top:.45rem; }
+    .wave-controls .wave-play { width:auto; margin:0; padding:.3rem .65rem; font-size:.85rem; }
+    .wave-seek { flex:1; margin:0; accent-color:var(--accent); }
+    .wave-time { font-size:.75rem; color:var(--muted); white-space:nowrap; min-width:5.5rem; text-align:right; }
+    .file-tag { font-size:.72rem; color:var(--muted); font-family:ui-monospace,monospace; word-break:break-all; }
+    .instructions { font-size:.85rem; color:var(--muted); line-height:1.45; margin-bottom:.75rem; }
+    .script-box { background:#12151b; border:1px solid #3a4150; border-radius:8px; padding:.75rem; max-height:180px; overflow:auto; font-size:.9rem; line-height:1.5; white-space:pre-wrap; margin:.5rem 0; }
+    .mic-row { display:flex; gap:.5rem; align-items:center; flex-wrap:wrap; margin:.5rem 0; }
+    .mic-btn { width:auto; min-width:140px; background:#e5534b; color:#fff; border:none; padding:.5rem .85rem; border-radius:8px; cursor:pointer; font-weight:600; margin:0; }
+    .mic-btn.recording { animation: pulse 1s infinite; }
+    @keyframes pulse { 50% { opacity:.65; } }
+    .rec-status { font-size:.85rem; color:var(--warn); }
+    #health { font-size:.85rem; color:var(--muted); cursor:help; }
+    #globalPlayerDock { position:fixed; bottom:0; left:0; right:0; z-index:100; background:#1a1d24; border-top:2px solid var(--accent); padding:.75rem 1rem 1rem; box-shadow:0 -4px 24px rgba(0,0,0,.45); }
+    #globalPlayerDock[hidden] { display:none !important; }
+    #globalPlayerLabel { font-size:.85rem; color:var(--text); margin-bottom:.35rem; font-weight:600; }
+    #globalAudio { width:100%; max-width:960px; display:block; margin:0 auto; }
+    #globalWaveform { width:100%; max-width:960px; height:48px; display:block; margin:.35rem auto 0; background:#0a0c10; border-radius:4px; }
+    .ver { font-size:.7rem; color:var(--muted); margin-left:.5rem; }
+    .word-chip { display:inline-block; padding:.2rem .5rem; margin:.15rem .2rem 0 0; background:#2a3140; border-radius:4px; cursor:pointer; font-size:.85rem; }
+    .word-chip:hover { background:#3a4a60; }
+    .word-target { display:flex; gap:1rem; font-size:.85rem; color:var(--muted); margin:.35rem 0; }
+    #ttsBanner { background:#3d2a00; border:1px solid #7a5a10; color:#f5d08c; padding:.6rem .75rem; border-radius:8px; font-size:.85rem; display:none; align-items:flex-start; justify-content:space-between; gap:.75rem; }
+    .banner-dismiss { flex-shrink:0; width:auto; margin:0; padding:.15rem .45rem; background:transparent; border:1px solid #7a5a10; color:#f5d08c; border-radius:4px; cursor:pointer; font-size:.85rem; line-height:1; }
+    .banner-dismiss:hover { background:#4a3810; }
+    .toolbar-row { display:flex; flex-wrap:wrap; gap:.4rem; align-items:center; margin-bottom:.5rem; }
+    .toolbar-row .action-btn { width:auto; margin:0; padding:.35rem .65rem; font-size:.78rem; }
+    .job-help { font-size:.78rem; color:var(--muted); line-height:1.5; margin:.45rem 0; }
+    .action-group { margin-top:.55rem; }
+    .action-group-label { font-size:.7rem; color:var(--muted); margin-bottom:.2rem; }
+    .empty-state { font-size:.85rem; color:var(--muted); padding:.5rem 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>CATTS <span class="ver">v0.4</span></h1>
+    <div id="health">checking…</div>
+  </header>
+  <main>
+    <div id="ttsBanner"></div>
+
+    <section class="panel open" data-panel="books">
+      <button type="button" class="panel-head" aria-expanded="true">
+        <span class="panel-title">Books <span class="panel-hint">— check results &amp; play</span></span>
+        <span class="panel-badge" id="booksCount">0</span>
+        <span class="panel-chevron">▼</span>
+      </button>
+      <div class="panel-body">
+        <p class="job-help">Click a book title to expand. <strong>Play</strong> opens the player at the bottom of the screen.</p>
+        <div id="jobs"></div>
+      </div>
+    </section>
+
+    <section class="panel" data-panel="newbook">
+      <button type="button" class="panel-head" aria-expanded="false">
+        <span class="panel-title">New book <span class="panel-hint">— upload PDF / EPUB</span></span>
+        <span class="panel-chevron">▼</span>
+      </button>
+      <div class="panel-body">
+        <label>Book file</label>
+        <div class="file-picker">
+          <input type="file" id="bookFile" class="file-input-hidden" accept=".pdf,.epub,.txt,.md" />
+          <button type="button" class="file-btn" id="bookFileBtn"><span class="file-btn-icon">📄</span><span>Choose file…</span></button>
+          <span class="file-name" id="bookFileName">No file selected</span>
+        </div>
+        <label>Click words from filename →</label>
+        <div class="word-target">
+          <label class="inline"><input type="radio" name="metaTarget" value="title" checked /> Title</label>
+          <label class="inline"><input type="radio" name="metaTarget" value="author" /> Author</label>
+        </div>
+        <div id="fnameWords" class="subtle">Select a file to see filename words</div>
+        <div class="row">
+          <div>
+            <label>Title</label>
+            <input id="bookTitle" placeholder="Book title" />
+          </div>
+          <div>
+            <label>Author</label>
+            <input id="bookAuthor" placeholder="Author (optional)" />
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>Language</label>
+            <select id="bookLang"><option value="">auto</option><option value="en">English</option><option value="es">Spanish</option></select>
+          </div>
+          <div>
+            <label>Chapter names</label>
+            <select id="chapterMode">
+              <option value="detect">From document headers</option>
+              <option value="detect_number">Numbered + header subtitle</option>
+              <option value="number">Simple Chapter 1, 2, 3…</option>
+            </select>
+          </div>
+        </div>
+        <label>Voice (optional)</label>
+        <select id="bookVoice"><option value="">Preview voice (auto)</option></select>
+        <label class="inline"><input type="checkbox" id="genAudio" checked /> Generate audiobook audio</label>
+        <button type="button" class="action-btn" id="uploadBtn">Start processing</button>
+      </div>
+    </section>
+
+    <section class="panel" data-panel="voice">
+      <button type="button" class="panel-head" aria-expanded="false">
+        <span class="panel-title">Train voice <span class="panel-hint">— record or upload sample</span></span>
+        <span class="panel-badge" id="voicesCount">0</span>
+        <span class="panel-chevron">▼</span>
+      </button>
+      <div class="panel-body">
+        <p class="instructions">One voice per language. Record 1–3 min reading the script, preview the waveform, then train.</p>
+        <div class="row">
+          <div>
+            <label>Voice name</label>
+            <input id="voiceName" placeholder="Gastón — Español" />
+          </div>
+          <div>
+            <label>Language</label>
+            <select id="voiceLang"><option value="en">English</option><option value="es">Spanish</option></select>
+          </div>
+        </div>
+        <label>Script to read</label>
+        <div class="script-box" id="voiceScript"></div>
+        <div class="mic-row">
+          <button type="button" class="mic-btn" id="micBtn">🎤 Record</button>
+          <span class="rec-status" id="recStatus">Not recording</span>
+        </div>
+        <div id="voicePreview" class="player"></div>
+        <label>Or upload recording</label>
+        <div class="file-picker">
+          <input type="file" id="voiceFile" class="file-input-hidden" accept="audio/*" />
+          <button type="button" class="file-btn" id="voiceFileBtn"><span class="file-btn-icon">🎵</span><span>Choose audio…</span></button>
+          <span class="file-name" id="voiceFileName">WAV / MP3, 1–5 min</span>
+        </div>
+        <button type="button" class="action-btn" id="voiceBtn">Start training</button>
+        <div id="voices" style="margin-top:1rem"></div>
+      </div>
+    </section>
+
+    <section class="panel" data-panel="live">
+      <button type="button" class="panel-head" aria-expanded="false">
+        <span class="panel-title">Live TTS <span class="panel-hint">— quick voice test</span></span>
+        <span class="panel-chevron">▼</span>
+      </button>
+      <div class="panel-body">
+        <label>Short phrase (max ~12 words)</label>
+        <input id="liveText" placeholder="Hello, this is a test." />
+        <label>Voice</label>
+        <select id="liveVoice"><option value="">Choose your voice…</option></select>
+        <button type="button" class="action-btn play" id="liveBtn">Speak</button>
+        <div id="livePlayer" class="player"></div>
+      </div>
+    </section>
+  </main>
+  <div id="globalPlayerDock" hidden>
+    <div id="globalPlayerLabel">Audio</div>
+    <audio id="globalAudio" controls preload="auto"></audio>
+    <canvas id="globalWaveform"></canvas>
+  </div>
+  <script>
+    function chapterAudioUrl(jobId, chapterNum) {
+      return `/jobs/${jobId}/chapters/${chapterNum}/audio`;
+    }
+
+    function showGlobalPlayer(label, src) {
+      const dock = document.getElementById('globalPlayerDock');
+      const audio = document.getElementById('globalAudio');
+      document.getElementById('globalPlayerLabel').textContent = label;
+      dock.removeAttribute('hidden');
+      dock.style.display = 'block';
+      audio.src = src;
+      audio.load();
+      audio.play().catch(() => {});
+      dock.scrollIntoView({ block: 'nearest' });
+    }
+
+    async function loadGlobalWaveform(src, label) {
+      const canvas = document.getElementById('globalWaveform');
+      if (!canvas) return;
+      try {
+        const r = await fetch(src);
+        if (!r.ok) return;
+        const blob = await r.blob();
+        if (!isPlayableBlob(blob)) {
+          const g = canvas.getContext('2d');
+          g.fillStyle = '#3d3018';
+          g.fillRect(0, 0, canvas.width, canvas.height);
+          return;
+        }
+        const { peaks, duration, maxPeak } = await decodePeaks(blob, 400);
+        drawWaveform(canvas, peaks, duration, 0, duration, 0, { playhead: false });
+        document.getElementById('globalPlayerLabel').textContent =
+          `${label} · ${maxPeak < 0.008 ? '⚠ low signal' : 'signal ok'}`;
+      } catch (_) { /* waveform optional */ }
+    }
+
+    function playBook(id) {
+      openJobs.add(id);
+      document.querySelector(`.job-item[data-id="${id}"]`)?.classList.add('open');
+      const url = chapterAudioUrl(id, 1);
+      showGlobalPlayer('Chapter 1 — loading…', url);
+      loadGlobalWaveform(url, 'Chapter 1');
+      getJobFiles(id).then(f => {
+        const ch = f.chapters?.[0];
+        if (ch) {
+          document.getElementById('globalPlayerLabel').textContent = ch.title || 'Chapter 1';
+          if (ch.index !== 1) {
+            const u = chapterAudioUrl(id, ch.index);
+            showGlobalPlayer(ch.title || `Chapter ${ch.index}`, u);
+            loadGlobalWaveform(u, ch.title || `Chapter ${ch.index}`);
+          }
+        }
+      }).catch(err => alert('Play failed: ' + (err.message || err)));
+    }
+
+    function playChapter(id, num) {
+      if (!num) return;
+      openJobs.add(id);
+      document.querySelector(`.job-item[data-id="${id}"]`)?.classList.add('open');
+      const url = chapterAudioUrl(id, num);
+      showGlobalPlayer(`Chapter ${num}`, url);
+      loadGlobalWaveform(url, `Chapter ${num}`);
+    }
+
+    async function delJob(id) {
+      if (!confirm('Remove this book from CATTS? Files stay on disk until you delete the folder.')) return;
+      try {
+        delete jobFilesCache[id];
+        await api(`/jobs/${id}`, { method: 'DELETE' });
+        openJobs.delete(id);
+        await refreshJobs();
+      } catch (e) {
+        alert('Remove failed: ' + (e.message || e));
+      }
+    }
+
+    function bindJobActions() {
+      const box = document.getElementById('jobs');
+      if (!box || box.dataset.bound) return;
+      box.dataset.bound = '1';
+      box.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-action]');
+        if (btn) {
+          e.preventDefault();
+          e.stopPropagation();
+          const id = btn.dataset.id;
+          const act = btn.dataset.action;
+          if (act === 'play') playBook(id);
+          else if (act === 'folder') openFolder(id);
+          else if (act === 'md') dlManuscript(id, 'md');
+          else if (act === 'txt') dlManuscript(id, 'txt');
+          else if (act === 'download') dlResult(id);
+          else if (act === 'rerecord') regenerateJob(id);
+          else if (act === 'delete') delJob(id);
+          return;
+        }
+        const head = e.target.closest('[data-toggle-job]');
+        if (head) {
+          const item = head.closest('.job-item');
+          if (!item) return;
+          const id = item.dataset.id;
+          if (item.classList.contains('running') || item.classList.contains('queued')) return;
+          item.classList.toggle('open');
+          if (item.classList.contains('open')) openJobs.add(id);
+          else openJobs.delete(id);
+          return;
+        }
+      });
+      box.addEventListener('change', (e) => {
+        const sel = e.target.closest('select[data-action=chapter]');
+        if (sel?.value) playChapter(sel.dataset.id, sel.value);
+      });
+    }
+
+    let activeAudio = null;
+    let activeRaf = null;
+    let activePlayerHostId = null;
+    let refreshPaused = false;
+
+    function isPlayableBlob(blob) {
+      return blob && blob.size > 4096;
+    }
+
+    async function fetchChapterBlob(id, num) {
+      const r = await fetch(API + `/jobs/${id}/chapters/${num}/audio`, { headers: headers() });
+      if (!r.ok) throw new Error('Chapter audio not found');
+      const blob = await r.blob();
+      if (!isPlayableBlob(blob)) {
+        throw new Error(`Chapter ${num} looks silent or corrupt — click Regenerate audio`);
+      }
+      return blob;
+    }
+
+    async function fetchBestPlayableChapter(id) {
+      const f = await getJobFiles(id);
+      if (!f.chapters.length) throw new Error('No chapter audio — click Regenerate audio');
+      for (const ch of f.chapters) {
+        try {
+          const blob = await fetchChapterBlob(id, ch.index);
+          return { blob, label: ch.title || `Chapter ${ch.index}` };
+        } catch (_) { /* try next */ }
+      }
+      throw new Error('All chapters look silent — click Regenerate audio');
+    }
+
+    function fmtTime(sec) {
+      if (!isFinite(sec)) return '0:00';
+      const m = Math.floor(sec / 60);
+      const s = Math.floor(sec % 60);
+      return `${m}:${String(s).padStart(2, '0')}`;
+    }
+
+    async function decodePeaks(blob, buckets = 720) {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const buf = await ctx.decodeAudioData(await blob.arrayBuffer());
+      const ch = buf.getChannelData(0);
+      const block = Math.max(1, Math.floor(ch.length / buckets));
+      const peaks = new Float32Array(buckets);
+      let maxPeak = 0;
+      for (let i = 0; i < buckets; i++) {
+        let peak = 0;
+        const start = i * block;
+        const end = Math.min(start + block, ch.length);
+        for (let j = start; j < end; j++) peak = Math.max(peak, Math.abs(ch[j]));
+        peaks[i] = peak;
+        maxPeak = Math.max(maxPeak, peak);
+      }
+      await ctx.close();
+      return { peaks, duration: buf.duration, maxPeak };
+    }
+
+    function drawWaveform(canvas, peaks, duration, startSec, endSec, playSec, { playhead = true, fill = '#6ea8fe', bg = '#1e2430' } = {}) {
+      const w = canvas.width = canvas.clientWidth * devicePixelRatio;
+      const h = canvas.height = canvas.clientHeight * devicePixelRatio;
+      const g = canvas.getContext('2d');
+      g.clearRect(0, 0, w, h);
+      g.fillStyle = bg;
+      g.fillRect(0, 0, w, h);
+      if (!peaks.length || !duration) return;
+
+      const i0 = Math.floor((startSec / duration) * peaks.length);
+      const i1 = Math.ceil((endSec / duration) * peaks.length);
+      const slice = peaks.subarray(i0, Math.max(i1, i0 + 1));
+      const mid = h / 2;
+      const barW = w / slice.length;
+
+      for (let i = 0; i < slice.length; i++) {
+        const amp = slice[i];
+        const barH = Math.max(1, amp * mid * 0.92);
+        const x = i * barW;
+        const played = playhead && duration && ((i0 + i) / peaks.length) * duration <= playSec;
+        g.fillStyle = played ? fill : '#4a5568';
+        g.fillRect(x, mid - barH, Math.max(1, barW - 1), barH * 2);
+      }
+
+      if (playhead && duration && playSec >= startSec && playSec <= endSec) {
+        const frac = (playSec - startSec) / (endSec - startSec);
+        const x = frac * w;
+        g.strokeStyle = '#3dd68c';
+        g.lineWidth = 2 * devicePixelRatio;
+        g.beginPath();
+        g.moveTo(x, 0);
+        g.lineTo(x, h);
+        g.stroke();
+      }
+    }
+
+    function stopActivePlayer() {
+      if (activeRaf) cancelAnimationFrame(activeRaf);
+      activeRaf = null;
+      if (activeAudio) {
+        activeAudio.pause();
+        activeAudio = null;
+      }
+      activePlayerHostId = null;
+    }
+
+    async function mountWavePlayer(container, blob, label, { autoplay = true, lookaheadSec = 5 } = {}) {
+      if (!container) return;
+      if (!isPlayableBlob(blob)) {
+        container.innerHTML = '<div class="wave-silent">⚠ Audio file is empty or too small — use <strong>Re-record book</strong>.</div>';
+        return;
+      }
+
+      const url = URL.createObjectURL(blob);
+      activePlayerHostId = container.id || null;
+
+      // Show a working audio control immediately (user already clicked Play)
+      container.innerHTML = `
+        <div class="wave-player">
+          <div class="wave-label">${label || 'Audio'}</div>
+          <audio controls ${autoplay ? 'autoplay' : ''} style="width:100%" src="${url}"></audio>
+          <div class="wave-status subtle" style="margin-top:.35rem">Loading waveform…</div>
+        </div>`;
+      const audio = container.querySelector('audio');
+      activeAudio = audio;
+      if (autoplay) audio.play().catch(() => {});
+
+      let peaks, duration, maxPeak;
+      try {
+        ({ peaks, duration, maxPeak } = await decodePeaks(blob));
+      } catch (_) {
+        container.querySelector('.wave-status').textContent = 'Waveform unavailable — use the player above.';
+        return;
+      }
+
+      const silent = maxPeak < 0.008;
+      const wrap = document.createElement('div');
+      wrap.className = 'wave-player';
+      wrap.innerHTML = `
+        <div class="wave-meta">
+          <span class="wave-label"></span>
+          <span class="wave-level ${silent ? 'warn' : 'ok'}">${silent ? 'Low signal' : 'Signal OK'} · peak ${(maxPeak * 100).toFixed(1)}%</span>
+        </div>
+        <div class="wave-silent" ${silent ? '' : 'hidden'}>⚠ Waveform looks flat — file may be silent.</div>
+        <canvas class="wave-main" style="height:72px"></canvas>
+        <div class="wave-lookahead-wrap">
+          <div class="wave-lookahead-title">Next ${lookaheadSec}s from playhead</div>
+          <canvas class="wave-lookahead" style="height:56px"></canvas>
+        </div>
+        <div class="wave-controls">
+          <button type="button" class="wave-play action-btn play">▶</button>
+          <input type="range" class="wave-seek" min="0" max="1000" value="0" />
+          <span class="wave-time">0:00 / ${fmtTime(duration)}</span>
+        </div>`;
+      const keepAudio = audio.cloneNode(true);
+      keepAudio.src = url;
+      if (!autoplay) keepAudio.removeAttribute('autoplay');
+      container.innerHTML = '';
+      container.appendChild(wrap);
+      wrap.insertBefore(keepAudio, wrap.firstChild);
+      keepAudio.style.width = '100%';
+      keepAudio.style.marginBottom = '.5rem';
+      wrap.querySelector('.wave-label').textContent = label || 'Audio';
+      activeAudio = keepAudio;
+      const playerAudio = keepAudio;
+      const mainCanvas = wrap.querySelector('.wave-main');
+      const laCanvas = wrap.querySelector('.wave-lookahead');
+      const seek = wrap.querySelector('.wave-seek');
+      const timeEl = wrap.querySelector('.wave-time');
+      const playBtn = wrap.querySelector('.wave-play');
+
+      function redraw() {
+        const t = playerAudio.currentTime || 0;
+        drawWaveform(mainCanvas, peaks, duration, 0, duration, t);
+        drawWaveform(laCanvas, peaks, duration, t, Math.min(duration, t + lookaheadSec), t, { fill: '#f5a524' });
+        seek.value = duration ? Math.round((t / duration) * 1000) : 0;
+        timeEl.textContent = `${fmtTime(t)} / ${fmtTime(duration)}`;
+        if (!playerAudio.paused) activeRaf = requestAnimationFrame(redraw);
+      }
+
+      function seekTo(sec) {
+        playerAudio.currentTime = Math.max(0, Math.min(duration, sec));
+        redraw();
+      }
+
+      playBtn.onclick = () => {
+        if (playerAudio.paused) {
+          playerAudio.play();
+          playBtn.textContent = '⏸';
+          redraw();
+        } else {
+          playerAudio.pause();
+          playBtn.textContent = '▶';
+          if (activeRaf) cancelAnimationFrame(activeRaf);
+        }
+      };
+      seek.oninput = () => seekTo((seek.value / 1000) * duration);
+      mainCanvas.onclick = (e) => {
+        const rect = mainCanvas.getBoundingClientRect();
+        const frac = (e.clientX - rect.left) / rect.width;
+        seekTo(frac * duration);
+        if (playerAudio.paused && autoplay) playerAudio.play().then(() => { playBtn.textContent = '⏸'; redraw(); });
+      };
+      playerAudio.onended = () => { playBtn.textContent = '▶'; if (activeRaf) cancelAnimationFrame(activeRaf); };
+      redraw();
+      if (autoplay) playerAudio.play().then(() => { playBtn.textContent = '⏸'; redraw(); }).catch(() => {});
+    }
+
+    async function playVoiceSample(id, label) {
+      openVoices.add(id);
+      const item = document.querySelector(`.voice-item[data-id="${id}"]`);
+      if (item) item.classList.add('open');
+      const r = await fetch(API + `/voices/${id}/sample`, { headers: headers() });
+      if (!r.ok) return alert('No sample audio for this voice');
+      const blob = await r.blob();
+      await mountWavePlayer(document.getElementById(`voice-player-${id}`), blob, label, { autoplay: true });
+    }
+
+    const API = '';
+    const jobFilesCache = {};
+    const openJobs = new Set();
+    const openVoices = new Set();
+    const PANEL_KEY = 'catts_panels';
+    let mediaRecorder = null;
+    let recordChunks = [];
+    let recordedBlob = null;
+    let recordTimer = null;
+    let recordSeconds = 0;
+
+    function initPanels() {
+      let saved = {};
+      try { saved = JSON.parse(localStorage.getItem(PANEL_KEY) || '{}'); } catch (_) {}
+      document.querySelectorAll('.panel').forEach(panel => {
+        const id = panel.dataset.panel;
+        const open = id in saved ? saved[id] : (id === 'books');
+        panel.classList.toggle('open', open);
+        panel.querySelector('.panel-head').addEventListener('click', () => {
+          panel.classList.toggle('open');
+          const state = {};
+          document.querySelectorAll('.panel').forEach(p => {
+            state[p.dataset.panel] = p.classList.contains('open');
+          });
+          localStorage.setItem(PANEL_KEY, JSON.stringify(state));
+        });
+      });
+    }
+
+    function setFileLabel(nameEl, file, emptyLabel) {
+      nameEl.textContent = file ? file.name : emptyLabel;
+      nameEl.classList.toggle('has-file', !!file);
+    }
+
+    function wireFilePicker(inputId, btnId, nameId, emptyLabel) {
+      const input = document.getElementById(inputId);
+      const nameEl = document.getElementById(nameId);
+      document.getElementById(btnId).onclick = () => input.click();
+      return () => setFileLabel(nameEl, input.files[0], emptyLabel);
+    }
+
+    window.toggleJobItem = (btn) => {
+      const item = btn.closest('.job-item');
+      const id = item.dataset.id;
+      if (item.classList.contains('running') || item.classList.contains('queued')) return;
+      item.classList.toggle('open');
+      if (item.classList.contains('open')) openJobs.add(id);
+      else openJobs.delete(id);
+    };
+
+    window.toggleVoiceItem = (btn) => {
+      const item = btn.closest('.voice-item');
+      const id = item.dataset.id;
+      item.classList.toggle('open');
+      if (item.classList.contains('open')) openVoices.add(id);
+      else openVoices.delete(id);
+    };
+
+    let syncBookFileName = () => {};
+    let syncVoiceFileName = () => {};
+
+    const VOICE_SCRIPTS = {
+      en: `Welcome to CATTS voice training. Read this in your natural voice, calmly, as if narrating an audiobook.
+
+My name is [say your name]. I am recording a personal voice for reading books and live interpretation.
+
+The quick brown fox jumps over the lazy dog. Pack my box with five dozen liquor jugs.
+
+One, two, three, four, five, six, seven, eight, nine, ten.
+
+Some sentences are short. Others are longer, with pauses, questions, and variety in tone — but always natural.
+
+How are you today? I hope you are well.
+
+Numbers and dates matter: January fifteenth, twenty twenty-six. Twenty-five percent, three point fourteen.
+
+Thank you. This sample will teach CATTS to sound like me.`,
+
+      es: `Bienvenido al entrenamiento de voz de CATTS. Lee esto con tu voz natural, con calma, como si narraras un audiolibro.
+
+Me llamo [di tu nombre]. Estoy grabando mi voz personal para libros y interpretación en vivo.
+
+El veloz murciélago hindú comía feliz cardillo y kiwi. La cigüeña tocaba el saxofón.
+
+Uno, dos, tres, cuatro, cinco, seis, siete, ocho, nueve, diez.
+
+Algunas frases son cortas. Otras son más largas, con pausas, preguntas y variedad de tono, pero siempre natural.
+
+¿Cómo estás hoy? Espero que muy bien.
+
+Los números y las fechas importan: quince de enero de dos mil veintiséis. Veinticinco por ciento, tres coma catorce.
+
+Gracias. Esta muestra enseñará a CATTS a sonar como yo.`
+    };
+
+    function updateVoiceScript() {
+      const lang = document.getElementById('voiceLang').value;
+      document.getElementById('voiceScript').textContent = VOICE_SCRIPTS[lang] || VOICE_SCRIPTS.en;
+    }
+
+    function formatRecTime(sec) {
+      const m = Math.floor(sec / 60);
+      const s = sec % 60;
+      return `${m}:${String(s).padStart(2, '0')}`;
+    }
+
+    async function toggleRecording() {
+      const micBtn = document.getElementById('micBtn');
+      const recStatus = document.getElementById('recStatus');
+
+      if (mediaRecorder && mediaRecorder.state === 'recording') {
+        mediaRecorder.stop();
+        return;
+      }
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        recordChunks = [];
+        recordedBlob = null;
+        recordSeconds = 0;
+        const mime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+          ? 'audio/webm;codecs=opus' : 'audio/webm';
+        mediaRecorder = new MediaRecorder(stream, { mimeType: mime });
+        mediaRecorder.ondataavailable = e => { if (e.data.size) recordChunks.push(e.data); };
+        mediaRecorder.onstop = () => {
+          clearInterval(recordTimer);
+          stream.getTracks().forEach(t => t.stop());
+          recordedBlob = new Blob(recordChunks, { type: mime });
+          document.getElementById('voiceFile').value = '';
+          syncVoiceFileName();
+          micBtn.textContent = '🎤 Record';
+          micBtn.classList.remove('recording');
+          recStatus.textContent = `Recorded ${formatRecTime(recordSeconds)} — check waveform below, then Start training`;
+          mountWavePlayer(document.getElementById('voicePreview'), recordedBlob, 'Recording preview', { autoplay: false });
+        };
+        mediaRecorder.start(1000);
+        micBtn.textContent = '⏹ Stop';
+        micBtn.classList.add('recording');
+        recStatus.textContent = 'Recording… 0:00 (aim for 1–3 min)';
+        recordTimer = setInterval(() => {
+          recordSeconds += 1;
+          recStatus.textContent = `Recording… ${formatRecTime(recordSeconds)} (aim for 1–3 min)`;
+        }, 1000);
+      } catch (e) {
+        alert('Microphone access denied or unavailable. Upload a file instead.');
+      }
+    }
+
+    document.getElementById('micBtn').onclick = toggleRecording;
+
+    document.getElementById('voiceFile').onchange = async (e) => {
+      const f = e.target.files[0];
+      syncVoiceFileName();
+      if (!f) return;
+      recordedBlob = null;
+      await mountWavePlayer(document.getElementById('voicePreview'), f, f.name, { autoplay: false });
+    };
+    document.getElementById('voiceLang').onchange = () => {
+      updateVoiceScript();
+      const lang = document.getElementById('voiceLang').value;
+      const nameField = document.getElementById('voiceName');
+      if (!nameField.value) {
+        nameField.placeholder = lang === 'es' ? 'Gastón — Español' : 'Alex — English';
+      }
+    };
+    updateVoiceScript();
+
+    const headers = () => {
+      const h = {};
+      const key = localStorage.getItem('catts_api_key');
+      if (key) h['X-API-Key'] = key;
+      return h;
+    };
+
+    async function api(path, opts = {}) {
+      const r = await fetch(API + path, { ...opts, headers: { ...headers(), ...(opts.headers || {}) } });
+      if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail || r.statusText);
+      const ct = r.headers.get('content-type') || '';
+      if (ct.includes('json')) return r.json();
+      return r;
+    }
+
+    async function getJobFiles(id) {
+      if (!jobFilesCache[id]) jobFilesCache[id] = await api(`/jobs/${id}/files`);
+      return jobFilesCache[id];
+    }
+
+    function chapterOptions(chapters) {
+      if (!chapters.length) return '';
+      return chapters.map(c => `<option value="${c.index}">${c.title || ('Chapter ' + c.index)}</option>`).join('');
+    }
+
+    function renderFilenameWords(words) {
+      const box = document.getElementById('fnameWords');
+      if (!words.length) { box.textContent = 'Select a file to see filename words'; return; }
+      box.innerHTML = words.map(w =>
+        `<span class="word-chip" onclick="addWordToField('${w.replace(/'/g, "\\'")}')">${w}</span>`
+      ).join('');
+    }
+
+    window.addWordToField = (word) => {
+      const target = document.querySelector('input[name=metaTarget]:checked').value;
+      const field = document.getElementById(target === 'author' ? 'bookAuthor' : 'bookTitle');
+      field.value = (field.value ? field.value + ' ' : '') + word;
+    };
+
+    document.getElementById('bookFile').onchange = async (e) => {
+      const f = e.target.files[0];
+      syncBookFileName();
+      if (!f) return;
+      try {
+        const g = await api('/jobs/parse-filename?name=' + encodeURIComponent(f.name));
+        document.getElementById('bookTitle').value = g.title || '';
+        document.getElementById('bookAuthor').value = g.author || '';
+        renderFilenameWords(g.words || []);
+      } catch (err) {
+        renderFilenameWords(f.name.replace(/\.[^.]+$/, '').split(/[-_\s]+/).filter(Boolean));
+      }
+    };
+
+    function jobHtml(j) {
+      const cls = j.status;
+      const done = j.status === 'done';
+      const active = cls === 'running' || cls === 'queued';
+      const isOpen = active || openJobs.has(j.id);
+      const label = j.display_name || j.title || j.id;
+      const playBtns = done ? `
+          <div class="action-group">
+            <div class="action-group-label">Listen</div>
+            <div class="actions">
+              <button type="button" class="action-btn play" data-action="play" data-id="${j.id}">▶ Play</button>
+              <select data-action="chapter" data-id="${j.id}" id="ch-${j.id}">
+                <option value="">Pick chapter…</option>
+              </select>
+            </div>
+          </div>
+          <div class="action-group">
+            <div class="action-group-label">Files</div>
+            <div class="actions">
+              <button type="button" class="action-btn secondary" data-action="folder" data-id="${j.id}">Open folder</button>
+              <button type="button" class="action-btn secondary" data-action="md" data-id="${j.id}">Text (MD)</button>
+              <button type="button" class="action-btn secondary" data-action="txt" data-id="${j.id}">Text (TXT)</button>
+              <button type="button" class="action-btn secondary" data-action="download" data-id="${j.id}">Download audio</button>
+            </div>
+          </div>
+          <div class="action-group">
+            <div class="action-group-label">Redo</div>
+            <div class="actions">
+              <button type="button" class="action-btn secondary" data-action="rerecord" data-id="${j.id}">Re-record book</button>
+              <button type="button" class="action-btn secondary" data-action="delete" data-id="${j.id}">Remove book</button>
+            </div>
+          </div>` : `
+          <div class="actions">
+            <button type="button" class="action-btn secondary" data-action="delete" data-id="${j.id}">Remove book</button>
+          </div>`;
+      return `<div class="job-item ${cls} ${isOpen ? 'open' : ''}" data-id="${j.id}">
+        <div class="job-top">
+        <button type="button" class="job-head" data-toggle-job="${j.id}">
+          <span class="job-title">${label}</span>
+          <span class="status-badge ${cls}">${j.status}</span>
+          <span class="job-chevron">›</span>
+        </button>
+        ${done ? `<button type="button" class="job-quick-play" data-action="play" data-id="${j.id}" title="Play chapter 1">▶</button>` : ''}
+        </div>
+        <div class="job-body">
+          <div class="subtle">${j.author ? 'by ' + j.author + ' · ' : ''}${j.progress}% complete</div>
+          <div class="bar"><i style="width:${j.progress}%"></i></div>
+          <div class="status ${cls}">${j.message}${j.error ? `<br><span style="color:var(--err)">${j.error}</span>` : ''}</div>
+          <div class="path subtle" id="path-${j.id}"></div>
+          ${playBtns}
+          <div class="player" id="player-${j.id}"></div>
+        </div>
+      </div>`;
+    }
+
+    async function hydrateJobExtras(jobs) {
+      for (const j of jobs.filter(x => x.status === 'done')) {
+        try {
+          const f = await getJobFiles(j.id);
+          const pathEl = document.getElementById(`path-${j.id}`);
+          if (pathEl) {
+            const title = j.display_name || j.title || 'this book';
+            pathEl.textContent = `Saved on disk — open folder for files named like "${title}" (not the random folder id).`;
+          }
+          const sel = document.getElementById(`ch-${j.id}`);
+          if (sel && f.chapters.length) {
+            sel.innerHTML = '<option value="">Chapter…</option>' + chapterOptions(f.chapters);
+          }
+        } catch (e) { console.error(e); }
+      }
+    }
+
+    async function refreshJobs() {
+      const jobs = await api('/jobs');
+      const savedPlayer = activePlayerHostId ? document.getElementById(activePlayerHostId)?.innerHTML : null;
+      document.getElementById('booksCount').textContent = jobs.length;
+      document.getElementById('jobs').innerHTML = jobs.length
+        ? jobs.map(jobHtml).join('')
+        : '<p class="empty-state">No books yet — open <strong>New book</strong> to upload.</p>';
+      if (savedPlayer && activePlayerHostId) {
+        const el = document.getElementById(activePlayerHostId);
+        if (el) el.innerHTML = savedPlayer;
+      }
+      await hydrateJobExtras(jobs);
+    }
+
+    function fillVoiceSelect(selectId, voices, placeholder) {
+      const sel = document.getElementById(selectId);
+      const prev = sel.value;
+      const opts = voices.filter(v => v.ready).map(v =>
+        `<option value="${v.id}">${v.display_name || v.name}</option>`
+      ).join('');
+      sel.innerHTML = `<option value="">${placeholder}</option>` + opts;
+      if (prev && [...sel.options].some(o => o.value === prev)) {
+        sel.value = prev;
+      }
+    }
+
+    async function refreshVoices() {
+      const voices = await api('/voices');
+      document.getElementById('voicesCount').textContent = voices.length;
+      fillVoiceSelect('bookVoice', voices, 'Preview voice (auto)');
+      fillVoiceSelect('liveVoice', voices, 'Choose your voice…');
+      document.getElementById('voices').innerHTML = voices.map(v => {
+        const files = [v.labeled_sample, v.labeled_reference].filter(Boolean).join(', ');
+        const safeName = (v.display_name || v.name || '').replace(/'/g, '');
+        const isOpen = openVoices.has(v.id);
+        return `<div class="voice-item job-item ${v.status} ${isOpen ? 'open' : ''}" data-id="${v.id}">
+          <button type="button" class="job-head" onclick="toggleVoiceItem(this)">
+            <span class="job-title">${v.display_name || v.name}</span>
+            <span class="status-badge ${v.status}">${v.ready ? 'ready' : v.status}</span>
+            <span class="job-chevron">›</span>
+          </button>
+          <div class="job-body">
+            <div class="subtle">${v.lang === 'es' ? 'Español' : 'English'}</div>
+            ${files ? `<div class="file-tag">📄 ${files}</div>` : ''}
+            <span class="status ${v.status}">${v.message}</span>
+            <div class="player" id="voice-player-${v.id}"></div>
+            <div class="actions">
+              <button type="button" class="action-btn play" onclick="playVoiceSample('${v.id}', '${safeName}')">▶ Hear sample</button>
+              <button type="button" class="action-btn secondary" onclick="openVoiceFolder('${v.id}')">📁 Folder</button>
+              <button type="button" class="action-btn secondary" onclick="renameVoice('${v.id}', '${safeName}')">Rename</button>
+            </div>
+          </div>
+        </div>`;
+      }).join('') || '<p class="empty-state">No voices yet — record above.</p>';
+    }
+
+    window.openVoiceFolder = async (id) => {
+      const res = await api(`/voices/${id}/reveal`, { method: 'POST' });
+      alert('Opened: ' + (res.opened || 'voice folder'));
+    };
+
+    window.renameVoice = async (id, current) => {
+      const name = prompt('Voice name:', current.split(' (')[0]);
+      if (!name) return;
+      await api(`/voices/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) });
+      await refreshVoices();
+    };
+
+    async function refreshHealth() {
+      const h = await api('/health');
+      const el = document.getElementById('health');
+      el.textContent = h.worker_reachable
+        ? 'GPU worker connected'
+        : `local · TTS: ${h.tts_engine || 'edge'}`;
+      el.title = 'chatterbox=your voice (CPU). edge=Microsoft generic. gptsovits=remote NVIDIA worker.';
+      const banner = document.getElementById('ttsBanner');
+      if (localStorage.getItem('catts_hide_tts_banner') === '1') {
+        banner.style.display = 'none';
+        return;
+      }
+      if (h.tts_engine === 'stub' && !h.worker_reachable) {
+        banner.style.display = 'flex';
+        banner.innerHTML = `<span><strong>Local preview mode.</strong> Audiobooks use Microsoft Edge TTS (a generic voice), not your trained clone. Voice training saves your sample but cloning needs a GPU worker. Old books from before this fix may be silent — use <em>Clean</em> or <em>Retry</em> on those jobs.</span><button type="button" class="banner-dismiss" id="dismissTtsBanner" title="Dismiss">✕</button>`;
+        document.getElementById('dismissTtsBanner').onclick = () => {
+          localStorage.setItem('catts_hide_tts_banner', '1');
+          banner.style.display = 'none';
+        };
+      } else {
+        banner.style.display = 'none';
+      }
+    }
+
+    function setPlayer(jobId, blob, label) {
+      const box = document.getElementById(`player-${jobId}`);
+      mountWavePlayer(box, blob, label, { autoplay: true, lookaheadSec: 8 });
+    }
+
+    document.getElementById('uploadBtn').onclick = async () => {
+      const f = document.getElementById('bookFile').files[0];
+      if (!f) return alert('Choose a file');
+      const fd = new FormData();
+      fd.append('file', f);
+      fd.append('title', document.getElementById('bookTitle').value || f.name);
+      fd.append('author', document.getElementById('bookAuthor').value || '');
+      fd.append('chapter_mode', document.getElementById('chapterMode').value);
+      const lang = document.getElementById('bookLang').value;
+      if (lang) fd.append('lang', lang);
+      const voice = document.getElementById('bookVoice').value;
+      if (voice) fd.append('voice_id', voice);
+      fd.append('generate_audio', document.getElementById('genAudio').checked ? 'true' : 'false');
+      await api('/jobs/audiobook', { method: 'POST', body: fd });
+      openJobs.clear();
+      document.querySelector('[data-panel="books"]')?.classList.add('open');
+      await refreshJobs();
+    };
+
+    document.getElementById('voiceBtn').onclick = async () => {
+      const fileInput = document.getElementById('voiceFile');
+      const f = fileInput.files[0];
+      const blob = recordedBlob || f;
+      if (!blob) return alert('Record with the microphone or upload an audio file first.');
+      if (recordedBlob && recordSeconds < 20 && !f) {
+        return alert('Please record at least 20 seconds (1–3 minutes is better).');
+      }
+      const fd = new FormData();
+      const ext = recordedBlob ? 'recording.webm' : f.name;
+      fd.append('sample', blob, ext);
+      const lang = document.getElementById('voiceLang').value;
+      const defaultName = lang === 'es' ? 'Mi voz principal' : 'My main voice';
+      fd.append('name', document.getElementById('voiceName').value || defaultName);
+      fd.append('lang', document.getElementById('voiceLang').value);
+      await api('/voices', { method: 'POST', body: fd });
+      recordedBlob = null;
+      recordSeconds = 0;
+      document.getElementById('voicePreview').innerHTML = '';
+      document.getElementById('recStatus').textContent = 'Training started — check status below';
+      fileInput.value = '';
+      syncVoiceFileName();
+      document.querySelector('[data-panel="voice"]')?.classList.add('open');
+      await refreshVoices();
+    };
+
+    document.getElementById('liveBtn').onclick = async () => {
+      let voice_id = document.getElementById('liveVoice').value;
+      if (!voice_id) voice_id = document.getElementById('bookVoice').value;
+      if (!voice_id) return alert('Choose a voice in the Live TTS dropdown (or New book → Voice).');
+      const text = document.getElementById('liveText').value.trim();
+      if (!text) return alert('Type a short phrase first.');
+      const r = await fetch(API + '/tts/live', {
+        method: 'POST',
+        headers: { ...headers(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, voice_id, lang: document.getElementById('voiceLang').value })
+      });
+      if (!r.ok) throw new Error(await r.text());
+      const blob = await r.blob();
+      await mountWavePlayer(document.getElementById('livePlayer'), blob, 'Live TTS', { autoplay: true });
+    };
+
+    window.regenerateJob = async (id) => {
+      const voice = document.getElementById('bookVoice').value || document.getElementById('liveVoice').value;
+      if (!voice && !confirm('No voice selected — regenerate with default preview voice anyway?')) return;
+      const fd = new FormData();
+      if (voice) fd.append('voice_id', voice);
+      try {
+        await api(`/jobs/${id}/regenerate`, { method: 'POST', body: fd });
+        delete jobFilesCache[id];
+        openJobs.add(id);
+        document.querySelector('[data-panel="books"]')?.classList.add('open');
+        alert('Regenerating audio — watch progress below. Named files appear in the job folder when done.');
+        await refreshJobs();
+      } catch (e) {
+        alert(e.message || String(e));
+      }
+    };
+
+    window.openFolder = async (id) => {
+      const res = await api(`/jobs/${id}/reveal`, { method: 'POST' });
+      const f = await getJobFiles(id);
+      const pathEl = document.getElementById(`path-${id}`);
+      if (pathEl) pathEl.textContent = res.opened || f.folder;
+    };
+
+    window.dlManuscript = async (id, fmt) => {
+      const r = await fetch(API + `/jobs/${id}/manuscript?format=${fmt}`, { headers: headers() });
+      const blob = await r.blob();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `book.${fmt}`;
+      a.click();
+    };
+    window.dlResult = async (id) => {
+      const r = await fetch(API + `/jobs/${id}/result`, { headers: headers() });
+      if (!r.ok) return alert('Not ready');
+      const blob = await r.blob();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'audiobook';
+      a.click();
+    };
+    window.cleanupJob = async (id) => {
+      const r = await api(`/jobs/${id}/cleanup`, { method: 'POST' });
+      alert(`Removed ${r.removed || 0} junk files (${Math.round((r.freed_bytes||0)/1e6)} MB)`);
+      delete jobFilesCache[id];
+    };
+    window.retryJob = async (id) => { delete jobFilesCache[id]; await api(`/jobs/${id}/retry`, { method: 'POST' }); await refreshJobs(); };
+
+    async function tick() {
+      try {
+        await refreshHealth();
+        if (!refreshPaused) await refreshJobs();
+        if (!refreshPaused) await refreshVoices();
+      } catch (e) { console.error(e); }
+    }
+    initPanels();
+    bindJobActions();
+    syncBookFileName = wireFilePicker('bookFile', 'bookFileBtn', 'bookFileName', 'No file selected');
+    syncVoiceFileName = wireFilePicker('voiceFile', 'voiceFileBtn', 'voiceFileName', 'WAV / MP3, 1–5 min');
+    tick();
+    setInterval(tick, 3000);
+  </script>
+</body>
+</html>

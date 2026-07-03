@@ -1,0 +1,40 @@
+version: "3.8"
+
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.api
+    ports:
+      - "59200:59200"
+    environment:
+      CATTS_WORKER_URL: http://worker:59201
+      CATTS_OCR_ENGINE: unlimited
+      CATTS_TTS_ENGINE: gptsovits
+      CATTS_API_KEY: ${CATTS_API_KEY:-}
+    volumes:
+      - catts_data:/data
+
+  worker:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.worker
+    ports:
+      - "59201:59201"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    environment:
+      WORKER_OCR_MODE: sglang
+      WORKER_TTS_MODE: gptsovits
+      SGLANG_URL: http://sglang:10000
+      GPT_SOVITS_API_URL: http://gptsovits:9880
+    volumes:
+      - catts_data:/data
+
+volumes:
+  catts_data:
