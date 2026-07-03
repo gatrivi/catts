@@ -12,9 +12,11 @@ _PAIRS = {("en", "es"), ("es", "en")}
 
 def available() -> bool:
     try:
-        import argostranslate  # noqa: F401
-        return True
-    except ImportError:
+        import argostranslate.package  # noqa: F401
+        installed = argostranslate.package.get_installed_packages()
+        pairs = {(p.from_code, p.to_code) for p in installed}
+        return ("en", "es") in pairs and ("es", "en") in pairs
+    except Exception:
         return False
 
 
