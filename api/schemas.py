@@ -96,6 +96,13 @@ class VoiceProgress(BaseModel):
     folder: str | None = None
     labeled_sample: str | None = None
     labeled_reference: str | None = None
+    has_sample: bool = False
+    sample_bytes: int | None = None
+    sample_duration_sec: float | None = None
+    script_match: float | None = None
+    script_match_label: str | None = None
+    transcript_preview: str | None = None
+    quality_status: str = "unchecked"
 
 
 class VoiceRename(BaseModel):

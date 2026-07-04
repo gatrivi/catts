@@ -46,7 +46,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="CATTS", description="PDF/EPUB to Audiobook + Voice API", version="0.2.0", lifespan=lifespan)
+app = FastAPI(title="CATTS", description="PDF/EPUB/DOCX to Audiobook + Voice API", version="0.7.0", lifespan=lifespan)
 app.include_router(health.router)
 app.include_router(jobs.router)
 app.include_router(voices.router)

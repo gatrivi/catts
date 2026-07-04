@@ -7,11 +7,24 @@
   <style>
     :root { --bg:#0f1115; --card:#1a1d24; --text:#e8eaed; --muted:#9aa0a6; --accent:#6ea8fe; --ok:#3dd68c; --warn:#f5a524; --err:#f87171; }
     * { box-sizing: border-box; }
-    body { margin:0; font-family: system-ui, sans-serif; background:var(--bg); color:var(--text); }
+    body { margin:0; font-family: system-ui, sans-serif; background:var(--bg); color:var(--text); background-image: radial-gradient(ellipse at top, #161a24 0%, var(--bg) 55%); min-height:100vh; }
     body.player-open { padding-bottom: 11rem; }
-    header { padding:1rem 1.5rem; border-bottom:1px solid #2a2f3a; display:flex; justify-content:space-between; align-items:center; }
+    header { padding:1rem 1.5rem; border-bottom:1px solid #2a2f3a; display:flex; justify-content:space-between; align-items:center; background:rgba(15,17,21,.92); backdrop-filter:blur(8px); position:sticky; top:0; z-index:50; }
     h1 { margin:0; font-size:1.25rem; }
+    #activityBar { display:flex; flex-wrap:wrap; gap:.4rem .75rem; align-items:center; padding:.4rem 1.5rem; background:#12151b; border-bottom:1px solid #2a2f3a; font-size:.75rem; color:var(--muted); position:sticky; top:52px; z-index:49; }
+    #activityBar .pill { display:inline-flex; align-items:center; gap:.3rem; padding:.15rem .5rem; border-radius:99px; background:#1a1d24; border:1px solid #2a2f3a; }
+    #activityBar .pill.ok { border-color:#1a3d2e; color:var(--ok); }
+    #activityBar .pill.busy { border-color:#5a4520; color:var(--warn); }
+    #activityBar .pill.err { border-color:#5a2828; color:var(--err); }
     main { max-width:960px; margin:0 auto; padding:1rem 1.25rem 2rem; display:grid; gap:.65rem; }
+    .flow { border:1px solid #2a3140; border-radius:12px; padding:.75rem; background:rgba(26,29,36,.55); display:grid; gap:.55rem; }
+    .flow-head { display:flex; align-items:center; gap:.6rem; padding:.15rem .25rem .35rem; }
+    .flow-num { width:1.5rem; height:1.5rem; border-radius:99px; background:var(--accent); color:#0b1020; font-weight:700; font-size:.8rem; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .flow-title { font-weight:700; font-size:1rem; }
+    .flow-sub { font-size:.78rem; color:var(--muted); }
+    .steps { display:flex; flex-wrap:wrap; gap:.35rem; margin:0 0 .25rem; }
+    .step { font-size:.72rem; color:var(--muted); padding:.15rem .45rem; border-radius:99px; background:#12151b; border:1px solid #2a2f3a; }
+    .step.on { color:var(--accent); border-color:#3a5080; }
     .panel { background:var(--card); border:1px solid #2a2f3a; border-radius:10px; overflow:hidden; }
     .panel-head { width:100%; display:flex; align-items:center; gap:.6rem; padding:.85rem 1rem; background:transparent; border:none; color:var(--text); cursor:pointer; text-align:left; margin:0; font:inherit; }
     .panel-head:hover { background:#22262f; }
@@ -119,34 +132,51 @@
     .status-box.busy { color:var(--warn); border-color:#5a4520; background:#1a1508; }
     .status-box.err { color:var(--err); border-color:#5a2828; background:#1a0f0f; }
     .status-box strong { color:var(--text); }
+    .voice-meter { height:8px; background:#2a2f3a; border-radius:99px; overflow:hidden; margin:.35rem 0 .2rem; }
+    .voice-meter>i { display:block; height:100%; background:var(--accent); width:0; transition:width .3s; }
+    .voice-meter.good>i { background:var(--ok); }
+    .voice-meter.mid>i { background:var(--warn); }
+    .voice-meter.bad>i { background:var(--err); }
+    .voice-meter.miss>i { background:#4a5568; width:100% !important; opacity:.35; }
+    .voice-stats { font-size:.75rem; color:var(--muted); display:flex; flex-wrap:wrap; gap:.35rem .75rem; margin:.2rem 0; }
+    .voice-stats b { color:var(--text); font-weight:600; }
   </style>
 </head>
 <body>
   <header>
-    <h1>CATTS <span class="ver">v0.6.2</span></h1>
+    <h1>CATTS <span class="ver">v0.7</span></h1>
     <div id="health">checking…</div>
   </header>
+  <div id="activityBar" aria-live="polite">
+    <span class="pill" id="pillTts">TTS…</span>
+    <span class="pill" id="pillStt">STT…</span>
+    <span class="pill" id="pillJobs">Books idle</span>
+    <span class="pill" id="pillVoices">Voices idle</span>
+  </div>
   <main>
     <div id="ttsBanner"></div>
 
-    <section class="panel open" data-panel="books">
-      <button type="button" class="panel-head" aria-expanded="true">
-        <span class="panel-title">Books <span class="panel-hint">— check results &amp; play</span></span>
-        <span class="panel-badge" id="booksCount">0</span>
-        <span class="panel-chevron">▼</span>
-      </button>
-      <div class="panel-body">
-        <p class="job-help">Click <strong>▶</strong> on a book for the waveform player at the bottom. Click the waveform to seek.</p>
-        <div id="jobs"></div>
+    <div class="flow" id="flowBooks">
+      <div class="flow-head">
+        <span class="flow-num">1</span>
+        <div>
+          <div class="flow-title">Audiobook</div>
+          <div class="flow-sub">Upload PDF / EPUB / DOCX → process → listen (your voice if selected)</div>
+        </div>
       </div>
-    </section>
+      <div class="steps">
+        <span class="step on">1. Upload</span>
+        <span class="step on">2. Process</span>
+        <span class="step on">3. TTS / Play</span>
+      </div>
 
-    <section class="panel" data-panel="newbook">
-      <button type="button" class="panel-head" aria-expanded="false">
-        <span class="panel-title">New book <span class="panel-hint">— PDF / EPUB / DOCX</span></span>
+    <section class="panel open" data-panel="newbook">
+      <button type="button" class="panel-head" aria-expanded="true">
+        <span class="panel-title">Upload book <span class="panel-hint">— PDF / EPUB / DOCX</span></span>
         <span class="panel-chevron">▼</span>
       </button>
       <div class="panel-body">
+        <div id="bookStatus" class="status-box idle">Pick a file, choose your voice (default), then Start processing. Progress appears under Library.</div>
         <label>Book file</label>
         <div class="file-picker">
           <input type="file" id="bookFile" class="file-input-hidden" accept=".pdf,.epub,.docx,.txt,.md" />
@@ -183,21 +213,48 @@
             </select>
           </div>
         </div>
-        <label>Voice (optional)</label>
-        <select id="bookVoice"><option value="">Preview voice (auto)</option></select>
-        <label class="inline"><input type="checkbox" id="genAudio" checked /> Generate audiobook audio</label>
+        <label>Voice</label>
+        <select id="bookVoice"><option value="">Your voice (default)</option></select>
+        <label class="inline"><input type="checkbox" id="genAudio" checked /> Generate audiobook audio (TTS)</label>
         <button type="button" class="action-btn" id="uploadBtn">Start processing</button>
       </div>
     </section>
 
-    <section class="panel" data-panel="voice">
-      <button type="button" class="panel-head" aria-expanded="false">
-        <span class="panel-title">Train voice <span class="panel-hint">— record or upload sample</span></span>
+    <section class="panel open" data-panel="books">
+      <button type="button" class="panel-head" aria-expanded="true">
+        <span class="panel-title">Library <span class="panel-hint">— progress &amp; play</span></span>
+        <span class="panel-badge" id="booksCount">0</span>
+        <span class="panel-chevron">▼</span>
+      </button>
+      <div class="panel-body">
+        <p class="job-help">Processing runs in the background. Click <strong>▶</strong> when status is done. Use <strong>Re-record book</strong> to apply your voice.</p>
+        <div id="jobs"></div>
+      </div>
+    </section>
+    </div>
+
+    <div class="flow" id="flowVoice">
+      <div class="flow-head">
+        <span class="flow-num">2</span>
+        <div>
+          <div class="flow-title">Your voice (EN / ES)</div>
+          <div class="flow-sub">Save a sample → check script match → use for books &amp; live interpreting</div>
+        </div>
+      </div>
+      <div class="steps">
+        <span class="step on">1. Record / upload</span>
+        <span class="step on">2. Script match (STT)</span>
+        <span class="step on">3. Live speak</span>
+      </div>
+
+    <section class="panel open" data-panel="voice">
+      <button type="button" class="panel-head" aria-expanded="true">
+        <span class="panel-title">Save voice sample <span class="panel-hint">— EN or ES</span></span>
         <span class="panel-badge" id="voicesCount">0</span>
         <span class="panel-chevron">▼</span>
       </button>
       <div class="panel-body">
-        <p class="instructions">One voice per language. Record 1–3 min reading the script, preview the waveform, then train.</p>
+        <p class="instructions">Record 1–3 min reading the script (one voice per language). After save, STT checks how well it matches the script.</p>
         <div class="row">
           <div>
             <label>Voice name</label>
@@ -227,9 +284,27 @@
       </div>
     </section>
 
+    <section class="panel open" data-panel="live">
+      <button type="button" class="panel-head" aria-expanded="true">
+        <span class="panel-title">Live interpreting <span class="panel-hint">— speak with your voice</span></span>
+        <span class="panel-chevron">▼</span>
+      </button>
+      <div class="panel-body">
+        <p class="instructions">Type a short phrase (max 12 words). Uses XTTS clone of your sample. Watch status — first run after server start can take ~1 min.</p>
+        <div id="liveStatus" class="status-box idle">Checking TTS…</div>
+        <label>Phrase</label>
+        <input id="liveText" placeholder="Hello, this is a test." />
+        <label>Voice</label>
+        <select id="liveVoice"><option value="">Your voice (default)</option></select>
+        <button type="button" class="action-btn play" id="liveBtn">Speak</button>
+        <div id="livePlayer" class="player"></div>
+      </div>
+    </section>
+    </div>
+
     <section class="panel" data-panel="speech">
       <button type="button" class="panel-head" aria-expanded="false">
-        <span class="panel-title">Speech tools <span class="panel-hint">— transcribe &amp; translate</span></span>
+        <span class="panel-title">Tools <span class="panel-hint">— transcribe &amp; translate</span></span>
         <span class="panel-chevron">▼</span>
       </button>
       <div class="panel-body">
@@ -260,23 +335,6 @@
         <button type="button" class="action-btn secondary" id="translateBtn">Translate</button>
         <label>Translation</label>
         <textarea id="translateOut" rows="4" readonly placeholder="Translation appears here…" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #3a4150;background:#12151b;color:var(--text);"></textarea>
-      </div>
-    </section>
-
-    <section class="panel" data-panel="live">
-      <button type="button" class="panel-head" aria-expanded="false">
-        <span class="panel-title">Live TTS <span class="panel-hint">— quick voice test</span></span>
-        <span class="panel-chevron">▼</span>
-      </button>
-      <div class="panel-body">
-        <p class="instructions">Clones your voice with XTTS (CPU). Watch the status box — first run after server start can take <strong>~1 minute</strong>.</p>
-        <div id="liveStatus" class="status-box idle">Checking TTS…</div>
-        <label>Short phrase (max ~12 words)</label>
-        <input id="liveText" placeholder="Hello, this is a test." />
-        <label>Voice</label>
-        <select id="liveVoice"><option value="">Choose your voice…</option></select>
-        <button type="button" class="action-btn play" id="liveBtn">Speak</button>
-        <div id="livePlayer" class="player"></div>
       </div>
     </section>
   </main>
@@ -731,7 +789,7 @@
       try { saved = JSON.parse(localStorage.getItem(PANEL_KEY) || '{}'); } catch (_) {}
       document.querySelectorAll('.panel').forEach(panel => {
         const id = panel.dataset.panel;
-        const open = id in saved ? saved[id] : (id === 'books');
+        const open = id in saved ? saved[id] : ['books', 'newbook', 'voice', 'live'].includes(id);
         panel.classList.toggle('open', open);
         panel.querySelector('.panel-head').addEventListener('click', () => {
           panel.classList.toggle('open');
@@ -1009,16 +1067,18 @@ Gracias. Esta muestra enseñará a CATTS a sonar como yo.`
 
     async function refreshJobs() {
       const jobs = await api('/jobs');
+      lastJobsCache = jobs;
       const savedPlayer = activePlayerHostId ? document.getElementById(activePlayerHostId)?.innerHTML : null;
       document.getElementById('booksCount').textContent = jobs.length;
       document.getElementById('jobs').innerHTML = jobs.length
         ? jobs.map(jobHtml).join('')
-        : '<p class="empty-state">No books yet — open <strong>New book</strong> to upload.</p>';
+        : '<p class="empty-state">No books yet — upload above, then watch progress here.</p>';
       if (savedPlayer && activePlayerHostId) {
         const el = document.getElementById(activePlayerHostId);
         if (el) el.innerHTML = savedPlayer;
       }
       await hydrateJobExtras(jobs);
+      updateActivityBar(jobs, lastVoicesCache, lastHealth);
     }
 
     let defaultVoiceId = null;
@@ -1043,35 +1103,135 @@ Gracias. Esta muestra enseñará a CATTS a sonar como yo.`
       }
     }
 
+    function voiceMeterClass(v) {
+      if (!v.has_sample) return 'miss';
+      if (v.script_match == null) return '';
+      if (v.script_match >= 70) return 'good';
+      if (v.script_match >= 40) return 'mid';
+      return 'bad';
+    }
+
+    function voiceMeterWidth(v) {
+      if (!v.has_sample) return 100;
+      if (v.script_match == null) return v.quality_status === 'checking' ? 40 : 8;
+      return Math.max(4, Math.min(100, v.script_match));
+    }
+
+    function fmtBytes(n) {
+      if (n == null) return '—';
+      if (n < 1024) return n + ' B';
+      if (n < 1e6) return Math.round(n / 1024) + ' KB';
+      return (n / 1e6).toFixed(1) + ' MB';
+    }
+
+    function updateActivityBar(jobs, voices, health) {
+      const pillTts = document.getElementById('pillTts');
+      const pillStt = document.getElementById('pillStt');
+      const pillJobs = document.getElementById('pillJobs');
+      const pillVoices = document.getElementById('pillVoices');
+      if (!pillTts) return;
+      if (health?.xtts_ready) {
+        pillTts.className = 'pill ok';
+        pillTts.textContent = 'TTS ready';
+      } else if (health?.xtts_installed) {
+        pillTts.className = 'pill busy';
+        pillTts.textContent = 'TTS loading…';
+      } else {
+        pillTts.className = 'pill err';
+        pillTts.textContent = 'TTS off';
+      }
+      if (health?.stt_engine === 'whisper') {
+        pillStt.className = 'pill ok';
+        pillStt.textContent = 'STT ready';
+      } else {
+        pillStt.className = 'pill err';
+        pillStt.textContent = 'STT off';
+      }
+      const active = (jobs || []).filter(j => j.status === 'running' || j.status === 'queued');
+      if (active.length) {
+        pillJobs.className = 'pill busy';
+        pillJobs.textContent = `Books: ${active.length} in progress`;
+      } else {
+        pillJobs.className = 'pill ok';
+        pillJobs.textContent = `Books: ${(jobs || []).length} total`;
+      }
+      const checking = (voices || []).filter(v => v.quality_status === 'checking' || v.status === 'training' || v.status === 'queued');
+      const withSample = (voices || []).filter(v => v.has_sample).length;
+      if (checking.length) {
+        pillVoices.className = 'pill busy';
+        pillVoices.textContent = `Voices: checking ${checking.length}…`;
+      } else {
+        pillVoices.className = withSample ? 'pill ok' : 'pill';
+        pillVoices.textContent = `Voices: ${withSample}/${(voices || []).length} with sample`;
+      }
+    }
+
+    let lastVoicesCache = [];
+    let lastJobsCache = [];
+
     async function refreshVoices() {
       const voices = await api('/voices');
+      lastVoicesCache = voices;
       document.getElementById('voicesCount').textContent = voices.length;
       fillVoiceSelect('bookVoice', voices, 'Your voice (default)', defaultVoiceId);
       fillVoiceSelect('liveVoice', voices, 'Your voice (default)', defaultVoiceId);
+      updateActivityBar(lastJobsCache, voices, lastHealth);
       document.getElementById('voices').innerHTML = voices.map(v => {
         const files = [v.labeled_sample, v.labeled_reference].filter(Boolean).join(', ');
-        const safeName = (v.display_name || v.name || '').replace(/'/g, '');
-        const isOpen = openVoices.has(v.id);
+        const safeName = (v.display_name || v.name || '').replace(/'/g, "\\'");
+        const isOpen = openVoices.has(v.id) || v.quality_status === 'checking';
+        const meterCls = voiceMeterClass(v);
+        const sampleLabel = v.has_sample
+          ? `<b>Sample</b> ${fmtBytes(v.sample_bytes)}${v.sample_duration_sec != null ? ' · ' + v.sample_duration_sec + 's' : ''}`
+          : '<b>Sample</b> missing';
+        const matchLabel = v.script_match != null
+          ? `<b>Script match</b> ${v.script_match}% (${v.script_match_label})`
+          : `<b>Script match</b> ${v.quality_status === 'checking' ? 'checking…' : (v.has_sample ? 'not checked' : '—')}`;
+        const badge = !v.has_sample ? 'failed' : (v.ready ? 'ready' : v.status);
+        const badgeText = !v.has_sample ? 'no sample' : (v.ready ? 'ready' : v.status);
         return `<div class="voice-item job-item ${v.status} ${isOpen ? 'open' : ''}" data-id="${v.id}">
           <button type="button" class="job-head" onclick="toggleVoiceItem(this)">
             <span class="job-title">${v.display_name || v.name}</span>
-            <span class="status-badge ${v.status}">${v.ready ? 'ready' : v.status}</span>
+            <span class="status-badge ${badge}">${badgeText}</span>
             <span class="job-chevron">›</span>
           </button>
           <div class="job-body">
-            <div class="subtle">${v.lang === 'es' ? 'Español' : 'English'}</div>
+            <div class="voice-stats">
+              <span>${v.lang === 'es' ? 'Español' : 'English'}</span>
+              <span>${sampleLabel}</span>
+              <span>${matchLabel}</span>
+            </div>
+            <div class="voice-meter ${meterCls}" title="Script match"><i style="width:${voiceMeterWidth(v)}%"></i></div>
+            <span class="status ${v.status}">${v.message || ''}</span>
+            ${v.transcript_preview ? `<div class="subtle" style="margin-top:.35rem">Heard: “${v.transcript_preview.slice(0, 120)}${v.transcript_preview.length > 120 ? '…' : ''}”</div>` : ''}
             ${files ? `<div class="file-tag">📄 ${files}</div>` : ''}
-            <span class="status ${v.status}">${v.message}</span>
             <div class="player" id="voice-player-${v.id}"></div>
             <div class="actions">
               <button type="button" class="action-btn play" onclick="playVoiceSample('${v.id}', '${safeName}')">▶ Hear sample</button>
-              <button type="button" class="action-btn secondary" onclick="openVoiceFolder('${v.id}')">📁 Folder</button>
+              <button type="button" class="action-btn secondary" onclick="evaluateVoice('${v.id}')">Check script</button>
+              <button type="button" class="action-btn secondary" onclick="openVoiceFolder('${v.id}')">Folder</button>
               <button type="button" class="action-btn secondary" onclick="renameVoice('${v.id}', '${safeName}')">Rename</button>
             </div>
           </div>
         </div>`;
-      }).join('') || '<p class="empty-state">No voices yet — record above.</p>';
+      }).join('') || '<p class="empty-state">No voices yet — record or upload above.</p>';
     }
+
+    window.evaluateVoice = async (id) => {
+      openVoices.add(id);
+      uiBusy = true;
+      setStatus('voicePlayStatus', 'busy', 'Running STT script match in background…');
+      try {
+        await api(`/voices/${id}/evaluate?wait=true`, { method: 'POST' });
+        setStatus('voicePlayStatus', 'ok', 'Script match updated — see bar on the voice card.');
+        await refreshVoices();
+      } catch (e) {
+        setStatus('voicePlayStatus', 'err', 'Script check failed: <strong>' + (e.message || e) + '</strong>');
+        alert('Script check failed: ' + (e.message || e));
+      } finally {
+        uiBusy = false;
+      }
+    };
 
     window.openVoiceFolder = async (id) => {
       const res = await api(`/voices/${id}/reveal`, { method: 'POST' });
@@ -1096,10 +1256,11 @@ Gracias. Esta muestra enseñará a CATTS a sonar como yo.`
         : `local · ${xttsBit} · STT:${h.stt_engine || 'none'}`;
       el.title = h.xtts_message || 'TTS / STT status';
       el.style.color = h.xtts_ready ? 'var(--ok)' : (h.xtts_installed ? 'var(--warn)' : 'var(--err)');
+      updateActivityBar(lastJobsCache, lastVoicesCache, h);
 
       if (!uiBusy) {
         if (!h.xtts_installed) {
-          setStatus('liveStatus', 'err', '<strong>Live TTS unavailable.</strong> XTTS not installed — run <code>scripts/setup_xtts.ps1</code> and restart the server.');
+          setStatus('liveStatus', 'err', '<strong>Live interpreting unavailable.</strong> XTTS not installed — run <code>scripts/setup_xtts.ps1</code> and restart the server.');
         } else if (!h.xtts_ready) {
           setStatus('liveStatus', 'busy', '<strong>XTTS model loading…</strong> First start ~1 min. Speak will wait until ready (or fail with an error).');
         } else {
@@ -1130,21 +1291,35 @@ Gracias. Esta muestra enseñará a CATTS a sonar como yo.`
 
     document.getElementById('uploadBtn').onclick = async () => {
       const f = document.getElementById('bookFile').files[0];
-      if (!f) return alert('Choose a file');
-      const fd = new FormData();
-      fd.append('file', f);
-      fd.append('title', document.getElementById('bookTitle').value || f.name);
-      fd.append('author', document.getElementById('bookAuthor').value || '');
-      fd.append('chapter_mode', document.getElementById('chapterMode').value);
-      const lang = document.getElementById('bookLang').value;
-      if (lang) fd.append('lang', lang);
-      const voice = document.getElementById('bookVoice').value;
-      if (voice) fd.append('voice_id', voice);
-      fd.append('generate_audio', document.getElementById('genAudio').checked ? 'true' : 'false');
-      await api('/jobs/audiobook', { method: 'POST', body: fd });
-      openJobs.clear();
-      document.querySelector('[data-panel="books"]')?.classList.add('open');
-      await refreshJobs();
+      if (!f) {
+        setStatus('bookStatus', 'err', '<strong>No file.</strong> Choose a PDF, EPUB, or DOCX.');
+        return alert('Choose a file');
+      }
+      const btn = document.getElementById('uploadBtn');
+      btn.disabled = true;
+      setStatus('bookStatus', 'busy', '<strong>Uploading…</strong> Job will process in the background.');
+      try {
+        const fd = new FormData();
+        fd.append('file', f);
+        fd.append('title', document.getElementById('bookTitle').value || f.name);
+        fd.append('author', document.getElementById('bookAuthor').value || '');
+        fd.append('chapter_mode', document.getElementById('chapterMode').value);
+        const lang = document.getElementById('bookLang').value;
+        if (lang) fd.append('lang', lang);
+        const voice = document.getElementById('bookVoice').value || defaultVoiceId;
+        if (voice) fd.append('voice_id', voice);
+        fd.append('generate_audio', document.getElementById('genAudio').checked ? 'true' : 'false');
+        const res = await api('/jobs/audiobook', { method: 'POST', body: fd });
+        openJobs.clear();
+        document.querySelector('[data-panel="books"]')?.classList.add('open');
+        setStatus('bookStatus', 'ok', `<strong>Queued.</strong> Watch Library below (job ${res.job_id || ''}). Processing runs in the background.`);
+        await refreshJobs();
+      } catch (e) {
+        setStatus('bookStatus', 'err', '<strong>Upload failed:</strong> ' + (e.message || e));
+        alert('Upload failed: ' + (e.message || e));
+      } finally {
+        btn.disabled = false;
+      }
     };
 
     document.getElementById('voiceBtn').onclick = async () => {
@@ -1162,15 +1337,22 @@ Gracias. Esta muestra enseñará a CATTS a sonar como yo.`
       const defaultName = lang === 'es' ? 'Mi voz principal' : 'My main voice';
       fd.append('name', document.getElementById('voiceName').value || defaultName);
       fd.append('lang', document.getElementById('voiceLang').value);
-      await api('/voices', { method: 'POST', body: fd });
-      recordedBlob = null;
-      recordSeconds = 0;
-      document.getElementById('voicePreview').innerHTML = '';
-      document.getElementById('recStatus').textContent = 'Training started — check status below';
-      fileInput.value = '';
-      syncVoiceFileName();
-      document.querySelector('[data-panel="voice"]')?.classList.add('open');
-      await refreshVoices();
+      setStatus('voicePlayStatus', 'busy', '<strong>Saving sample…</strong> STT script match runs in the background.');
+      try {
+        await api('/voices', { method: 'POST', body: fd });
+        recordedBlob = null;
+        recordSeconds = 0;
+        document.getElementById('voicePreview').innerHTML = '';
+        document.getElementById('recStatus').textContent = 'Sample saved — script match running…';
+        fileInput.value = '';
+        syncVoiceFileName();
+        document.querySelector('[data-panel="voice"]')?.classList.add('open');
+        setStatus('voicePlayStatus', 'ok', '<strong>Saved.</strong> Watch the voice card status bar for sample + script match.');
+        await refreshVoices();
+      } catch (e) {
+        setStatus('voicePlayStatus', 'err', '<strong>Save failed:</strong> ' + (e.message || e));
+        alert('Save failed: ' + (e.message || e));
+      }
     };
 
     document.getElementById('sttBtn').onclick = async () => {

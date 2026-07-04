@@ -2,7 +2,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 
 from api.deps import require_api_key
@@ -11,41 +11,71 @@ from db import create_voice, get_voice, list_voices, update_voice, voice_dir
 from services.job_runner import enqueue_voice
 from services.reveal import reveal_in_folder
 from services.voice_labels import sync_voice_labeled_files
+from services.voice_quality import evaluate_voice, find_sample, sample_stats
+from services.voice_scripts import script_for
 
 router = APIRouter(prefix="/voices", tags=["voices"])
 
-VOICE_SCRIPTS = {
-    "en": """Welcome to CATTS voice training. Read this in your natural voice, calmly, as if narrating an audiobook.
 
-My name is [say your name]. I am recording a personal voice for reading books and live interpretation.
+def _voice_display(voice: dict) -> str:
+    name = (voice.get("name") or "").strip()
+    vid = voice.get("id") or ""
+    if not name or name == vid or name.lower() in ("voice", "default"):
+        name = "Mi voz principal" if (voice.get("lang") or "").startswith("es") else "My main voice"
+    lang = voice.get("lang") or "en"
+    lang_label = "Español" if lang.startswith("es") else "English"
+    return f"{name} ({lang_label})"
 
-The quick brown fox jumps over the lazy dog. Pack my box with five dozen liquor jugs.
 
-One, two, three, four, five, six, seven, eight, nine, ten.
+def _voice_message(voice: dict) -> str:
+    msg = voice.get("message") or ""
+    if "stub mode" in msg.lower() or "preview sample" in msg.lower():
+        return "Ready — sample saved for XTTS clone"
+    if voice.get("status") == "training":
+        return msg or "Saving sample…"
+    if voice.get("status") == "ready":
+        return msg or "Ready to use"
+    if voice.get("status") == "failed":
+        return voice.get("error") or msg or "Failed"
+    return msg or "Queued"
 
-Some sentences are short. Others are longer, with pauses, questions, and variety in tone — but always natural.
 
-How are you today? I hope you are well.
-
-Thank you. This sample will teach CATTS to sound like me.""",
-    "es": """Bienvenido al entrenamiento de voz de CATTS. Lee esto con tu voz natural, con calma, como si narraras un audiolibro.
-
-Me llamo [di tu nombre]. Estoy grabando mi voz personal para libros y interpretación en vivo.
-
-El veloz murciélago hindú comía feliz cardillo y kiwi.
-
-Uno, dos, tres, cuatro, cinco, seis, siete, ocho, nueve, diez.
-
-Algunas frases son cortas. Otras son más largas, con pausas y variedad de tono.
-
-¿Cómo estás hoy? Espero que muy bien.
-
-Gracias. Esta muestra enseñará a CATTS a sonar como yo.""",
-}
+def _voice_response(voice: dict) -> VoiceProgress:
+    vdir = voice_dir(voice["id"])
+    labeled = {}
+    if vdir.exists():
+        for key, suffix in (("sample", "_sample"), ("reference", "_reference")):
+            for p in vdir.glob(f"*{suffix}.*"):
+                if p.name.startswith("sample.") or p.name.startswith("reference."):
+                    continue
+                if "_EN_" in p.name or "_ES_" in p.name:
+                    labeled[key] = p.name
+                    break
+    stats = sample_stats(voice["id"])
+    return VoiceProgress(
+        id=voice["id"],
+        name=voice.get("name"),
+        display_name=_voice_display(voice),
+        status=VoiceStatus(voice["status"]),
+        progress=float(voice.get("progress") or 0),
+        message=_voice_message(voice),
+        lang=voice.get("lang"),
+        ready=voice["status"] == "ready",
+        error=voice.get("error"),
+        folder=str(vdir.resolve()) if vdir.exists() else None,
+        labeled_sample=labeled.get("sample"),
+        labeled_reference=labeled.get("reference"),
+        has_sample=stats["has_sample"],
+        sample_bytes=stats.get("sample_bytes"),
+        sample_duration_sec=stats.get("sample_duration_sec"),
+        script_match=stats.get("script_match"),
+        script_match_label=stats.get("script_match_label"),
+        transcript_preview=stats.get("transcript_preview"),
+        quality_status=stats.get("quality_status") or "unchecked",
+    )
 
 
 def _normalize_sample(dest: Path, vdir: Path) -> Path:
-    """Convert browser webm recordings to wav when ffmpeg is available."""
     if dest.suffix.lower() != ".webm":
         return dest
     if not shutil.which("ffmpeg"):
@@ -65,60 +95,10 @@ async def list_all_voices(limit: int = 50, _: None = Depends(require_api_key)):
     return [_voice_response(v) for v in list_voices(limit)]
 
 
-def _voice_display(voice: dict) -> str:
-    name = (voice.get("name") or "").strip()
-    vid = voice.get("id") or ""
-    if not name or name == vid or name.lower() in ("voice", "default"):
-        name = "Mi voz principal" if (voice.get("lang") or "").startswith("es") else "My main voice"
-    lang = voice.get("lang") or "en"
-    lang_label = "Español" if lang.startswith("es") else "English"
-    return f"{name} ({lang_label})"
-
-
-def _voice_message(voice: dict) -> str:
-    msg = voice.get("message") or ""
-    if "stub mode" in msg.lower():
-        return "Ready — preview sample saved (GPU worker needed to clone your real voice)"
-    if voice.get("status") == "training":
-        return msg or "Training in progress…"
-    if voice.get("status") == "ready":
-        return msg or "Ready to use"
-    if voice.get("status") == "failed":
-        return voice.get("error") or msg or "Training failed"
-    return msg or "Queued"
-
-
-def _voice_response(voice: dict) -> VoiceProgress:
-    vdir = voice_dir(voice["id"])
-    labeled = {}
-    if vdir.exists():
-        for key, suffix in (("sample", "_sample"), ("reference", "_reference")):
-            for p in vdir.glob(f"*{suffix}.*"):
-                if p.name.startswith("sample.") or p.name.startswith("reference."):
-                    continue
-                if "_EN_" in p.name or "_ES_" in p.name:
-                    labeled[key] = p.name
-                    break
-    return VoiceProgress(
-        id=voice["id"],
-        name=voice.get("name"),
-        display_name=_voice_display(voice),
-        status=VoiceStatus(voice["status"]),
-        progress=float(voice.get("progress") or 0),
-        message=_voice_message(voice),
-        lang=voice.get("lang"),
-        ready=voice["status"] == "ready",
-        error=voice.get("error"),
-        folder=str(vdir.resolve()) if vdir.exists() else None,
-        labeled_sample=labeled.get("sample"),
-        labeled_reference=labeled.get("reference"),
-    )
-
-
 @router.get("/script/{lang}")
 async def get_voice_script(lang: str):
-    text = VOICE_SCRIPTS.get(lang, VOICE_SCRIPTS["en"])
-    return {"lang": lang, "script": text}
+    text = script_for(lang)
+    return {"lang": lang[:2], "script": text}
 
 
 @router.post("")
@@ -142,7 +122,6 @@ async def create_voice_job(
         raise HTTPException(500, "Failed to convert recording — try WAV/MP3 upload") from exc
 
     update_voice(voice_id, sample_path=str(dest))
-
     await enqueue_voice(voice_id)
     return {"voice_id": voice_id, "status": "queued"}
 
@@ -164,15 +143,30 @@ async def get_voice_sample(voice_id: str, _: None = Depends(require_api_key)):
         raise HTTPException(404, "Voice not found")
     vdir = voice_dir(voice_id)
     sync_voice_labeled_files(voice_id)
-    for p in sorted(vdir.glob("*_sample.*")):
-        if p.name.startswith("sample."):
-            continue
-        return FileResponse(p, media_type="application/octet-stream", filename=p.name)
-    for name in ("sample.wav", "sample.webm", "sample.mp3"):
-        path = vdir / name
-        if path.exists():
-            return FileResponse(path, media_type="application/octet-stream", filename=path.name)
+    sample = find_sample(vdir)
+    if sample:
+        return FileResponse(sample, media_type="application/octet-stream", filename=sample.name)
     raise HTTPException(404, "No sample audio")
+
+
+@router.post("/{voice_id}/evaluate")
+async def evaluate_voice_sample(
+    voice_id: str,
+    background_tasks: BackgroundTasks,
+    wait: bool = False,
+    _: None = Depends(require_api_key),
+):
+    voice = get_voice(voice_id)
+    if not voice:
+        raise HTTPException(404, "Voice not found")
+    if wait:
+        try:
+            result = await evaluate_voice(voice_id)
+        except ValueError as exc:
+            raise HTTPException(404, str(exc)) from exc
+        return result
+    background_tasks.add_task(evaluate_voice, voice_id)
+    return {"voice_id": voice_id, "status": "checking"}
 
 
 @router.post("/{voice_id}/reveal")

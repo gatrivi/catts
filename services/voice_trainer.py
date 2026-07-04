@@ -44,6 +44,13 @@ async def run_voice_training(voice_id: str) -> None:
             prepare_xtts_reference(artifact)
         except Exception:
             logger.exception("Could not build XTTS reference clip for %s", voice_id)
+        try:
+            from services.voice_quality import evaluate_voice
+            update_voice(voice_id, message="Ready — checking script match (STT)…")
+            await evaluate_voice(voice_id)
+            update_voice(voice_id, message="Ready — voice sample saved for XTTS clone")
+        except Exception:
+            logger.exception("Script-match check failed for %s", voice_id)
         return
 
     try:
@@ -66,6 +73,11 @@ async def run_voice_training(voice_id: str) -> None:
             artifact_path=str(artifact),
         )
         sync_voice_labeled_files(voice_id)
+        try:
+            from services.voice_quality import evaluate_voice
+            await evaluate_voice(voice_id)
+        except Exception:
+            logger.exception("Script-match check failed for %s", voice_id)
         logger.info("Voice %s trained: %s", voice_id, result)
     except Exception as exc:
         logger.exception("Voice training failed for %s", voice_id)
