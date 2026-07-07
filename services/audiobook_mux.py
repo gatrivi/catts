@@ -6,9 +6,7 @@ import subprocess
 import zipfile
 from pathlib import Path
 
-
-def _ffmpeg_available() -> bool:
-    return shutil.which("ffmpeg") is not None
+from services.ffmpeg_util import ffmpeg_available, ffmpeg_path, ffprobe_path
 
 
 def concat_audio(files: list[Path], output: Path) -> Path:
@@ -16,20 +14,25 @@ def concat_audio(files: list[Path], output: Path) -> Path:
     output.parent.mkdir(parents=True, exist_ok=True)
     if not files:
         raise ValueError("No audio files to concat")
+    ffmpeg = ffmpeg_path()
+    if not ffmpeg:
+        fallback = output.with_suffix(files[0].suffix)
+        shutil.copy(files[0], fallback)
+        return fallback
     if len(files) == 1:
-        shutil.copy(files[0], output)
-        return output
-    if not _ffmpeg_available():
-        shutil.copy(files[0], output)
-        return output
+        return convert_audio(files[0], output)
 
     list_file = output.parent / "concat_list.txt"
     list_file.write_text("\n".join(f"file '{p.resolve().as_posix()}'" for p in files), encoding="utf-8")
     ext = output.suffix.lower()
     codec = "copy" if all(f.suffix.lower() == ext for f in files) else "aac"
-    cmd = ["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", str(list_file)]
+    cmd = [ffmpeg, "-y", "-f", "concat", "-safe", "0", "-i", str(list_file)]
     if codec == "copy":
         cmd += ["-c", "copy", str(output)]
+    elif ext == ".mp3":
+        cmd += ["-c:a", "libmp3lame", "-qscale:a", "2", str(output)]
+    elif ext == ".wav":
+        cmd += ["-c:a", "pcm_s16le", str(output)]
     else:
         cmd += ["-c:a", "aac", "-b:a", "128k", str(output)]
     subprocess.run(cmd, check=True, capture_output=True)
@@ -41,17 +44,31 @@ def concat_wavs(wav_files: list[Path], output: Path) -> Path:
     return concat_audio(wav_files, output)
 
 
+def convert_audio(source_path: Path, output_path: Path) -> Path:
+    if source_path.suffix.lower() == output_path.suffix.lower():
+        shutil.copy(source_path, output_path)
+        return output_path
+    ffmpeg = ffmpeg_path()
+    if not ffmpeg:
+        fallback = output_path.with_suffix(source_path.suffix)
+        shutil.copy(source_path, fallback)
+        return fallback
+    cmd = [ffmpeg, "-y", "-i", str(source_path)]
+    ext = output_path.suffix.lower()
+    if ext == ".mp3":
+        cmd += ["-codec:a", "libmp3lame", "-qscale:a", "2"]
+    elif ext == ".wav":
+        cmd += ["-ar", "44100", "-ac", "1", "-c:a", "pcm_s16le"]
+    elif ext in (".m4a", ".m4b", ".aac"):
+        cmd += ["-c:a", "aac", "-b:a", "128k"]
+    cmd.append(str(output_path))
+    subprocess.run(cmd, check=True, capture_output=True)
+    return output_path
+
+
 def wav_to_mp3(wav_path: Path, mp3_path: Path) -> Path:
     mp3_path.parent.mkdir(parents=True, exist_ok=True)
-    if not _ffmpeg_available():
-        shutil.copy(wav_path, mp3_path.with_suffix(".wav"))
-        return mp3_path.with_suffix(".wav")
-    subprocess.run(
-        ["ffmpeg", "-y", "-i", str(wav_path), "-codec:a", "libmp3lame", "-qscale:a", "2", str(mp3_path)],
-        check=True,
-        capture_output=True,
-    )
-    return mp3_path
+    return convert_audio(wav_path, mp3_path)
 
 
 def build_zip(job_dir: Path, chapters: list[dict], chapter_audio: list[Path]) -> Path:
@@ -78,10 +95,11 @@ def _audio_duration_ms(path: Path) -> int:
 
         with wave.open(str(path), "r") as wf:
             return int(wf.getnframes() / wf.getframerate() * 1000)
-    if shutil.which("ffprobe"):
+    ffprobe = ffprobe_path()
+    if ffprobe:
         result = subprocess.run(
             [
-                "ffprobe", "-v", "error", "-show_entries", "format=duration",
+                ffprobe, "-v", "error", "-show_entries", "format=duration",
                 "-of", "default=noprint_wrappers=1:nokey=1", str(path),
             ],
             capture_output=True,
@@ -93,7 +111,8 @@ def _audio_duration_ms(path: Path) -> int:
 
 
 def build_m4b(job_dir: Path, chapters: list[dict], chapter_files: list[Path]) -> Path | None:
-    if not _ffmpeg_available() or not chapter_files:
+    ffmpeg = ffmpeg_path()
+    if not ffmpeg or not chapter_files:
         return None
 
     combined = job_dir / "combined.m4a"
@@ -116,7 +135,7 @@ def build_m4b(job_dir: Path, chapters: list[dict], chapter_files: list[Path]) ->
 
     subprocess.run(
         [
-            "ffmpeg", "-y", "-i", str(combined), "-i", str(meta_file),
+            ffmpeg, "-y", "-i", str(combined), "-i", str(meta_file),
             "-map_metadata", "1", "-c:a", "aac", "-b:a", "128k", str(out_m4b),
         ],
         check=True,

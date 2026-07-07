@@ -9,6 +9,7 @@ from api.deps import require_api_key
 from api.schemas import JobFiles, JobMetadataPatch, JobProgress, JobStatus, JobSummary
 from db import create_job, delete_job, get_job, job_dir, list_jobs, update_job
 from services.book_metadata import display_name, guess_metadata_from_filename
+from services.job_cleanup import cleanup_job_artifacts
 from services.job_manifest import backfill_all_readmes, write_job_readme
 from services.job_runner import cancel_job, enqueue_audiobook
 from services.job_regenerate import regenerate_job_audio

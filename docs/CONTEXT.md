@@ -12,7 +12,7 @@ Local **audiobook + voice** tool for AMD/CPU (no NVIDIA required).
 ### 2. Your voice (EN / ES)
 1. Record or upload a sample (read the script)
 2. STT checks **script match** (status bar on voice card)
-3. Use for books and **Live interpreting** (XTTS clone)
+3. Use for books and **Live interpreting** (XTTS clone, after accepting the Coqui XTTS license gate)
 
 ## Engines
 
@@ -27,7 +27,7 @@ Local **audiobook + voice** tool for AMD/CPU (no NVIDIA required).
 
 ```powershell
 cd e:\zengatrivi-drive-e\catts
-py -3 -m uvicorn api.main:app --host 0.0.0.0 --port 59200
+.\.venv\Scripts\python.exe -m uvicorn api.main:app --host 0.0.0.0 --port 59200
 ```
 
 Open http://127.0.0.1:59200/ — activity bar shows TTS/STT/jobs/voices.
@@ -44,7 +44,9 @@ Open http://127.0.0.1:59200/ — activity bar shows TTS/STT/jobs/voices.
 ## Limits
 
 - CPU XTTS is slow for full books; Live TTS ~5–30s/phrase after warm
+- XTTS is installed but intentionally blocked until `CATTS_ACCEPT_COQUI_CPML=1` is set after you accept Coqui XTTS CPML/commercial terms
 - Scanned PDFs need OCR (not local yet)
 - Script match = token overlap vs training script, not a pro WER lab score
+- Use `.\.venv\Scripts\python.exe scripts\check_env.py` to verify the local Python environment before deeper testing.
 
 See [CHANGELOG.md](../CHANGELOG.md) and [NIGHT_REPORT.md](NIGHT_REPORT.md).

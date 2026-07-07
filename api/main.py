@@ -6,10 +6,11 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from api.routes import health, jobs, stt, voices
+from api.routes import agent, diagnostics, health, jobs, links, liteui, ocr, stt, voices
 from config import API_HOST, API_PORT
 from db import init_db
 from services.job_manifest import backfill_all_readmes
@@ -46,11 +47,23 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="CATTS", description="PDF/EPUB/DOCX to Audiobook + Voice API", version="0.7.0", lifespan=lifespan)
+app = FastAPI(title="CATTS", description="PDF/EPUB/DOCX to Audiobook + Voice API", version="0.7.2", lifespan=lifespan)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 app.include_router(health.router)
+app.include_router(agent.router)
 app.include_router(jobs.router)
 app.include_router(voices.router)
 app.include_router(stt.router)
+app.include_router(ocr.router)
+app.include_router(diagnostics.router)
+app.include_router(links.router)
+app.include_router(liteui.router)
 
 if STATIC_DIR.exists():
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")

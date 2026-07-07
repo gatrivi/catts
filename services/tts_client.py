@@ -1,4 +1,4 @@
-"""TTS: XTTS (local clone) → Chatterbox → GPT-SoVITS worker → Edge TTS fallback."""
+"""TTS client (local/worker engines) with sensible fallbacks."""
 
 import logging
 import shutil
@@ -11,7 +11,8 @@ from pathlib import Path
 import httpx
 
 from config import TTS_ENGINE, WORKER_URL
-from services import chatterbox_tts, xtts_tts
+from services import chatterbox_tts, pocket_tts, xtts_tts
+from services.ffmpeg_util import ffmpeg_path
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +23,8 @@ EDGE_VOICES = {
 
 
 def engine_label() -> str:
+    if TTS_ENGINE == "pocket" and pocket_tts.available():
+        return "pocket"
     if TTS_ENGINE == "gptsovits" and WORKER_URL:
         return "gptsovits"
     if TTS_ENGINE in ("xtts", "stub", "chatterbox") and xtts_tts.available():
@@ -33,6 +36,8 @@ def engine_label() -> str:
 
 def _clone_engines() -> list[str]:
     order: list[str] = []
+    if TTS_ENGINE in ("pocket", "stub", "chatterbox") and pocket_tts.available():
+        order.append("pocket")
     if TTS_ENGINE in ("xtts", "stub", "chatterbox") and xtts_tts.available():
         order.append("xtts")
     if TTS_ENGINE in ("chatterbox", "stub") and chatterbox_tts.available():
@@ -46,6 +51,8 @@ async def _local_clone(text: str, output_path: Path, ref_audio: Path, lang: str)
         try:
             if name == "xtts":
                 return await xtts_tts.synthesize(text, output_path, ref_audio, lang)
+            if name == "pocket":
+                return await pocket_tts.synthesize(text, output_path, ref_audio=ref_audio, lang=lang)
             return await chatterbox_tts.synthesize(text, output_path, ref_audio)
         except Exception as exc:
             last_exc = exc
@@ -66,10 +73,11 @@ def _silent_wav(path: Path, duration_sec: float = 0.4, sample_rate: int = 22050)
 
 
 def _mp3_to_wav(mp3: Path, wav: Path) -> bool:
-    if not shutil.which("ffmpeg"):
+    ffmpeg = ffmpeg_path()
+    if not ffmpeg:
         return False
     subprocess.run(
-        ["ffmpeg", "-y", "-i", str(mp3), "-ar", "44100", "-ac", "1", str(wav)],
+        [ffmpeg, "-y", "-i", str(mp3), "-ar", "44100", "-ac", "1", str(wav)],
         check=True,
         capture_output=True,
     )
@@ -97,6 +105,9 @@ async def synthesize(
 ) -> Path:
     if TTS_ENGINE == "gptsovits" and WORKER_URL:
         return await _synthesize_gptsovits(text, output_path, voice_id, lang, ref_audio)
+
+    if TTS_ENGINE == "pocket" and pocket_tts.available():
+        return await pocket_tts.synthesize(text, output_path, ref_audio=ref_audio, lang=lang)
 
     if ref_audio and _clone_engines():
         try:

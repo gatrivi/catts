@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -144,12 +144,12 @@
 </head>
 <body>
   <header>
-    <h1>CATTS <span class="ver">v0.7</span></h1>
-    <div id="health">checking…</div>
+    <h1>CATTS <span class="ver">v0.7.2</span></h1>
+    <div id="health">checkingâ€¦</div>
   </header>
   <div id="activityBar" aria-live="polite">
-    <span class="pill" id="pillTts">TTS…</span>
-    <span class="pill" id="pillStt">STT…</span>
+    <span class="pill" id="pillTts">TTSâ€¦</span>
+    <span class="pill" id="pillStt">STTâ€¦</span>
     <span class="pill" id="pillJobs">Books idle</span>
     <span class="pill" id="pillVoices">Voices idle</span>
   </div>
@@ -161,7 +161,7 @@
         <span class="flow-num">1</span>
         <div>
           <div class="flow-title">Audiobook</div>
-          <div class="flow-sub">Upload PDF / EPUB / DOCX → process → listen (your voice if selected)</div>
+          <div class="flow-sub">Upload PDF / EPUB / DOCX â†’ process â†’ listen (your voice if selected)</div>
         </div>
       </div>
       <div class="steps">
@@ -172,18 +172,18 @@
 
     <section class="panel open" data-panel="newbook">
       <button type="button" class="panel-head" aria-expanded="true">
-        <span class="panel-title">Upload book <span class="panel-hint">— PDF / EPUB / DOCX</span></span>
-        <span class="panel-chevron">▼</span>
+        <span class="panel-title">Upload book <span class="panel-hint">â€” PDF / EPUB / DOCX</span></span>
+        <span class="panel-chevron">â–¼</span>
       </button>
       <div class="panel-body">
         <div id="bookStatus" class="status-box idle">Pick a file, choose your voice (default), then Start processing. Progress appears under Library.</div>
         <label>Book file</label>
         <div class="file-picker">
           <input type="file" id="bookFile" class="file-input-hidden" accept=".pdf,.epub,.docx,.txt,.md" />
-          <button type="button" class="file-btn" id="bookFileBtn"><span class="file-btn-icon">📄</span><span>Choose file…</span></button>
+          <button type="button" class="file-btn" id="bookFileBtn"><span class="file-btn-icon">ðŸ“„</span><span>Choose fileâ€¦</span></button>
           <span class="file-name" id="bookFileName">No file selected</span>
         </div>
-        <label>Click words from filename →</label>
+        <label>Click words from filename â†’</label>
         <div class="word-target">
           <label class="inline"><input type="radio" name="metaTarget" value="title" checked /> Title</label>
           <label class="inline"><input type="radio" name="metaTarget" value="author" /> Author</label>
@@ -209,7 +209,7 @@
             <select id="chapterMode">
               <option value="detect">From document headers</option>
               <option value="detect_number">Numbered + header subtitle</option>
-              <option value="number">Simple Chapter 1, 2, 3…</option>
+              <option value="number">Simple Chapter 1, 2, 3â€¦</option>
             </select>
           </div>
         </div>
@@ -222,12 +222,12 @@
 
     <section class="panel open" data-panel="books">
       <button type="button" class="panel-head" aria-expanded="true">
-        <span class="panel-title">Library <span class="panel-hint">— progress &amp; play</span></span>
+        <span class="panel-title">Library <span class="panel-hint">â€” progress &amp; play</span></span>
         <span class="panel-badge" id="booksCount">0</span>
-        <span class="panel-chevron">▼</span>
+        <span class="panel-chevron">â–¼</span>
       </button>
       <div class="panel-body">
-        <p class="job-help">Processing runs in the background. Click <strong>▶</strong> when status is done. Use <strong>Re-record book</strong> to apply your voice.</p>
+        <p class="job-help">Processing runs in the background. Click <strong>â–¶</strong> when status is done. Use <strong>Re-record book</strong> to apply your voice.</p>
         <div id="jobs"></div>
       </div>
     </section>
@@ -238,7 +238,7 @@
         <span class="flow-num">2</span>
         <div>
           <div class="flow-title">Your voice (EN / ES)</div>
-          <div class="flow-sub">Save a sample → check script match → use for books &amp; live interpreting</div>
+          <div class="flow-sub">Save a sample â†’ check script match â†’ use for books &amp; live interpreting</div>
         </div>
       </div>
       <div class="steps">
@@ -249,16 +249,16 @@
 
     <section class="panel open" data-panel="voice">
       <button type="button" class="panel-head" aria-expanded="true">
-        <span class="panel-title">Save voice sample <span class="panel-hint">— EN or ES</span></span>
+        <span class="panel-title">Save voice sample <span class="panel-hint">â€” EN or ES</span></span>
         <span class="panel-badge" id="voicesCount">0</span>
-        <span class="panel-chevron">▼</span>
+        <span class="panel-chevron">â–¼</span>
       </button>
       <div class="panel-body">
-        <p class="instructions">Record 1–3 min reading the script (one voice per language). After save, STT checks how well it matches the script.</p>
+        <p class="instructions">Record 1â€“3 min reading the script (one voice per language). After save, STT checks how well it matches the script.</p>
         <div class="row">
           <div>
             <label>Voice name</label>
-            <input id="voiceName" placeholder="Gastón — Español" />
+            <input id="voiceName" placeholder="GastÃ³n â€” EspaÃ±ol" />
           </div>
           <div>
             <label>Language</label>
@@ -268,15 +268,15 @@
         <label>Script to read</label>
         <div class="script-box" id="voiceScript"></div>
         <div class="mic-row">
-          <button type="button" class="mic-btn" id="micBtn">🎤 Record</button>
+          <button type="button" class="mic-btn" id="micBtn">ðŸŽ¤ Record</button>
           <span class="rec-status" id="recStatus">Not recording</span>
         </div>
         <div id="voicePreview" class="player"></div>
         <label>Or upload recording</label>
         <div class="file-picker">
           <input type="file" id="voiceFile" class="file-input-hidden" accept="audio/*" />
-          <button type="button" class="file-btn" id="voiceFileBtn"><span class="file-btn-icon">🎵</span><span>Choose audio…</span></button>
-          <span class="file-name" id="voiceFileName">WAV / MP3, 1–5 min</span>
+          <button type="button" class="file-btn" id="voiceFileBtn"><span class="file-btn-icon">ðŸŽµ</span><span>Choose audioâ€¦</span></button>
+          <span class="file-name" id="voiceFileName">WAV / MP3, 1â€“5 min</span>
         </div>
         <button type="button" class="action-btn" id="voiceBtn">Save voice sample</button>
         <div id="voicePlayStatus" class="status-box idle">Hear sample plays your recording (not Live TTS). Status appears here.</div>
@@ -286,12 +286,12 @@
 
     <section class="panel open" data-panel="live">
       <button type="button" class="panel-head" aria-expanded="true">
-        <span class="panel-title">Live interpreting <span class="panel-hint">— speak with your voice</span></span>
-        <span class="panel-chevron">▼</span>
+        <span class="panel-title">Live interpreting <span class="panel-hint">â€” speak with your voice</span></span>
+        <span class="panel-chevron">â–¼</span>
       </button>
       <div class="panel-body">
-        <p class="instructions">Type a short phrase (max 12 words). Uses XTTS clone of your sample. Watch status — first run after server start can take ~1 min.</p>
-        <div id="liveStatus" class="status-box idle">Checking TTS…</div>
+        <p class="instructions">Type a short phrase (max 12 words). Uses XTTS clone of your sample. Watch status â€” first run after server start can take ~1 min.</p>
+        <div id="liveStatus" class="status-box idle">Checking TTSâ€¦</div>
         <label>Phrase</label>
         <input id="liveText" placeholder="Hello, this is a test." />
         <label>Voice</label>
@@ -304,24 +304,24 @@
 
     <section class="panel" data-panel="speech">
       <button type="button" class="panel-head" aria-expanded="false">
-        <span class="panel-title">Tools <span class="panel-hint">— transcribe &amp; translate</span></span>
-        <span class="panel-chevron">▼</span>
+        <span class="panel-title">Tools <span class="panel-hint">â€” transcribe &amp; translate</span></span>
+        <span class="panel-chevron">â–¼</span>
       </button>
       <div class="panel-body">
         <p class="instructions">Local Whisper STT (EN/ES) + offline Argos translation. Run <code>scripts/setup_stt.ps1</code> once.</p>
         <label>Transcribe audio (EN / ES)</label>
         <div class="file-picker">
           <input type="file" id="sttFile" class="file-input-hidden" accept="audio/*" />
-          <button type="button" class="file-btn" id="sttFileBtn"><span class="file-btn-icon">🎙</span><span>Choose audio…</span></button>
+          <button type="button" class="file-btn" id="sttFileBtn"><span class="file-btn-icon">ðŸŽ™</span><span>Choose audioâ€¦</span></button>
           <span class="file-name" id="sttFileName">WAV / MP3 / M4A</span>
         </div>
         <label>Language hint</label>
         <select id="sttLang"><option value="">auto-detect</option><option value="en">English</option><option value="es">Spanish</option></select>
         <button type="button" class="action-btn" id="sttBtn">Transcribe</button>
         <label>Transcription</label>
-        <textarea id="sttOut" rows="4" readonly placeholder="Transcription appears here…" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #3a4150;background:#12151b;color:var(--text);"></textarea>
+        <textarea id="sttOut" rows="4" readonly placeholder="Transcription appears hereâ€¦" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #3a4150;background:#12151b;color:var(--text);"></textarea>
         <label>Translate</label>
-        <textarea id="translateIn" rows="3" placeholder="Paste text to translate…" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #3a4150;background:#12151b;color:var(--text);"></textarea>
+        <textarea id="translateIn" rows="3" placeholder="Paste text to translateâ€¦" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #3a4150;background:#12151b;color:var(--text);"></textarea>
         <div class="row">
           <div>
             <label>From</label>
@@ -334,12 +334,60 @@
         </div>
         <button type="button" class="action-btn secondary" id="translateBtn">Translate</button>
         <label>Translation</label>
-        <textarea id="translateOut" rows="4" readonly placeholder="Translation appears here…" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #3a4150;background:#12151b;color:var(--text);"></textarea>
+        <textarea id="translateOut" rows="4" readonly placeholder="Translation appears hereâ€¦" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #3a4150;background:#12151b;color:var(--text);"></textarea>
+      </div>
+    </section>
+
+    <section class="panel" data-panel="diagnostics">
+      <button type="button" class="panel-head" aria-expanded="false">
+        <span class="panel-title">Diagnostics <span class="panel-hint">â€” smoke check</span></span>
+        <span class="panel-chevron">â–¼</span>
+      </button>
+      <div class="panel-body">
+        <p class="job-help">Run a quick end-to-end check and see exactly where it fails (API + STT + Translate + Voice + Audio decode).</p>
+        <div id="smokeSummary" class="status-box idle">Idle.</div>
+        <div class="actions">
+          <button type="button" class="action-btn" id="smokeBtn">Run smoke check</button>
+          <button type="button" class="action-btn secondary" id="smokeClearBtn">Clear</button>
+        </div>
+        <label>Steps</label>
+        <div id="smokeSteps" class="status-box idle" style="max-height:260px; overflow:auto;"></div>
+        <div class="subtle" style="margin-top:.5rem;">
+          Tip: if your `CATTS_API_KEY` is set, paste it into the UI (it will be sent as `X-API-Key`).
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" data-panel="links">
+      <button type="button" class="panel-head" aria-expanded="false">
+        <span class="panel-title">External links <span class="panel-hint">— companion projects</span></span>
+        <span class="panel-chevron">â–¼</span>
+      </button>
+      <div class="panel-body">
+        <p class="instructions">These links are exposed by the CATTS API so the UI can render them consistently.</p>
+        <div id="linksBox" class="status-box idle">Loading links…</div>
+        <div id="linksList" class="subtle" style="margin-top:.5rem;"></div>
+      </div>
+    </section>
+
+    <section class="panel" data-panel="liteui">
+      <button type="button" class="panel-head" aria-expanded="false">
+        <span class="panel-title">LiteUI Studio <span class="panel-hint">— image/video workstation</span></span>
+        <span class="panel-chevron">â–¼</span>
+      </button>
+      <div class="panel-body">
+        <p class="instructions">This panel can start LiteUI Studio locally (runs its own backend + Gradio UI).</p>
+        <div id="liteuiStatusBox" class="status-box idle">Idle.</div>
+        <div class="actions">
+          <button type="button" class="action-btn" id="liteuiStartBtn">Start</button>
+          <button type="button" class="action-btn secondary" id="liteuiOpenBtn">Open UI</button>
+        </div>
+        <div id="liteuiError" class="subtle" style="margin-top:.5rem;white-space:pre-wrap;"></div>
       </div>
     </section>
   </main>
   <div id="globalPlayerDock" hidden>
-    <div class="dock-close"><button type="button" id="globalPlayerClose" title="Close player">✕ Close</button></div>
+    <div class="dock-close"><button type="button" id="globalPlayerClose" title="Close player">âœ• Close</button></div>
     <div id="globalPlayerHost" class="player"></div>
   </div>
   <script>
@@ -367,7 +415,7 @@
     async function playInGlobalDock(blob, label, cacheKey) {
       openGlobalDock();
       const host = document.getElementById('globalPlayerHost');
-      host.innerHTML = '<div class="wave-player"><div class="wave-label">' + (label || 'Audio') + '</div><div class="wave-status subtle">Decoding waveform…</div></div>';
+      host.innerHTML = '<div class="wave-player"><div class="wave-label">' + (label || 'Audio') + '</div><div class="wave-status subtle">Decoding waveformâ€¦</div></div>';
       stopActivePlayer();
       await mountWavePlayer(host, blob, label, { autoplay: true, cacheKey });
     }
@@ -377,7 +425,7 @@
       document.querySelector(`.job-item[data-id="${id}"]`)?.classList.add('open');
       openGlobalDock();
       const host = document.getElementById('globalPlayerHost');
-      host.innerHTML = '<div class="wave-player"><div class="wave-status subtle">Loading chapter…</div></div>';
+      host.innerHTML = '<div class="wave-player"><div class="wave-status subtle">Loading chapterâ€¦</div></div>';
       try {
         const f = await getJobFiles(id);
         let lastErr = null;
@@ -389,9 +437,9 @@
             return;
           } catch (e) { lastErr = e; }
         }
-        throw lastErr || new Error('No playable chapter — use Re-record book');
+        throw lastErr || new Error('No playable chapter â€” use Re-record book');
       } catch (err) {
-        host.innerHTML = '<div class="wave-silent">⚠ ' + (err.message || err) + '</div>';
+        host.innerHTML = '<div class="wave-silent">âš  ' + (err.message || err) + '</div>';
       }
     }
 
@@ -401,7 +449,7 @@
       document.querySelector(`.job-item[data-id="${id}"]`)?.classList.add('open');
       openGlobalDock();
       const host = document.getElementById('globalPlayerHost');
-      host.innerHTML = '<div class="wave-player"><div class="wave-status subtle">Loading chapter…</div></div>';
+      host.innerHTML = '<div class="wave-player"><div class="wave-status subtle">Loading chapterâ€¦</div></div>';
       try {
         const blob = await fetchChapterBlob(id, num);
         const f = await getJobFiles(id);
@@ -409,7 +457,7 @@
         const label = ch?.title || `Chapter ${num}`;
         await playInGlobalDock(blob, label, `job:${id}:ch${num}`);
       } catch (err) {
-        host.innerHTML = '<div class="wave-silent">⚠ ' + (err.message || err) + '</div>';
+        host.innerHTML = '<div class="wave-silent">âš  ' + (err.message || err) + '</div>';
       }
     }
 
@@ -477,21 +525,21 @@
       if (!r.ok) throw new Error('Chapter audio not found');
       const blob = await r.blob();
       if (!isPlayableBlob(blob)) {
-        throw new Error(`Chapter ${num} looks silent or corrupt — click Regenerate audio`);
+        throw new Error(`Chapter ${num} looks silent or corrupt â€” click Regenerate audio`);
       }
       return blob;
     }
 
     async function fetchBestPlayableChapter(id) {
       const f = await getJobFiles(id);
-      if (!f.chapters.length) throw new Error('No chapter audio — click Regenerate audio');
+      if (!f.chapters.length) throw new Error('No chapter audio â€” click Regenerate audio');
       for (const ch of f.chapters) {
         try {
           const blob = await fetchChapterBlob(id, ch.index);
           return { blob, label: ch.title || `Chapter ${ch.index}` };
         } catch (_) { /* try next */ }
       }
-      throw new Error('All chapters look silent — click Regenerate audio');
+      throw new Error('All chapters look silent â€” click Regenerate audio');
     }
 
     function fmtTime(sec) {
@@ -608,7 +656,7 @@
     async function mountWavePlayer(container, blob, label, { autoplay = true, lookaheadSec = 5, cacheKey = null } = {}) {
       if (!container) return;
       if (!isPlayableBlob(blob)) {
-        container.innerHTML = '<div class="wave-silent">⚠ Audio file is empty or too small — use <strong>Re-record book</strong>.</div>';
+        container.innerHTML = '<div class="wave-silent">âš  Audio file is empty or too small â€” use <strong>Re-record book</strong>.</div>';
         return;
       }
 
@@ -617,14 +665,14 @@
       container.innerHTML = `
         <div class="wave-player">
           <div class="wave-label">${label || 'Audio'}</div>
-          <div class="wave-status subtle">Decoding waveform…</div>
+          <div class="wave-status subtle">Decoding waveformâ€¦</div>
         </div>`;
 
       let peaks, duration, maxPeak;
       try {
         ({ peaks, duration, maxPeak } = await getPeaks(blob, cacheKey));
       } catch (_) {
-        container.innerHTML = '<div class="wave-silent">⚠ Could not decode audio for waveform.</div>';
+        container.innerHTML = '<div class="wave-silent">âš  Could not decode audio for waveform.</div>';
         URL.revokeObjectURL(url);
         return;
       }
@@ -635,16 +683,16 @@
       wrap.innerHTML = `
         <div class="wave-meta">
           <span class="wave-label"></span>
-          <span class="wave-level ${silent ? 'warn' : 'ok'}">${silent ? 'Low signal' : 'Signal OK'} · ${fmtTime(duration)}</span>
+          <span class="wave-level ${silent ? 'warn' : 'ok'}">${silent ? 'Low signal' : 'Signal OK'} Â· ${fmtTime(duration)}</span>
         </div>
-        <div class="wave-silent" ${silent ? '' : 'hidden'}>⚠ Waveform looks flat — file may be silent. Try <strong>Re-record book</strong>.</div>
+        <div class="wave-silent" ${silent ? '' : 'hidden'}>âš  Waveform looks flat â€” file may be silent. Try <strong>Re-record book</strong>.</div>
         <canvas class="wave-main" style="height:72px"></canvas>
         <div class="wave-lookahead-wrap">
           <div class="wave-lookahead-title">Next ${lookaheadSec}s</div>
           <canvas class="wave-lookahead" style="height:48px"></canvas>
         </div>
         <div class="wave-controls">
-          <button type="button" class="wave-play action-btn play">▶</button>
+          <button type="button" class="wave-play action-btn play">â–¶</button>
           <input type="range" class="wave-seek" min="0" max="1000" value="0" />
           <span class="wave-time">0:00 / ${fmtTime(duration)}</span>
         </div>`;
@@ -680,11 +728,11 @@
       playBtn.onclick = () => {
         if (playerAudio.paused) {
           playerAudio.play();
-          playBtn.textContent = '⏸';
+          playBtn.textContent = 'â¸';
           redraw();
         } else {
           playerAudio.pause();
-          playBtn.textContent = '▶';
+          playBtn.textContent = 'â–¶';
           if (activeRaf) cancelAnimationFrame(activeRaf);
         }
       };
@@ -693,12 +741,12 @@
         const rect = mainCanvas.getBoundingClientRect();
         const frac = (e.clientX - rect.left) / rect.width;
         seekTo(frac * duration);
-        if (playerAudio.paused && autoplay) playerAudio.play().then(() => { playBtn.textContent = '⏸'; redraw(); });
+        if (playerAudio.paused && autoplay) playerAudio.play().then(() => { playBtn.textContent = 'â¸'; redraw(); });
       };
-      playerAudio.onended = () => { playBtn.textContent = '▶'; if (activeRaf) cancelAnimationFrame(activeRaf); };
+      playerAudio.onended = () => { playBtn.textContent = 'â–¶'; if (activeRaf) cancelAnimationFrame(activeRaf); };
       requestAnimationFrame(() => {
         redraw();
-        if (autoplay) playerAudio.play().then(() => { playBtn.textContent = '⏸'; redraw(); }).catch(() => {});
+        if (autoplay) playerAudio.play().then(() => { playBtn.textContent = 'â¸'; redraw(); }).catch(() => {});
       });
       const onResize = () => redraw();
       if (typeof ResizeObserver !== 'undefined') {
@@ -719,12 +767,32 @@
       el.innerHTML = html;
     }
 
+    function escapeHtml(value) {
+      return String(value ?? '').replace(/[&<>"']/g, ch => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[ch]));
+    }
+
+    function userActionForError(message) {
+      const msg = String(message || '').toLowerCase();
+      if (msg.includes('catts_accept_coqui_cpml') || msg.includes('coqui') || msg.includes('cpml')) {
+        return 'Accept/reject Coqui terms; if accepted, set CATTS_ACCEPT_COQUI_CPML=1 and restart.';
+      }
+      if (msg.includes('ocr') || msg.includes('worker') || msg.includes('catts_worker_url')) {
+        return 'Configure OCR worker, or use an embedded-text PDF.';
+      }
+      if (msg.includes('ffmpeg')) return 'Run setup again so bundled ffmpeg is installed.';
+      if (msg.includes('timeout') || msg.includes('timed out')) return 'Retry with a shorter phrase or smaller file.';
+      if (msg.includes('no sample') || msg.includes('empty')) return 'Record or upload a fresh voice sample.';
+      return 'Run Diagnostics, fix the failing step, then retry.';
+    }
+
     function startElapsed(elId, baseHtml) {
       const t0 = Date.now();
       if (statusTimer) clearInterval(statusTimer);
       const tick = () => {
         const s = Math.round((Date.now() - t0) / 1000);
-        setStatus(elId, 'busy', baseHtml + ` <strong>${s}s</strong> elapsed…`);
+        setStatus(elId, 'busy', baseHtml + ` <strong>${s}s</strong> elapsedâ€¦`);
       };
       tick();
       statusTimer = setInterval(tick, 500);
@@ -738,11 +806,11 @@
       uiBusy = true;
       const stopElapsed = startElapsed(
         'voicePlayStatus',
-        `Loading sample for <strong>${label || id}</strong> —`,
+        `Loading sample for <strong>${label || id}</strong> â€”`,
       );
       openGlobalDock();
       document.getElementById('globalPlayerHost').innerHTML =
-        '<div class="wave-player"><div class="wave-status subtle">Loading your recording…</div></div>';
+        '<div class="wave-player"><div class="wave-status subtle">Loading your recordingâ€¦</div></div>';
       try {
         const r = await fetch(API + `/voices/${id}/sample`, { headers: headers() });
         if (!r.ok) {
@@ -751,11 +819,11 @@
         }
         const blob = await r.blob();
         if (!blob || blob.size < 1000) {
-          throw new Error('Sample file is empty or missing — save a voice sample again');
+          throw new Error('Sample file is empty or missing â€” save a voice sample again');
         }
         stopElapsed();
-        setStatus('voicePlayStatus', 'busy', 'Decoding waveform…');
-        await playInGlobalDock(blob, `Sample — ${label || id}`, `voice:${id}`);
+        setStatus('voicePlayStatus', 'busy', 'Decoding waveformâ€¦');
+        await playInGlobalDock(blob, `Sample â€” ${label || id}`, `voice:${id}`);
         setStatus(
           'voicePlayStatus',
           'ok',
@@ -766,7 +834,7 @@
         const msg = e.message || String(e);
         setStatus('voicePlayStatus', 'err', `Hear sample failed: <strong>${msg}</strong>`);
         document.getElementById('globalPlayerHost').innerHTML =
-          `<div class="wave-silent">⚠ ${msg}</div>`;
+          `<div class="wave-silent">âš  ${msg}</div>`;
         alert('Hear sample failed: ' + msg);
       } finally {
         uiBusy = false;
@@ -843,7 +911,7 @@ The quick brown fox jumps over the lazy dog. Pack my box with five dozen liquor 
 
 One, two, three, four, five, six, seven, eight, nine, ten.
 
-Some sentences are short. Others are longer, with pauses, questions, and variety in tone — but always natural.
+Some sentences are short. Others are longer, with pauses, questions, and variety in tone â€” but always natural.
 
 How are you today? I hope you are well.
 
@@ -853,19 +921,19 @@ Thank you. This sample will teach CATTS to sound like me.`,
 
       es: `Bienvenido al entrenamiento de voz de CATTS. Lee esto con tu voz natural, con calma, como si narraras un audiolibro.
 
-Me llamo [di tu nombre]. Estoy grabando mi voz personal para libros y interpretación en vivo.
+Me llamo [di tu nombre]. Estoy grabando mi voz personal para libros y interpretaciÃ³n en vivo.
 
-El veloz murciélago hindú comía feliz cardillo y kiwi. La cigüeña tocaba el saxofón.
+El veloz murciÃ©lago hindÃº comÃ­a feliz cardillo y kiwi. La cigÃ¼eÃ±a tocaba el saxofÃ³n.
 
 Uno, dos, tres, cuatro, cinco, seis, siete, ocho, nueve, diez.
 
-Algunas frases son cortas. Otras son más largas, con pausas, preguntas y variedad de tono, pero siempre natural.
+Algunas frases son cortas. Otras son mÃ¡s largas, con pausas, preguntas y variedad de tono, pero siempre natural.
 
-¿Cómo estás hoy? Espero que muy bien.
+Â¿CÃ³mo estÃ¡s hoy? Espero que muy bien.
 
-Los números y las fechas importan: quince de enero de dos mil veintiséis. Veinticinco por ciento, tres coma catorce.
+Los nÃºmeros y las fechas importan: quince de enero de dos mil veintisÃ©is. Veinticinco por ciento, tres coma catorce.
 
-Gracias. Esta muestra enseñará a CATTS a sonar como yo.`
+Gracias. Esta muestra enseÃ±arÃ¡ a CATTS a sonar como yo.`
     };
 
     function updateVoiceScript() {
@@ -903,18 +971,18 @@ Gracias. Esta muestra enseñará a CATTS a sonar como yo.`
           recordedBlob = new Blob(recordChunks, { type: mime });
           document.getElementById('voiceFile').value = '';
           syncVoiceFileName();
-          micBtn.textContent = '🎤 Record';
+          micBtn.textContent = 'ðŸŽ¤ Record';
           micBtn.classList.remove('recording');
-          recStatus.textContent = `Recorded ${formatRecTime(recordSeconds)} — check waveform below, then Start training`;
+          recStatus.textContent = `Recorded ${formatRecTime(recordSeconds)} â€” check waveform below, then Start training`;
           mountWavePlayer(document.getElementById('voicePreview'), recordedBlob, 'Recording preview', { autoplay: false });
         };
         mediaRecorder.start(1000);
-        micBtn.textContent = '⏹ Stop';
+        micBtn.textContent = 'â¹ Stop';
         micBtn.classList.add('recording');
-        recStatus.textContent = 'Recording… 0:00 (aim for 1–3 min)';
+        recStatus.textContent = 'Recordingâ€¦ 0:00 (aim for 1â€“3 min)';
         recordTimer = setInterval(() => {
           recordSeconds += 1;
-          recStatus.textContent = `Recording… ${formatRecTime(recordSeconds)} (aim for 1–3 min)`;
+          recStatus.textContent = `Recordingâ€¦ ${formatRecTime(recordSeconds)} (aim for 1â€“3 min)`;
         }, 1000);
       } catch (e) {
         alert('Microphone access denied or unavailable. Upload a file instead.');
@@ -935,7 +1003,7 @@ Gracias. Esta muestra enseñará a CATTS a sonar como yo.`
       const lang = document.getElementById('voiceLang').value;
       const nameField = document.getElementById('voiceName');
       if (!nameField.value) {
-        nameField.placeholder = lang === 'es' ? 'Gastón — Español' : 'Alex — English';
+        nameField.placeholder = lang === 'es' ? 'GastÃ³n â€” EspaÃ±ol' : 'Alex â€” English';
       }
     };
     updateVoiceScript();
@@ -949,7 +1017,10 @@ Gracias. Esta muestra enseñará a CATTS a sonar como yo.`
 
     async function api(path, opts = {}) {
       const r = await fetch(API + path, { ...opts, headers: { ...headers(), ...(opts.headers || {}) } });
-      if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail || r.statusText);
+      if (!r.ok) {
+        const detail = (await r.json().catch(() => ({}))).detail || r.statusText;
+        throw new Error(`${detail} (${r.status})`);
+      }
       const ct = r.headers.get('content-type') || '';
       if (ct.includes('json')) return r.json();
       return r;
@@ -999,13 +1070,16 @@ Gracias. Esta muestra enseñará a CATTS a sonar como yo.`
       const active = cls === 'running' || cls === 'queued';
       const isOpen = active || openJobs.has(j.id);
       const label = j.display_name || j.title || j.id;
+      const errorHtml = j.error
+        ? `<br><span style="color:var(--err)">${escapeHtml(j.error)}</span><br><span class="subtle"><strong>What to do:</strong> ${escapeHtml(userActionForError(j.error || j.message))}</span>`
+        : '';
       const playBtns = done ? `
           <div class="action-group">
             <div class="action-group-label">Listen</div>
             <div class="actions">
-              <button type="button" class="action-btn play" data-action="play" data-id="${j.id}">▶ Play</button>
+              <button type="button" class="action-btn play" data-action="play" data-id="${j.id}">â–¶ Play</button>
               <select data-action="chapter" data-id="${j.id}" id="ch-${j.id}">
-                <option value="">Pick chapter…</option>
+                <option value="">Pick chapterâ€¦</option>
               </select>
             </div>
           </div>
@@ -1033,14 +1107,14 @@ Gracias. Esta muestra enseñará a CATTS a sonar como yo.`
         <button type="button" class="job-head" data-toggle-job="${j.id}">
           <span class="job-title">${label}</span>
           <span class="status-badge ${cls}">${j.status}</span>
-          <span class="job-chevron">›</span>
+          <span class="job-chevron">â€º</span>
         </button>
-        ${done ? `<button type="button" class="job-quick-play" data-action="play" data-id="${j.id}" title="Play chapter 1">▶</button>` : ''}
+        ${done ? `<button type="button" class="job-quick-play" data-action="play" data-id="${j.id}" title="Play chapter 1">â–¶</button>` : ''}
         </div>
         <div class="job-body">
-          <div class="subtle">${j.author ? 'by ' + j.author + ' · ' : ''}${j.progress}% complete</div>
+          <div class="subtle">${j.author ? 'by ' + j.author + ' Â· ' : ''}${j.progress}% complete</div>
           <div class="bar"><i style="width:${j.progress}%"></i></div>
-          <div class="status ${cls}">${j.message}${j.error ? `<br><span style="color:var(--err)">${j.error}</span>` : ''}</div>
+          <div class="status ${cls}">${escapeHtml(j.message || '')}${errorHtml}</div>
           <div class="path subtle" id="path-${j.id}"></div>
           ${playBtns}
           <div class="player" id="player-${j.id}"></div>
@@ -1055,11 +1129,11 @@ Gracias. Esta muestra enseñará a CATTS a sonar como yo.`
           const pathEl = document.getElementById(`path-${j.id}`);
           if (pathEl) {
             const title = j.display_name || j.title || 'this book';
-            pathEl.textContent = `Saved on disk — open folder for files named like "${title}" (not the random folder id).`;
+            pathEl.textContent = `Saved on disk â€” open folder for files named like "${title}" (not the random folder id).`;
           }
           const sel = document.getElementById(`ch-${j.id}`);
           if (sel && f.chapters.length) {
-            sel.innerHTML = '<option value="">Chapter…</option>' + chapterOptions(f.chapters);
+            sel.innerHTML = '<option value="">Chapterâ€¦</option>' + chapterOptions(f.chapters);
           }
         } catch (e) { console.error(e); }
       }
@@ -1072,7 +1146,7 @@ Gracias. Esta muestra enseñará a CATTS a sonar como yo.`
       document.getElementById('booksCount').textContent = jobs.length;
       document.getElementById('jobs').innerHTML = jobs.length
         ? jobs.map(jobHtml).join('')
-        : '<p class="empty-state">No books yet — upload above, then watch progress here.</p>';
+        : '<p class="empty-state">No books yet â€” upload above, then watch progress here.</p>';
       if (savedPlayer && activePlayerHostId) {
         const el = document.getElementById(activePlayerHostId);
         if (el) el.innerHTML = savedPlayer;
@@ -1118,7 +1192,7 @@ Gracias. Esta muestra enseñará a CATTS a sonar como yo.`
     }
 
     function fmtBytes(n) {
-      if (n == null) return '—';
+      if (n == null) return 'â€”';
       if (n < 1024) return n + ' B';
       if (n < 1e6) return Math.round(n / 1024) + ' KB';
       return (n / 1e6).toFixed(1) + ' MB';
@@ -1130,15 +1204,29 @@ Gracias. Esta muestra enseñará a CATTS a sonar como yo.`
       const pillJobs = document.getElementById('pillJobs');
       const pillVoices = document.getElementById('pillVoices');
       if (!pillTts) return;
-      if (health?.xtts_ready) {
-        pillTts.className = 'pill ok';
-        pillTts.textContent = 'TTS ready';
-      } else if (health?.xtts_installed) {
-        pillTts.className = 'pill busy';
-        pillTts.textContent = 'TTS loading…';
+      if (health?.tts_engine === 'xtts') {
+        if (health?.xtts_ready) {
+          pillTts.className = 'pill ok';
+          pillTts.textContent = 'TTS ready';
+        } else if (health?.xtts_installed) {
+          pillTts.className = 'pill busy';
+          pillTts.textContent = health?.xtts_message?.includes('CATTS_ACCEPT_COQUI_CPML') ? 'TTS needs terms' : 'TTS loading...';
+        } else {
+          pillTts.className = 'pill err';
+          pillTts.textContent = 'TTS off';
+        }
       } else {
-        pillTts.className = 'pill err';
-        pillTts.textContent = 'TTS off';
+        const msg = health?.tts_message || '';
+        if (health?.tts_ready) {
+          pillTts.className = 'pill ok';
+          pillTts.textContent = msg || 'TTS ready';
+        } else if (String(msg).toLowerCase().includes('loading') || String(msg).toLowerCase().includes('first use')) {
+          pillTts.className = 'pill busy';
+          pillTts.textContent = msg || 'TTS loading...';
+        } else {
+          pillTts.className = 'pill err';
+          pillTts.textContent = msg || 'TTS off';
+        }
       }
       if (health?.stt_engine === 'whisper') {
         pillStt.className = 'pill ok';
@@ -1159,7 +1247,7 @@ Gracias. Esta muestra enseñará a CATTS a sonar como yo.`
       const withSample = (voices || []).filter(v => v.has_sample).length;
       if (checking.length) {
         pillVoices.className = 'pill busy';
-        pillVoices.textContent = `Voices: checking ${checking.length}…`;
+        pillVoices.textContent = `Voices: checking ${checking.length}â€¦`;
       } else {
         pillVoices.className = withSample ? 'pill ok' : 'pill';
         pillVoices.textContent = `Voices: ${withSample}/${(voices || []).length} with sample`;
@@ -1182,48 +1270,48 @@ Gracias. Esta muestra enseñará a CATTS a sonar como yo.`
         const isOpen = openVoices.has(v.id) || v.quality_status === 'checking';
         const meterCls = voiceMeterClass(v);
         const sampleLabel = v.has_sample
-          ? `<b>Sample</b> ${fmtBytes(v.sample_bytes)}${v.sample_duration_sec != null ? ' · ' + v.sample_duration_sec + 's' : ''}`
+          ? `<b>Sample</b> ${fmtBytes(v.sample_bytes)}${v.sample_duration_sec != null ? ' Â· ' + v.sample_duration_sec + 's' : ''}`
           : '<b>Sample</b> missing';
         const matchLabel = v.script_match != null
           ? `<b>Script match</b> ${v.script_match}% (${v.script_match_label})`
-          : `<b>Script match</b> ${v.quality_status === 'checking' ? 'checking…' : (v.has_sample ? 'not checked' : '—')}`;
+          : `<b>Script match</b> ${v.quality_status === 'checking' ? 'checkingâ€¦' : (v.has_sample ? 'not checked' : 'â€”')}`;
         const badge = !v.has_sample ? 'failed' : (v.ready ? 'ready' : v.status);
         const badgeText = !v.has_sample ? 'no sample' : (v.ready ? 'ready' : v.status);
         return `<div class="voice-item job-item ${v.status} ${isOpen ? 'open' : ''}" data-id="${v.id}">
           <button type="button" class="job-head" onclick="toggleVoiceItem(this)">
             <span class="job-title">${v.display_name || v.name}</span>
             <span class="status-badge ${badge}">${badgeText}</span>
-            <span class="job-chevron">›</span>
+            <span class="job-chevron">â€º</span>
           </button>
           <div class="job-body">
             <div class="voice-stats">
-              <span>${v.lang === 'es' ? 'Español' : 'English'}</span>
+              <span>${v.lang === 'es' ? 'EspaÃ±ol' : 'English'}</span>
               <span>${sampleLabel}</span>
               <span>${matchLabel}</span>
             </div>
             <div class="voice-meter ${meterCls}" title="Script match"><i style="width:${voiceMeterWidth(v)}%"></i></div>
             <span class="status ${v.status}">${v.message || ''}</span>
-            ${v.transcript_preview ? `<div class="subtle" style="margin-top:.35rem">Heard: “${v.transcript_preview.slice(0, 120)}${v.transcript_preview.length > 120 ? '…' : ''}”</div>` : ''}
-            ${files ? `<div class="file-tag">📄 ${files}</div>` : ''}
+            ${v.transcript_preview ? `<div class="subtle" style="margin-top:.35rem">Heard: â€œ${v.transcript_preview.slice(0, 120)}${v.transcript_preview.length > 120 ? 'â€¦' : ''}â€</div>` : ''}
+            ${files ? `<div class="file-tag">ðŸ“„ ${files}</div>` : ''}
             <div class="player" id="voice-player-${v.id}"></div>
             <div class="actions">
-              <button type="button" class="action-btn play" onclick="playVoiceSample('${v.id}', '${safeName}')">▶ Hear sample</button>
+              <button type="button" class="action-btn play" onclick="playVoiceSample('${v.id}', '${safeName}')">â–¶ Hear sample</button>
               <button type="button" class="action-btn secondary" onclick="evaluateVoice('${v.id}')">Check script</button>
               <button type="button" class="action-btn secondary" onclick="openVoiceFolder('${v.id}')">Folder</button>
               <button type="button" class="action-btn secondary" onclick="renameVoice('${v.id}', '${safeName}')">Rename</button>
             </div>
           </div>
         </div>`;
-      }).join('') || '<p class="empty-state">No voices yet — record or upload above.</p>';
+      }).join('') || '<p class="empty-state">No voices yet â€” record or upload above.</p>';
     }
 
     window.evaluateVoice = async (id) => {
       openVoices.add(id);
       uiBusy = true;
-      setStatus('voicePlayStatus', 'busy', 'Running STT script match in background…');
+      setStatus('voicePlayStatus', 'busy', 'Running STT script match in backgroundâ€¦');
       try {
         await api(`/voices/${id}/evaluate?wait=true`, { method: 'POST' });
-        setStatus('voicePlayStatus', 'ok', 'Script match updated — see bar on the voice card.');
+        setStatus('voicePlayStatus', 'ok', 'Script match updated â€” see bar on the voice card.');
         await refreshVoices();
       } catch (e) {
         setStatus('voicePlayStatus', 'err', 'Script check failed: <strong>' + (e.message || e) + '</strong>');
@@ -1250,21 +1338,31 @@ Gracias. Esta muestra enseñará a CATTS a sonar como yo.`
       lastHealth = h;
       defaultVoiceId = h.default_voice_id || defaultVoiceId;
       const el = document.getElementById('health');
-      const xttsBit = h.xtts_ready ? 'XTTS hot' : (h.xtts_installed ? 'XTTS loading' : 'XTTS off');
+      const xttsNeedsTerms = (h.xtts_message || '').includes('CATTS_ACCEPT_COQUI_CPML');
+      const ttsBit = h.tts_engine === 'xtts'
+        ? (h.xtts_ready ? 'XTTS hot' : (xttsNeedsTerms ? 'XTTS needs terms' : (h.xtts_installed ? 'XTTS not ready' : 'XTTS off')))
+        : (h.tts_ready ? `${h.tts_engine} ready` : (h.tts_message || `${h.tts_engine} off`));
       el.textContent = h.worker_reachable
         ? 'GPU worker connected'
-        : `local · ${xttsBit} · STT:${h.stt_engine || 'none'}`;
-      el.title = h.xtts_message || 'TTS / STT status';
-      el.style.color = h.xtts_ready ? 'var(--ok)' : (h.xtts_installed ? 'var(--warn)' : 'var(--err)');
+        : `local Â· ${ttsBit} Â· STT:${h.stt_engine || 'none'}`;
+      el.title = [
+        h.tts_engine === 'xtts' ? h.xtts_message : h.tts_message,
+        h.ocr_engine === 'none' ? 'OCR worker not configured' : 'OCR configured'
+      ].filter(Boolean).join(' | ');
+      el.style.color = h.tts_engine === 'xtts'
+        ? (h.xtts_ready ? 'var(--ok)' : (h.xtts_installed ? 'var(--warn)' : 'var(--err)'))
+        : (h.tts_ready ? 'var(--ok)' : 'var(--warn)');
       updateActivityBar(lastJobsCache, lastVoicesCache, h);
 
       if (!uiBusy) {
         if (!h.xtts_installed) {
-          setStatus('liveStatus', 'err', '<strong>Live interpreting unavailable.</strong> XTTS not installed — run <code>scripts/setup_xtts.ps1</code> and restart the server.');
+          setStatus('liveStatus', 'err', '<strong>Live interpreting unavailable.</strong> XTTS not installed â€” run <code>scripts/setup_xtts.ps1</code> and restart the server.');
+        } else if (xttsNeedsTerms) {
+          setStatus('liveStatus', 'err', '<strong>Action needed.</strong> XTTS is installed, but blocked by Coqui terms. If you accept them, set <code>CATTS_ACCEPT_COQUI_CPML=1</code> and restart.');
         } else if (!h.xtts_ready) {
-          setStatus('liveStatus', 'busy', '<strong>XTTS model loading…</strong> First start ~1 min. Speak will wait until ready (or fail with an error).');
+          setStatus('liveStatus', 'busy', '<strong>XTTS not ready.</strong> First load can take ~1 min. If it stays here, run Diagnostics and check server logs.');
         } else {
-          setStatus('liveStatus', 'ok', '<strong>Ready.</strong> Speak uses your voice clone (XTTS). Expect ~5–30s per phrase on CPU.');
+          setStatus('liveStatus', 'ok', '<strong>Ready.</strong> Speak uses your voice clone (XTTS). Expect ~5â€“30s per phrase on CPU.');
         }
       }
       const banner = document.getElementById('ttsBanner');
@@ -1272,9 +1370,16 @@ Gracias. Esta muestra enseñará a CATTS a sonar como yo.`
         banner.style.display = 'none';
         return;
       }
-      if (h.tts_engine === 'stub' && !h.worker_reachable) {
+      if (xttsNeedsTerms) {
         banner.style.display = 'flex';
-        banner.innerHTML = `<span><strong>Local preview mode.</strong> Audiobooks use Microsoft Edge TTS (a generic voice), not your trained clone. Voice training saves your sample but cloning needs a GPU worker. Old books from before this fix may be silent — use <em>Clean</em> or <em>Retry</em> on those jobs.</span><button type="button" class="banner-dismiss" id="dismissTtsBanner" title="Dismiss">✕</button>`;
+        banner.innerHTML = `<span><strong>TTS blocked.</strong> Voice cloning needs your explicit Coqui license choice. If accepted, set <code>CATTS_ACCEPT_COQUI_CPML=1</code> and restart.</span><button type="button" class="banner-dismiss" id="dismissTtsBanner" title="Dismiss">x</button>`;
+        document.getElementById('dismissTtsBanner').onclick = () => {
+          localStorage.setItem('catts_hide_tts_banner', '1');
+          banner.style.display = 'none';
+        };
+      } else if (h.tts_engine === 'stub' && !h.worker_reachable) {
+        banner.style.display = 'flex';
+        banner.innerHTML = `<span><strong>Local preview mode.</strong> Audiobooks use Microsoft Edge TTS (a generic voice), not your trained clone. Voice training saves your sample but cloning needs a GPU worker. Old books from before this fix may be silent â€” use <em>Clean</em> or <em>Retry</em> on those jobs.</span><button type="button" class="banner-dismiss" id="dismissTtsBanner" title="Dismiss">âœ•</button>`;
         document.getElementById('dismissTtsBanner').onclick = () => {
           localStorage.setItem('catts_hide_tts_banner', '1');
           banner.style.display = 'none';
@@ -1297,7 +1402,7 @@ Gracias. Esta muestra enseñará a CATTS a sonar como yo.`
       }
       const btn = document.getElementById('uploadBtn');
       btn.disabled = true;
-      setStatus('bookStatus', 'busy', '<strong>Uploading…</strong> Job will process in the background.');
+      setStatus('bookStatus', 'busy', '<strong>Uploadingâ€¦</strong> Job will process in the background.');
       try {
         const fd = new FormData();
         fd.append('file', f);
@@ -1315,7 +1420,8 @@ Gracias. Esta muestra enseñará a CATTS a sonar como yo.`
         setStatus('bookStatus', 'ok', `<strong>Queued.</strong> Watch Library below (job ${res.job_id || ''}). Processing runs in the background.`);
         await refreshJobs();
       } catch (e) {
-        setStatus('bookStatus', 'err', '<strong>Upload failed:</strong> ' + (e.message || e));
+        const msg = e.message || e;
+        setStatus('bookStatus', 'err', '<strong>Upload failed:</strong> ' + escapeHtml(msg) + '<br><strong>What to do:</strong> ' + escapeHtml(userActionForError(msg)));
         alert('Upload failed: ' + (e.message || e));
       } finally {
         btn.disabled = false;
@@ -1328,7 +1434,7 @@ Gracias. Esta muestra enseñará a CATTS a sonar como yo.`
       const blob = recordedBlob || f;
       if (!blob) return alert('Record with the microphone or upload an audio file first.');
       if (recordedBlob && recordSeconds < 20 && !f) {
-        return alert('Please record at least 20 seconds (1–3 minutes is better).');
+        return alert('Please record at least 20 seconds (1â€“3 minutes is better).');
       }
       const fd = new FormData();
       const ext = recordedBlob ? 'recording.webm' : f.name;
@@ -1337,20 +1443,21 @@ Gracias. Esta muestra enseñará a CATTS a sonar como yo.`
       const defaultName = lang === 'es' ? 'Mi voz principal' : 'My main voice';
       fd.append('name', document.getElementById('voiceName').value || defaultName);
       fd.append('lang', document.getElementById('voiceLang').value);
-      setStatus('voicePlayStatus', 'busy', '<strong>Saving sample…</strong> STT script match runs in the background.');
+      setStatus('voicePlayStatus', 'busy', '<strong>Saving sampleâ€¦</strong> STT script match runs in the background.');
       try {
         await api('/voices', { method: 'POST', body: fd });
         recordedBlob = null;
         recordSeconds = 0;
         document.getElementById('voicePreview').innerHTML = '';
-        document.getElementById('recStatus').textContent = 'Sample saved — script match running…';
+        document.getElementById('recStatus').textContent = 'Sample saved â€” script match runningâ€¦';
         fileInput.value = '';
         syncVoiceFileName();
         document.querySelector('[data-panel="voice"]')?.classList.add('open');
         setStatus('voicePlayStatus', 'ok', '<strong>Saved.</strong> Watch the voice card status bar for sample + script match.');
         await refreshVoices();
       } catch (e) {
-        setStatus('voicePlayStatus', 'err', '<strong>Save failed:</strong> ' + (e.message || e));
+        const msg = e.message || e;
+        setStatus('voicePlayStatus', 'err', '<strong>Save failed:</strong> ' + escapeHtml(msg) + '<br><strong>What to do:</strong> ' + escapeHtml(userActionForError(msg)));
         alert('Save failed: ' + (e.message || e));
       }
     };
@@ -1361,8 +1468,8 @@ Gracias. Esta muestra enseñará a CATTS a sonar como yo.`
       if (!file) return alert('Choose an audio file first.');
       const btn = document.getElementById('sttBtn');
       btn.disabled = true;
-      btn.textContent = 'Transcribing…';
-      document.getElementById('sttOut').value = 'Working… (first run loads Whisper model ~30s)';
+      btn.textContent = 'Transcribingâ€¦';
+      document.getElementById('sttOut').value = 'Workingâ€¦ (first run loads Whisper model ~30s)';
       try {
         const fd = new FormData();
         fd.append('file', file);
@@ -1415,13 +1522,13 @@ Gracias. Esta muestra enseñará a CATTS a sonar como yo.`
     document.getElementById('liveBtn').onclick = async () => {
       const btn = document.getElementById('liveBtn');
       if (uiBusy) {
-        setStatus('liveStatus', 'busy', 'Already working — wait for the current request to finish.');
+        setStatus('liveStatus', 'busy', 'Already working â€” wait for the current request to finish.');
         return;
       }
       const voice_id = resolveVoiceId();
       if (!voice_id) {
         setStatus('liveStatus', 'err', '<strong>No voice selected.</strong> Save a sample under Train voice, or pick a voice in the dropdown.');
-        return alert('No voice selected — save a voice sample first.');
+        return alert('No voice selected â€” save a voice sample first.');
       }
       const liveSel = document.getElementById('liveVoice');
       const text = document.getElementById('liveText').value.trim();
@@ -1442,14 +1549,14 @@ Gracias. Esta muestra enseñará a CATTS a sonar como yo.`
       uiBusy = true;
       const prevLabel = btn.textContent;
       btn.disabled = true;
-      btn.textContent = 'Working…';
+      btn.textContent = 'Workingâ€¦';
       const stopElapsed = startElapsed(
         'liveStatus',
-        `<strong>Synthesizing with XTTS</strong> (voice ${voice_id.slice(0, 8)}…) — CPU, can take 5–60s.`,
+        `<strong>Synthesizing with XTTS</strong> (voice ${voice_id.slice(0, 8)}â€¦) â€” CPU, can take 5â€“60s.`,
       );
       openGlobalDock();
       document.getElementById('globalPlayerHost').innerHTML =
-        '<div class="wave-player"><div class="wave-label">Live TTS</div><div class="wave-status subtle">Request sent — waiting for audio…</div></div>';
+        '<div class="wave-player"><div class="wave-label">Live TTS</div><div class="wave-status subtle">Request sent â€” waiting for audioâ€¦</div></div>';
 
       try {
         const r = await fetch(API + '/tts/live', {
@@ -1472,25 +1579,25 @@ Gracias. Esta muestra enseñará a CATTS a sonar como yo.`
         const blob = await r.blob();
         if (!blob || blob.size < 1000) throw new Error('TTS returned empty audio');
         if (engine === 'edge') {
-          throw new Error('Server used generic Edge voice instead of your clone — restart API and wait for XTTS hot');
+          throw new Error('Server used generic Edge voice instead of your clone â€” restart API and wait for XTTS hot');
         }
         stopElapsed();
-        setStatus('liveStatus', 'busy', 'Decoding waveform…');
-        const label = `Live TTS · ${engine}${latency ? ' · ' + latency + 'ms' : ''}`;
+        setStatus('liveStatus', 'busy', 'Decoding waveformâ€¦');
+        const label = `Live TTS Â· ${engine}${latency ? ' Â· ' + latency + 'ms' : ''}`;
         await playInGlobalDock(blob, label, `live:${voice_id}:${text.slice(0, 48)}`);
         setStatus(
           'liveStatus',
           'ok',
-          `<strong>Playing clone</strong> · engine <code>${engine}</code>${latency ? ' · ' + latency + 'ms' : ''} · ${Math.round(blob.size / 1024)} KB. Bottom player.`,
+          `<strong>Playing clone</strong> Â· engine <code>${engine}</code>${latency ? ' Â· ' + latency + 'ms' : ''} Â· ${Math.round(blob.size / 1024)} KB. Bottom player.`,
         );
         document.getElementById('livePlayer').innerHTML =
-          `<p class="subtle">OK — ${engine}${latency ? ' in ' + latency + 'ms' : ''}. Use bottom player.</p>`;
+          `<p class="subtle">OK â€” ${engine}${latency ? ' in ' + latency + 'ms' : ''}. Use bottom player.</p>`;
       } catch (e) {
         stopElapsed();
         const msg = e.message || String(e);
-        setStatus('liveStatus', 'err', `<strong>Live TTS failed:</strong> ${msg}`);
+        setStatus('liveStatus', 'err', `<strong>Live TTS failed:</strong> ${escapeHtml(msg)}<br><strong>What to do:</strong> ${escapeHtml(userActionForError(msg))}`);
         document.getElementById('globalPlayerHost').innerHTML =
-          `<div class="wave-silent">⚠ ${msg}</div>`;
+          `<div class="wave-silent">âš  ${msg}</div>`;
         document.getElementById('livePlayer').innerHTML = '';
         alert('Live TTS failed: ' + msg);
       } finally {
@@ -1500,9 +1607,36 @@ Gracias. Esta muestra enseñará a CATTS a sonar como yo.`
       }
     };
 
+    function renderSmokeSteps(run) {
+      const box = document.getElementById('smokeSteps');
+      if (!box) return;
+      if (!run || !Array.isArray(run.steps) || !run.steps.length) {
+        box.innerHTML = 'No steps yet.';
+        return;
+      }
+      const rows = run.steps.map(s => {
+        const cls = s.status === 'ok' ? 'ok' : (s.status === 'running' ? 'busy' : (s.status === 'failed' ? 'err' : 'idle'));
+        const detail = (s.detail ? String(s.detail).replace(/</g, '&lt;').replace(/>/g, '&gt;') : '');
+        return `
+          <div style="margin-bottom:.55rem; padding:.55rem .65rem; border-radius:8px; border:1px solid rgba(58,65,80,.9); background:#0f1115;">
+            <div style="display:flex; gap:.6rem; align-items:center; justify-content:space-between; margin-bottom:.25rem;">
+              <div style="font-weight:700;">${s.name}</div>
+              <div class="subtle" style="white-space:nowrap;">
+                <span style="padding:.2rem .45rem; border-radius:6px; border:1px solid rgba(58,65,80,.9); color:var(--muted);">
+                  ${s.status}${s.elapsed_ms != null ? ' Â· ' + s.elapsed_ms + 'ms' : ''}
+                </span>
+              </div>
+            </div>
+            ${detail ? `<div class="subtle" style="line-height:1.4;">${detail}</div>` : ''}
+          </div>
+        `;
+      }).join('');
+      box.innerHTML = rows;
+    }
+
     window.regenerateJob = async (id) => {
       const voice = document.getElementById('bookVoice').value || document.getElementById('liveVoice').value;
-      if (!voice && !confirm('No voice selected — regenerate with default preview voice anyway?')) return;
+      if (!voice && !confirm('No voice selected â€” regenerate with default preview voice anyway?')) return;
       const fd = new FormData();
       if (voice) fd.append('voice_id', voice);
       try {
@@ -1510,7 +1644,7 @@ Gracias. Esta muestra enseñará a CATTS a sonar como yo.`
         delete jobFilesCache[id];
         openJobs.add(id);
         document.querySelector('[data-panel="books"]')?.classList.add('open');
-        alert('Regenerating audio — watch progress below. Named files appear in the job folder when done.');
+        alert('Regenerating audio â€” watch progress below. Named files appear in the job folder when done.');
         await refreshJobs();
       } catch (e) {
         alert(e.message || String(e));
@@ -1548,6 +1682,84 @@ Gracias. Esta muestra enseñará a CATTS a sonar como yo.`
     };
     window.retryJob = async (id) => { delete jobFilesCache[id]; await api(`/jobs/${id}/retry`, { method: 'POST' }); await refreshJobs(); };
 
+    async function refreshLinks() {
+      const box = document.getElementById('linksBox');
+      const list = document.getElementById('linksList');
+      if (!box || !list) return;
+
+      box.className = 'status-box busy';
+      box.textContent = 'Loading links…';
+      list.innerHTML = '';
+
+      try {
+        const data = await api('/links');
+        const links = data?.links || [];
+        if (!Array.isArray(links) || !links.length) {
+          box.className = 'status-box idle';
+          box.textContent = 'No external links configured.';
+          return;
+        }
+        box.className = 'status-box ok';
+        list.innerHTML = links.map(l => {
+          const label = escapeHtml(l?.label || '');
+          const url = escapeHtml(l?.url || '');
+          const note = l?.note ? `<div class="subtle" style="margin-top:.15rem;white-space:pre-wrap;">${escapeHtml(l.note)}</div>` : '';
+          return `<div style="margin:.35rem 0;"><a href="${url}" target="_blank" rel="noopener noreferrer">${label}</a>${note}</div>`;
+        }).join('');
+      } catch (e) {
+        box.className = 'status-box err';
+        const msg = (e && e.message) ? e.message : String(e);
+        box.innerHTML = `Failed: <strong>${escapeHtml(msg)}</strong>`;
+      }
+    }
+
+    async function refreshLiteUI() {
+      const box = document.getElementById('liteuiStatusBox');
+      const errEl = document.getElementById('liteuiError');
+      const openBtn = document.getElementById('liteuiOpenBtn');
+      const startBtn = document.getElementById('liteuiStartBtn');
+      if (!box || !errEl || !openBtn || !startBtn) return;
+
+      errEl.textContent = '';
+      box.className = 'status-box busy';
+      box.textContent = 'Checking LiteUI…';
+      openBtn.disabled = true;
+      startBtn.disabled = true;
+
+      try {
+        const st = await api('/liteui/status');
+        const state = st?.state || 'stopped';
+
+        if (st?.running) {
+          box.className = 'status-box ok';
+          box.textContent = `LiteUI running (${st.backend_port_open ? 'backend ok' : 'backend ?'}).`;
+          openBtn.disabled = false;
+          startBtn.disabled = false;
+        } else if (state === 'starting') {
+          box.className = 'status-box busy';
+          box.textContent = 'LiteUI starting… waiting for ports.';
+          openBtn.disabled = true;
+          startBtn.disabled = false;
+        } else {
+          box.className = 'status-box err';
+          const msg = st?.error ? String(st.error) : 'LiteUI stopped.';
+          box.textContent = 'LiteUI not ready.';
+          errEl.textContent = msg;
+          openBtn.disabled = !st?.ui_port_open;
+          startBtn.disabled = !st?.start_script_ok || !st?.embedded_python_ok;
+        }
+
+        // If UI is open but we just updated state, allow open.
+        if (st?.ui_port_open) openBtn.disabled = false;
+      } catch (e) {
+        box.className = 'status-box err';
+        box.textContent = 'LiteUI status failed.';
+        errEl.textContent = (e && e.message) ? e.message : String(e);
+      } finally {
+        // If buttons exist, keep them enabled/disabled based on last status refresh.
+      }
+    }
+
     async function tick() {
       try {
         await refreshHealth();
@@ -1562,13 +1774,78 @@ Gracias. Esta muestra enseñará a CATTS a sonar como yo.`
       }
     }
     initPanels();
+    refreshLinks();
+    refreshLiteUI();
     bindJobActions();
     document.getElementById('globalPlayerClose').onclick = closeGlobalDock;
     syncBookFileName = wireFilePicker('bookFile', 'bookFileBtn', 'bookFileName', 'No file selected');
-    syncVoiceFileName = wireFilePicker('voiceFile', 'voiceFileBtn', 'voiceFileName', 'WAV / MP3, 1–5 min');
+    syncVoiceFileName = wireFilePicker('voiceFile', 'voiceFileBtn', 'voiceFileName', 'WAV / MP3, 1â€“5 min');
     wireFilePicker('sttFile', 'sttFileBtn', 'sttFileName', 'WAV / MP3 / M4A');
+
+    document.getElementById('smokeClearBtn').onclick = () => {
+      setStatus('smokeSummary', 'idle', 'Idle.');
+      const box = document.getElementById('smokeSteps');
+      if (box) box.innerHTML = '';
+    };
+    document.getElementById('smokeBtn').onclick = async () => {
+      if (uiBusy) return;
+      uiBusy = true;
+      try {
+        setStatus('smokeSummary', 'busy', 'Running smoke checkâ€¦');
+        const run = await api('/diagnostics/smoke', { method: 'POST' });
+        const diagnosticId = run.diagnostic_id;
+        setStatus('smokeSummary', 'busy', `Runningâ€¦ <span class="subtle">id=${diagnosticId.slice(0, 8)}â€¦</span>`);
+        renderSmokeSteps({ steps: [] });
+        // Poll until done.
+        for (let i = 0; i < 240; i++) { // ~4 minutes worst-case
+          const r = await api(`/diagnostics/${diagnosticId}`);
+          renderSmokeSteps(r);
+          if (r.status === 'done') {
+            const err = r.error_stage ? `<br><span style="color:var(--err); font-weight:700;">${r.error_stage}</span>` : '';
+            setStatus('smokeSummary', r.error_stage ? 'err' : 'ok', `Finished.${err}`);
+            uiBusy = false;
+            return;
+          }
+          await new Promise(res => setTimeout(res, 1000));
+        }
+        setStatus('smokeSummary', 'err', 'Smoke timed out (UI polling limit).');
+      } catch (e) {
+        const msg = (e && e.message) ? e.message : String(e);
+        setStatus('smokeSummary', 'err', `<strong>Smoke failed:</strong> ${msg}`);
+        alert('Smoke failed: ' + msg);
+      } finally {
+        uiBusy = false;
+      }
+    };
+
     tick();
     setInterval(tick, 3000);
+
+    // Light polling for LiteUI panel only.
+    setInterval(refreshLiteUI, 8000);
+
+    document.getElementById('liteuiStartBtn').onclick = async () => {
+      try {
+        const r = await api('/liteui/start', { method: 'POST' });
+        await refreshLiteUI();
+        alert(r?.message || 'LiteUI start requested.');
+      } catch (e) {
+        const msg = (e && e.message) ? e.message : String(e);
+        alert('LiteUI start failed: ' + msg);
+        await refreshLiteUI();
+      }
+    };
+
+    document.getElementById('liteuiOpenBtn').onclick = async () => {
+      try {
+        const st = await api('/liteui/status');
+        if (!st?.ui_url) throw new Error('Missing ui_url');
+        window.open(st.ui_url, '_blank', 'noopener,noreferrer');
+      } catch (e) {
+        const msg = (e && e.message) ? e.message : String(e);
+        alert('Open UI failed: ' + msg);
+      }
+    };
   </script>
 </body>
 </html>

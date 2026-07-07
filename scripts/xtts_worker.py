@@ -3,12 +3,15 @@ import json
 import sys
 from pathlib import Path
 
+from _local_cache import configure_project_cache
+
 VALID_LANGS = frozenset(
     "en es fr de it pt pl tr ru nl cs ar zh ja hu ko".split()
 )
 
 
 def main() -> int:
+    configure_project_cache()
     from TTS.api import TTS
 
     print("loading xtts model…", file=sys.stderr, flush=True)

@@ -3,6 +3,7 @@
 import asyncio
 import json
 import logging
+import os
 import subprocess
 import sys
 import threading
@@ -48,6 +49,12 @@ def worker_status() -> dict:
             "installed": False,
             "ready": False,
             "message": "XTTS not installed — run scripts/setup_xtts.ps1",
+        }
+    if os.getenv("CATTS_ACCEPT_COQUI_CPML", "").lower() not in {"1", "true", "yes"}:
+        return {
+            "installed": True,
+            "ready": False,
+            "message": "XTTS installed - set CATTS_ACCEPT_COQUI_CPML=1 after accepting Coqui CPML/commercial terms",
         }
     if _worker_proc is not None and _worker_proc.poll() is None:
         return {

@@ -10,6 +10,7 @@ from api.schemas import VoiceProgress, VoiceRename, VoiceStatus
 from db import create_voice, get_voice, list_voices, update_voice, voice_dir
 from services.job_runner import enqueue_voice
 from services.reveal import reveal_in_folder
+from services.ffmpeg_util import ffmpeg_path
 from services.voice_labels import sync_voice_labeled_files
 from services.voice_quality import evaluate_voice, find_sample, sample_stats
 from services.voice_scripts import script_for
@@ -78,11 +79,12 @@ def _voice_response(voice: dict) -> VoiceProgress:
 def _normalize_sample(dest: Path, vdir: Path) -> Path:
     if dest.suffix.lower() != ".webm":
         return dest
-    if not shutil.which("ffmpeg"):
+    ffmpeg = ffmpeg_path()
+    if not ffmpeg:
         return dest
     wav_dest = vdir / "sample.wav"
     subprocess.run(
-        ["ffmpeg", "-y", "-i", str(dest), "-ar", "44100", "-ac", "1", str(wav_dest)],
+        [ffmpeg, "-y", "-i", str(dest), "-ar", "44100", "-ac", "1", str(wav_dest)],
         check=True,
         capture_output=True,
     )

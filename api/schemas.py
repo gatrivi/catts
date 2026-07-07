@@ -25,6 +25,8 @@ class HealthResponse(BaseModel):
     worker_url: str
     ocr_engine: str
     tts_engine: str  # xtts | edge | gptsovits
+    tts_ready: bool = False
+    tts_message: str = ""
     stt_engine: str  # whisper | none
     translate_ready: bool
     default_voice_id: str | None = None
@@ -120,3 +122,20 @@ class LiveTTSResponse(BaseModel):
     lang: str
     duration_ms: int | None = None
     engine: str
+
+
+class AgentPromptRequest(BaseModel):
+    prompt: str = Field(min_length=1, max_length=32000)
+    model: str | None = None
+    cwd: str | None = None
+    auto_approve: bool = True
+    timeout_sec: int | None = Field(default=None, ge=10, le=3600)
+
+
+class AgentPromptResponse(BaseModel):
+    ok: bool
+    text: str
+    session_id: str | None = None
+    exit_code: int
+    stderr: str | None = None
+    event_count: int = 0

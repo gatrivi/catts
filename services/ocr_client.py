@@ -97,6 +97,32 @@ async def ocr_pdf(
     return "\n\n".join(pages_text)
 
 
+async def ocr_image(image_path: Path, prompt: str = "document parsing.") -> str:
+    """Run OCR on a single image via the configured Unlimited-OCR worker."""
+    if not WORKER_URL:
+        raise RuntimeError("CATTS_WORKER_URL not configured for OCR")
+    content = [
+        {"type": "text", "text": prompt or "document parsing."},
+        _encode_image(image_path),
+    ]
+    payload = {
+        "model": "Unlimited-OCR",
+        "messages": [{"role": "user", "content": content}],
+        "temperature": 0,
+        "stream": False,
+        "images_config": {"image_mode": "gundam"},
+    }
+    async with httpx.AsyncClient(timeout=1200.0) as client:
+        r = await client.post(
+            f"{WORKER_URL}/v1/chat/completions",
+            headers={"Content-Type": "application/json"},
+            content=json.dumps(payload),
+        )
+        r.raise_for_status()
+        data = r.json()
+        return data["choices"][0]["message"]["content"].strip()
+
+
 async def ocr_pdf_via_worker_endpoint(
     pdf_path: Path,
     on_progress: Callable[[int, int, str], None] | None = None,

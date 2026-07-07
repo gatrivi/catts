@@ -2,11 +2,12 @@
 
 import json
 import logging
+import os
 import subprocess
 import sys
 from pathlib import Path
 
-from config import BASE_DIR
+from config import BASE_DIR, DATA_DIR
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +18,22 @@ else:
 
 SCRIPT = BASE_DIR / "scripts" / "translate_text.py"
 _PAIRS = {("en", "es"), ("es", "en")}
+
+
+def _argos_env() -> dict[str, str]:
+    argos_home = DATA_DIR / "argos_runtime"
+    config_home = argos_home / "config"
+    data_home = argos_home / "data"
+    cache_home = argos_home / "cache"
+    for path in (config_home, data_home, cache_home):
+        path.mkdir(parents=True, exist_ok=True)
+    env = os.environ.copy()
+    env.setdefault("XDG_CONFIG_HOME", str(config_home))
+    env.setdefault("XDG_DATA_HOME", str(data_home))
+    env.setdefault("XDG_CACHE_HOME", str(cache_home))
+    env.setdefault("ARGOS_CHUNK_TYPE", "ARGOSTRANSLATE")
+    env.setdefault("ARGOS_STANZA_AVAILABLE", "false")
+    return env
 
 
 def _site_packages() -> Path | None:
@@ -51,6 +68,7 @@ def translate(text: str, from_lang: str, to_lang: str) -> str:
         capture_output=True,
         text=True,
         timeout=120,
+        env=_argos_env(),
     )
     line = (proc.stdout or "").strip().splitlines()[-1] if proc.stdout else ""
     try:

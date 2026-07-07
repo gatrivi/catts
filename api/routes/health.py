@@ -10,6 +10,7 @@ from config import OCR_ENGINE, WORKER_URL
 from db import get_voice, voice_dir
 from services import stt_client, translate_client
 from services.ocr_client import check_worker_health
+from services import pocket_tts
 from services.tts_client import engine_label, live_tts
 from services.voice_default import resolve_default_voice_id
 from services.voice_ref import prepare_xtts_reference
@@ -22,12 +23,27 @@ router = APIRouter(tags=["health"])
 async def health():
     worker_ok = await check_worker_health()
     xtts = worker_status()
+    tts_engine = engine_label()
+    tts_ready = False
+    tts_message = ""
+    if tts_engine == "xtts":
+        tts_ready = xtts.get("ready", False)
+        tts_message = xtts.get("message", "")
+    elif tts_engine == "pocket":
+        tts_ready = pocket_tts.ready()
+        tts_message = pocket_tts.status_message()
+    elif tts_engine == "edge":
+        tts_ready = True
+    elif tts_engine == "gptsovits":
+        tts_ready = bool(WORKER_URL)
     return HealthResponse(
         status="ok",
         worker_reachable=worker_ok,
         worker_url=WORKER_URL or "(not set)",
         ocr_engine=OCR_ENGINE,
-        tts_engine=engine_label(),
+        tts_engine=tts_engine,
+        tts_ready=tts_ready,
+        tts_message=tts_message,
         stt_engine="whisper" if stt_client.available() else "none",
         translate_ready=translate_client.available(),
         default_voice_id=resolve_default_voice_id(),

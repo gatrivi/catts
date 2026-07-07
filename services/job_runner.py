@@ -209,9 +209,9 @@ async def _render_audiobook_audio(
             chunk_files.append(chunk_path)
 
         chapter_mp3 = audio_dir / f"chapter_{ci + 1:03d}.mp3"
-        concat_audio(chunk_files, chapter_mp3)
-        chapter_audio.append(chapter_mp3)
-        chapter_wavs.append(chapter_mp3)
+        chapter_file = concat_audio(chunk_files, chapter_mp3)
+        chapter_audio.append(chapter_file)
+        chapter_wavs.append(chapter_file)
         _set_meta(job_id, chapters_done=ci + 1)
 
     update_job(job_id, stage="muxing", progress=92, message="Packaging audiobook")

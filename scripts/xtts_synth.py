@@ -3,8 +3,11 @@ import argparse
 import sys
 from pathlib import Path
 
+from _local_cache import configure_project_cache
+
 
 def main() -> int:
+    configure_project_cache()
     p = argparse.ArgumentParser()
     p.add_argument("--text", required=True)
     p.add_argument("--ref", required=True, help="Reference speaker wav")

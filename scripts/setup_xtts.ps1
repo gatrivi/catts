@@ -2,7 +2,7 @@
 $ErrorActionPreference = "Stop"
 Set-Location (Split-Path $PSScriptRoot -Parent)
 
-if (-not (Test-Path .venv)) { py -3 -m venv .venv }
+if (-not (Test-Path .venv)) { python -m venv .venv }
 
 $py = ".\.venv\Scripts\python.exe"
 & $py -m pip install --upgrade pip
