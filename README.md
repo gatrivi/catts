@@ -33,11 +33,14 @@ CATTS_API_PORT=59200
 CATTS_WORKER_URL=
 CATTS_OCR_ENGINE=none
 CATTS_TTS_ENGINE=xtts
+CATTS_KOKORO_URL=http://127.0.0.1:8880
+CATTS_KOKORO_VOICE=af_bella
 CATTS_DEFAULT_VOICE_ID=
 CATTS_ACCEPT_COQUI_CPML=
 ```
 
 XTTS v2 requiere aceptar explícitamente los términos Coqui CPML/comerciales. Solo después de leerlos, seteá `CATTS_ACCEPT_COQUI_CPML=1`.
+Para probar TTS local sin clonación ni gate de XTTS, arrancá Kokoro-FastAPI y seteá `CATTS_TTS_ENGINE=kokoro`.
 
 ## Run (API + UI)
 
@@ -72,7 +75,8 @@ La UI es `static/index.html`.
 ## Motores (qué usa)
 
 Resumen (según `services/*`):
-- **Voice clone TTS**: XTTS v2 (vía worker persistente)
+- **TTS rápido local**: Kokoro-FastAPI (`CATTS_TTS_ENGINE=kokoro`, sin clonación)
+- **Voice clone TTS**: XTTS v2 (vía worker persistente, requiere aceptar términos Coqui)
 - **STT + script match**: faster-whisper (`small` por defecto)
 - **Translate EN↔ES**: Argos offline (subproceso en `.venv`)
 - **Lectura de libros**: extracción + partición en capítulos en CPU
@@ -108,6 +112,7 @@ La UI y el smoke usan el header `X-API-Key` si `CATTS_API_KEY` está seteada.
 ## Docs
 
 - Contexto/MVP: `docs/CONTEXT.md`
+- Kokoro Plus API (localhost): `docs/KOKORO_PLUS_API_READY.md`
 - Estado nocturno (honesto): `docs/NIGHT_REPORT.md`
 - Auditoría actual / setup roto: `docs/PROJECT_AUDIT.md`
 - Verificación MVP: `docs/MVP_VERIFICATION.md`

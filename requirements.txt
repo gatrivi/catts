@@ -11,3 +11,5 @@ edge-tts>=7.0.0
 python-docx>=1.1.0
 imageio-ffmpeg>=0.5.1
 pocket-tts
+kokoro>=0.9.4
+soundfile>=0.12.1

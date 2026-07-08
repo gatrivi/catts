@@ -14,6 +14,8 @@ from api.deps import require_api_key
 
 router = APIRouter(prefix="/liteui", tags=["liteui"])
 
+LiteUIState = Literal["stopped", "starting", "running"]
+
 _BASE_DIR = Path(__file__).resolve().parents[2]
 _LITEUI_DIR = _BASE_DIR / "external" / "LiteUI-Studio"
 _START_SCRIPT = _LITEUI_DIR / "start_en.py"
@@ -50,13 +52,13 @@ class LiteUIStatus(BaseModel):
     embedded_python_ok: bool
     start_script_ok: bool
     error: str | None = None
-    state: Literal["stopped", "starting", "running"]
+    state: LiteUIState
 
 
 class LiteUIStartResponse(BaseModel):
     started: bool
     starting: bool
-    state: LiteUIStatus["state"]
+    state: LiteUIState
     ui_url: str
     message: str
 
@@ -69,7 +71,7 @@ async def liteui_status(_: None = Depends(require_api_key)) -> LiteUIStatus:
     start_ok = _START_SCRIPT.is_file()
 
     running = ui_open
-    state: LiteUIStatus["state"] = "running" if running else "stopped"
+    state: LiteUIState = "running" if running else "stopped"
     err: str | None = None
     if not start_ok:
         err = f"Missing start script at {str(_START_SCRIPT)}"

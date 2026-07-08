@@ -20,7 +20,9 @@ API_KEY = os.getenv("CATTS_API_KEY", "")
 
 WORKER_URL = os.getenv("CATTS_WORKER_URL", "").rstrip("/")
 OCR_ENGINE = os.getenv("CATTS_OCR_ENGINE", "none")  # unlimited | none
-TTS_ENGINE = os.getenv("CATTS_TTS_ENGINE", "xtts")  # xtts | pocket | edge | chatterbox | gptsovits
+TTS_ENGINE = os.getenv("CATTS_TTS_ENGINE", "kokoro")  # xtts | kokoro | pocket | edge | chatterbox | gptsovits
+KOKORO_URL = os.getenv("CATTS_KOKORO_URL", "http://127.0.0.1:8880").rstrip("/")
+KOKORO_VOICE = os.getenv("CATTS_KOKORO_VOICE", "af_bella").strip()
 DEFAULT_VOICE_ID = os.getenv("CATTS_DEFAULT_VOICE_ID", "").strip()
 STT_MODEL = os.getenv("CATTS_STT_MODEL", "small")  # faster-whisper: tiny|base|small|medium
 ACCEPT_COQUI_CPML = os.getenv("CATTS_ACCEPT_COQUI_CPML", "").lower() in ("1", "true", "yes")

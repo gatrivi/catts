@@ -11,7 +11,7 @@ from pathlib import Path
 import httpx
 
 from config import TTS_ENGINE, WORKER_URL
-from services import chatterbox_tts, pocket_tts, xtts_tts
+from services import chatterbox_tts, kokoro_tts, pocket_tts, xtts_tts
 from services.ffmpeg_util import ffmpeg_path
 
 logger = logging.getLogger(__name__)
@@ -23,6 +23,8 @@ EDGE_VOICES = {
 
 
 def engine_label() -> str:
+    if TTS_ENGINE == "kokoro" and kokoro_tts.configured():
+        return "kokoro"
     if TTS_ENGINE == "pocket" and pocket_tts.available():
         return "pocket"
     if TTS_ENGINE == "gptsovits" and WORKER_URL:
@@ -106,6 +108,9 @@ async def synthesize(
     if TTS_ENGINE == "gptsovits" and WORKER_URL:
         return await _synthesize_gptsovits(text, output_path, voice_id, lang, ref_audio)
 
+    if TTS_ENGINE == "kokoro" and kokoro_tts.configured():
+        return await kokoro_tts.synthesize(text, output_path, lang)
+
     if TTS_ENGINE == "pocket" and pocket_tts.available():
         return await pocket_tts.synthesize(text, output_path, ref_audio=ref_audio, lang=lang)
 
@@ -159,6 +164,9 @@ async def live_tts(text: str, voice_id: str, lang: str = "en", ref_audio: Path |
             )
             r.raise_for_status()
             return r.content, "gptsovits"
+
+    if TTS_ENGINE == "kokoro" and kokoro_tts.configured():
+        return await kokoro_tts.live_tts(text, lang)
 
     with tempfile.TemporaryDirectory() as tmp:
         out = Path(tmp) / "live.wav"

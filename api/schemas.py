@@ -24,7 +24,7 @@ class HealthResponse(BaseModel):
     worker_reachable: bool
     worker_url: str
     ocr_engine: str
-    tts_engine: str  # xtts | edge | gptsovits
+    tts_engine: str  # xtts | kokoro | pocket | edge | chatterbox | gptsovits
     tts_ready: bool = False
     tts_message: str = ""
     stt_engine: str  # whisper | none
@@ -112,8 +112,8 @@ class VoiceRename(BaseModel):
 
 
 class LiveTTSRequest(BaseModel):
-    text: str = Field(..., min_length=1, max_length=200)
-    voice_id: str
+    text: str = Field(..., min_length=1, max_length=500)
+    voice_id: str | None = None
     lang: str = Field(default="en", pattern="^(en|es)$")
 
 

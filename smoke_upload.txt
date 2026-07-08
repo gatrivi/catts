@@ -1,0 +1,4 @@
+﻿This is a short smoke test book.
+
+Chapter 1
+This tiny chapter validates audiobook pipeline.

@@ -97,6 +97,9 @@ def _start_worker() -> subprocess.Popen:
 def warmup_worker() -> None:
     if not available():
         return
+    if os.getenv("CATTS_ACCEPT_COQUI_CPML", "").lower() not in {"1", "true", "yes"}:
+        logger.info("Skipping XTTS warmup until CATTS_ACCEPT_COQUI_CPML is accepted")
+        return
     try:
         with _worker_lock:
             proc = _start_worker()

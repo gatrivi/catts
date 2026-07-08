@@ -290,7 +290,7 @@
         <span class="panel-chevron">â–¼</span>
       </button>
       <div class="panel-body">
-        <p class="instructions">Type a short phrase (max 12 words). Uses XTTS clone of your sample. Watch status â€” first run after server start can take ~1 min.</p>
+        <p class="instructions" id="liveInstructions">Type a phrase and press Speak. Engine follows <code>CATTS_TTS_ENGINE</code> in .env.</p>
         <div id="liveStatus" class="status-box idle">Checking TTSâ€¦</div>
         <label>Phrase</label>
         <input id="liveText" placeholder="Hello, this is a test." />
@@ -775,6 +775,9 @@
 
     function userActionForError(message) {
       const msg = String(message || '').toLowerCase();
+      if (msg.includes('kokoro') || msg.includes('8880')) {
+        return 'Start Kokoro: .\\scripts\\start_kokoro.ps1 (port 8880), then retry.';
+      }
       if (msg.includes('catts_accept_coqui_cpml') || msg.includes('coqui') || msg.includes('cpml')) {
         return 'Accept/reject Coqui terms; if accepted, set CATTS_ACCEPT_COQUI_CPML=1 and restart.';
       }
@@ -1355,22 +1358,40 @@ Gracias. Esta muestra enseÃ±arÃ¡ a CATTS a sonar como yo.`
       updateActivityBar(lastJobsCache, lastVoicesCache, h);
 
       if (!uiBusy) {
-        if (!h.xtts_installed) {
-          setStatus('liveStatus', 'err', '<strong>Live interpreting unavailable.</strong> XTTS not installed â€” run <code>scripts/setup_xtts.ps1</code> and restart the server.');
-        } else if (xttsNeedsTerms) {
-          setStatus('liveStatus', 'err', '<strong>Action needed.</strong> XTTS is installed, but blocked by Coqui terms. If you accept them, set <code>CATTS_ACCEPT_COQUI_CPML=1</code> and restart.');
-        } else if (!h.xtts_ready) {
-          setStatus('liveStatus', 'busy', '<strong>XTTS not ready.</strong> First load can take ~1 min. If it stays here, run Diagnostics and check server logs.');
+        if (h.tts_engine === 'kokoro') {
+          if (h.tts_ready) {
+            setStatus('liveStatus', 'ok', '<strong>Kokoro ready.</strong> Fast local TTS — preset voice, no sample needed.');
+          } else {
+            setStatus('liveStatus', 'err', '<strong>Kokoro offline.</strong> Run <code>scripts\\start_kokoro.ps1</code> in another terminal.');
+          }
+        } else if (h.tts_engine === 'xtts') {
+          if (!h.xtts_installed) {
+            setStatus('liveStatus', 'err', '<strong>Live interpreting unavailable.</strong> XTTS not installed — run <code>scripts/setup_xtts.ps1</code> and restart the server.');
+          } else if (xttsNeedsTerms) {
+            setStatus('liveStatus', 'err', '<strong>Action needed.</strong> XTTS is installed, but blocked by Coqui terms. If you accept them, set <code>CATTS_ACCEPT_COQUI_CPML=1</code> and restart.');
+          } else if (!h.xtts_ready) {
+            setStatus('liveStatus', 'busy', '<strong>XTTS not ready.</strong> First load can take ~1 min. If it stays here, run Diagnostics and check server logs.');
+          } else {
+            setStatus('liveStatus', 'ok', '<strong>Ready.</strong> Speak uses your voice clone (XTTS). Expect ~5–30s per phrase on CPU.');
+          }
+        } else if (h.tts_ready) {
+          setStatus('liveStatus', 'ok', `<strong>${h.tts_engine} ready.</strong> ${h.tts_message || ''}`);
         } else {
-          setStatus('liveStatus', 'ok', '<strong>Ready.</strong> Speak uses your voice clone (XTTS). Expect ~5â€“30s per phrase on CPU.');
+          setStatus('liveStatus', 'warn', h.tts_message || `${h.tts_engine} not ready`);
         }
+      }
+      const liveHint = document.getElementById('liveInstructions');
+      if (liveHint) {
+        liveHint.textContent = h.tts_engine === 'kokoro'
+          ? 'Kokoro mode: type a phrase (up to 80 words). No voice sample required.'
+          : 'XTTS mode: short phrase (max 12 words), uses your saved voice sample.';
       }
       const banner = document.getElementById('ttsBanner');
       if (localStorage.getItem('catts_hide_tts_banner') === '1') {
         banner.style.display = 'none';
         return;
       }
-      if (xttsNeedsTerms) {
+      if (xttsNeedsTerms && h.tts_engine === 'xtts') {
         banner.style.display = 'flex';
         banner.innerHTML = `<span><strong>TTS blocked.</strong> Voice cloning needs your explicit Coqui license choice. If accepted, set <code>CATTS_ACCEPT_COQUI_CPML=1</code> and restart.</span><button type="button" class="banner-dismiss" id="dismissTtsBanner" title="Dismiss">x</button>`;
         document.getElementById('dismissTtsBanner').onclick = () => {
@@ -1522,24 +1543,27 @@ Gracias. Esta muestra enseÃ±arÃ¡ a CATTS a sonar como yo.`
     document.getElementById('liveBtn').onclick = async () => {
       const btn = document.getElementById('liveBtn');
       if (uiBusy) {
-        setStatus('liveStatus', 'busy', 'Already working â€” wait for the current request to finish.');
+        setStatus('liveStatus', 'busy', 'Already working — wait for the current request to finish.');
         return;
       }
+      const engine = lastHealth?.tts_engine || 'xtts';
+      const isKokoro = engine === 'kokoro';
+      const maxWords = isKokoro ? 80 : 12;
       const voice_id = resolveVoiceId();
-      if (!voice_id) {
+      if (!isKokoro && !voice_id) {
         setStatus('liveStatus', 'err', '<strong>No voice selected.</strong> Save a sample under Train voice, or pick a voice in the dropdown.');
-        return alert('No voice selected â€” save a voice sample first.');
+        return alert('No voice selected — save a voice sample first.');
       }
       const liveSel = document.getElementById('liveVoice');
       const text = document.getElementById('liveText').value.trim();
       if (!text) {
-        setStatus('liveStatus', 'err', '<strong>No text.</strong> Type a short phrase (max 12 words).');
-        return alert('Type a short phrase first (max 12 words).');
+        setStatus('liveStatus', 'err', `<strong>No text.</strong> Type a phrase (max ${maxWords} words).`);
+        return alert(`Type a phrase first (max ${maxWords} words).`);
       }
       const words = text.split(/\s+/).filter(Boolean);
-      if (words.length > 12) {
-        setStatus('liveStatus', 'err', '<strong>Too long.</strong> Live TTS is limited to 12 words.');
-        return alert('Live TTS limited to 12 words.');
+      if (words.length > maxWords) {
+        setStatus('liveStatus', 'err', `<strong>Too long.</strong> Live TTS is limited to ${maxWords} words.`);
+        return alert(`Live TTS limited to ${maxWords} words.`);
       }
       const lang = (liveSel.selectedOptions[0]?.dataset?.lang)
         || (document.getElementById('bookVoice').selectedOptions[0]?.dataset?.lang)
@@ -1549,20 +1573,24 @@ Gracias. Esta muestra enseÃ±arÃ¡ a CATTS a sonar como yo.`
       uiBusy = true;
       const prevLabel = btn.textContent;
       btn.disabled = true;
-      btn.textContent = 'Workingâ€¦';
+      btn.textContent = 'Working…';
       const stopElapsed = startElapsed(
         'liveStatus',
-        `<strong>Synthesizing with XTTS</strong> (voice ${voice_id.slice(0, 8)}â€¦) â€” CPU, can take 5â€“60s.`,
+        isKokoro
+          ? '<strong>Synthesizing with Kokoro</strong> — usually a few seconds.'
+          : `<strong>Synthesizing with XTTS</strong> (voice ${(voice_id || '').slice(0, 8)}…) — CPU, can take 5–60s.`,
       );
       openGlobalDock();
       document.getElementById('globalPlayerHost').innerHTML =
-        '<div class="wave-player"><div class="wave-label">Live TTS</div><div class="wave-status subtle">Request sent â€” waiting for audioâ€¦</div></div>';
+        '<div class="wave-player"><div class="wave-label">Live TTS</div><div class="wave-status subtle">Request sent — waiting for audio…</div></div>';
 
       try {
+        const payload = { text, lang };
+        if (voice_id) payload.voice_id = voice_id;
         const r = await fetch(API + '/tts/live', {
           method: 'POST',
           headers: { ...headers(), 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text, voice_id, lang }),
+          body: JSON.stringify(payload),
         });
         if (!r.ok) {
           let detail = r.statusText;
@@ -1574,24 +1602,24 @@ Gracias. Esta muestra enseÃ±arÃ¡ a CATTS a sonar como yo.`
           }
           throw new Error(detail || `HTTP ${r.status}`);
         }
-        const engine = r.headers.get('X-TTS-Engine') || 'unknown';
+        const engineUsed = r.headers.get('X-TTS-Engine') || 'unknown';
         const latency = r.headers.get('X-TTS-Latency-Ms');
         const blob = await r.blob();
         if (!blob || blob.size < 1000) throw new Error('TTS returned empty audio');
-        if (engine === 'edge') {
-          throw new Error('Server used generic Edge voice instead of your clone â€” restart API and wait for XTTS hot');
+        if (!isKokoro && engineUsed === 'edge') {
+          throw new Error('Server used generic Edge voice instead of your clone — restart API and wait for XTTS hot');
         }
         stopElapsed();
-        setStatus('liveStatus', 'busy', 'Decoding waveformâ€¦');
-        const label = `Live TTS Â· ${engine}${latency ? ' Â· ' + latency + 'ms' : ''}`;
-        await playInGlobalDock(blob, label, `live:${voice_id}:${text.slice(0, 48)}`);
+        setStatus('liveStatus', 'busy', 'Decoding waveform…');
+        const label = `Live TTS · ${engineUsed}${latency ? ' · ' + latency + 'ms' : ''}`;
+        await playInGlobalDock(blob, label, `live:${voice_id || 'kokoro'}:${text.slice(0, 48)}`);
         setStatus(
           'liveStatus',
           'ok',
-          `<strong>Playing clone</strong> Â· engine <code>${engine}</code>${latency ? ' Â· ' + latency + 'ms' : ''} Â· ${Math.round(blob.size / 1024)} KB. Bottom player.`,
+          `<strong>Playing</strong> · engine <code>${engineUsed}</code>${latency ? ' · ' + latency + 'ms' : ''} · ${Math.round(blob.size / 1024)} KB. Bottom player.`,
         );
         document.getElementById('livePlayer').innerHTML =
-          `<p class="subtle">OK â€” ${engine}${latency ? ' in ' + latency + 'ms' : ''}. Use bottom player.</p>`;
+          `<p class="subtle">OK — ${engineUsed}${latency ? ' in ' + latency + 'ms' : ''}. Use bottom player.</p>`;
       } catch (e) {
         stopElapsed();
         const msg = e.message || String(e);

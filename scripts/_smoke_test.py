@@ -183,13 +183,21 @@ def main() -> int:
         _ok("audio_decode_peak_check", f"peak={peak:.4f}")
 
     def tts_live(health: dict, voice_id: str, tmp: Path) -> None:
-        if not (health.get("xtts_installed") and health.get("xtts_ready")):
+        engine = health.get("tts_engine") or "xtts"
+        if engine == "kokoro":
+            if not health.get("tts_ready"):
+                _skip("tts_live", f"Kokoro not ready: {health.get('tts_message')}")
+                return
+            payload = {"text": "Hello this is a CATTS smoke test", "lang": "en"}
+        elif not (health.get("xtts_installed") and health.get("xtts_ready")):
             _skip("tts_live", f"XTTS not ready (installed={health.get('xtts_installed')}, ready={health.get('xtts_ready')})")
             return
+        else:
+            payload = {"text": "Hello this is a CATTS smoke test", "voice_id": voice_id, "lang": "en"}
 
         r = client.post(
             f"{BASE}/tts/live",
-            json={"text": "Hello this is a CATTS smoke test", "voice_id": voice_id, "lang": "en"},
+            json=payload,
             headers={**headers, "Content-Type": "application/json"},
             timeout=240.0,
         )
