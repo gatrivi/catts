@@ -143,9 +143,12 @@ def fix_spacing(text):
     """
     Fixes spacing issues where letters are separated by spaces.
     """
-    # Improved pattern to handle more cases
-    # Match sequences where single letters are separated by spaces
-    pattern = r'\b(?:[a-zA-Z]\s){2,}[a-zA-Z]\b'
+    # Normalize common invisible/non-breaking whitespace that PDF extraction can produce.
+    text = text.replace("\u00A0", " ").replace("\u202F", " ").replace("\u200B", "")
+
+    # Match sequences like: "m o d e" / "M O D E" where single letters are separated by whitespace.
+    # Use lookarounds instead of word boundaries to be more tolerant around punctuation.
+    pattern = r"(?<![a-zA-Z])(?:[a-zA-Z]\s){2,}[a-zA-Z](?![a-zA-Z])"
     
     def replace_spaced_letters(match):
         spaced_word = match.group(0)

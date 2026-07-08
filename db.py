@@ -6,6 +6,8 @@ import uuid
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
+import re
+import unicodedata
 from typing import Any
 
 from config import DATA_DIR, DB_PATH, JOBS_DIR, VOICES_DIR
@@ -70,6 +72,39 @@ def new_id() -> str:
     return uuid.uuid4().hex[:16]
 
 
+def _slug_ascii(value: str) -> str:
+    # ASCII-only, URL/path-safe. Keeps it short to avoid Windows path issues.
+    if not value:
+        return ""
+    value = unicodedata.normalize("NFKD", value)
+    value = value.encode("ascii", "ignore").decode("ascii")
+    value = value.lower().strip()
+    value = re.sub(r"[^a-z0-9]+", "-", value)
+    value = re.sub(r"-+", "-", value).strip("-")
+    return value
+
+
+def new_job_id(kind: str, meta: dict[str, Any] | None = None) -> str:
+    # Human-ish: <kind>-<title-slug>-<8hex>. (IDs are also used as folder names.)
+    # Keep a stable prefix for UI/UX readability.
+    kind = "catts" if kind == "audiobook" else kind
+    kind_slug = _slug_ascii(kind) or "job"
+    title = ""
+    if meta:
+        title = str(meta.get("title") or "")
+    title_slug = _slug_ascii(title)[:24] if title else ""
+    if not title_slug:
+        title_slug = "untitled"
+    # Use UTC timestamp (ms) to keep it readable and avoid relying on hex.
+    # Also reduces collision probability when multiple jobs are created close together.
+    now = datetime.now(timezone.utc)
+    ms = f"{int(now.microsecond / 1000):03d}"
+    timestamp = now.strftime("%Y%m%d-%H%M%S")
+    suffix = f"{timestamp}-{ms}"
+    job_id = f"{kind_slug}-{title_slug}-{suffix}"
+    return job_id[:60]
+
+
 def create_job(
     kind: str,
     voice_id: str | None = None,
@@ -77,7 +112,7 @@ def create_job(
     callback_url: str | None = None,
     meta: dict[str, Any] | None = None,
 ) -> str:
-    job_id = new_id()
+    job_id = new_job_id(kind, meta)
     now = _utcnow()
     job_dir = JOBS_DIR / job_id
     job_dir.mkdir(parents=True, exist_ok=True)

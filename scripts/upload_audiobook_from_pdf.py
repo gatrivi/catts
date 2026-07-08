@@ -21,23 +21,53 @@ def main() -> int:
     import sys
 
     if len(sys.argv) < 2:
-        raise SystemExit("Usage: python upload_audiobook_from_pdf.py <pdf_path>")
+        raise SystemExit("Usage: python upload_audiobook_from_pdf.py <pdf_path> [--lang es|en] [--chapter-mode detect_number]")
 
     pdf_path = Path(sys.argv[1]).expanduser()
     if not pdf_path.exists():
         raise SystemExit(f"Missing file: {pdf_path}")
+
+    forced_lang = ""
+    chapter_mode = os.getenv("CATTS_CHAPTER_MODE", "detect_number")
+
+    # Tiny arg parsing to avoid depending on env vars during quoting-sensitive calls.
+    args = sys.argv[2:]
+    i = 0
+    while i < len(args):
+        a = args[i]
+        if a == "--lang" and i + 1 < len(args):
+            forced_lang = args[i + 1].strip()
+            i += 2
+            continue
+        if a.startswith("--lang="):
+            forced_lang = a.split("=", 1)[1].strip()
+            i += 1
+            continue
+        if a == "--chapter-mode" and i + 1 < len(args):
+            chapter_mode = args[i + 1].strip()
+            i += 2
+            continue
+        if a.startswith("--chapter-mode="):
+            chapter_mode = a.split("=", 1)[1].strip()
+            i += 1
+            continue
+        i += 1
 
     url = f"{CATTS_API_BASE}/jobs/audiobook"
     title = _pick_title(pdf_path)
 
     # Kokoro mode does not require voice cloning; we still let CATTS pick a default voice.
     data = {
-        "lang": os.getenv("CATTS_BOOK_LANG", "en"),
         "title": title,
         "author": os.getenv("CATTS_BOOK_AUTHOR", ""),
-        "chapter_mode": os.getenv("CATTS_CHAPTER_MODE", "detect_number"),
+        "chapter_mode": chapter_mode,
         "generate_audio": os.getenv("CATTS_GENERATE_AUDIO", "true"),
     }
+
+    # If you explicitly set `--lang` we force it.
+    # Otherwise we omit `lang` so CATTS can detect from the extracted text.
+    if forced_lang:
+        data["lang"] = forced_lang
 
     with pdf_path.open("rb") as f:
         files = {"file": (pdf_path.name, f, "application/pdf")}
