@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<meta name="theme-color" content="#0c0a09"/>
+<meta name="description" content="Alma de Fuego — cocina de autor. Menú digital."/>
+<title>Alma de Fuego · Menú</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Outfit:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #0c0a09;
+    --bg-elev: #14110f;
+    --bg-card: #1a1614;
+    --fg: #f5f0eb;
+    --muted: #9c8f84;
+    --gold: #c9a962;
+    --gold-dim: rgba(201, 169, 98, 0.35);
+    --ember: #d4623a;
+    --line: rgba(245, 240, 235, 0.08);
+    --serif: "Cormorant Garamond", "Palatino Linotype", Georgia, serif;
+    --sans: "Outfit", system-ui, sans-serif;
+    --ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --nav-h: 3.25rem;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    font-family: var(--sans);
+    font-weight: 300;
+    background: var(--bg);
+    color: var(--fg);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  /* grain overlay */
+  body::after {
+    content: "";
+    pointer-events: none;
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    opacity: 0.04;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  img { display: block; max-width: 100%; height: auto; }
+
+  /* ── top bar ── */
+  .topbar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    height: var(--nav-h);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1.25rem;
+    background: rgba(12, 10, 9, 0.72);
+    backdrop-filter: blur(18px) saturate(1.4);
+    -webkit-backdrop-filter: blur(18px) saturate(1.4);
+    border-bottom: 1px solid var(--line);
+    transition: transform 0.45s var(--ease), background 0.3s;
+  }
+  .topbar.hide { transform: translateY(-100%); }
+  .brand {
+    font-family: var(--serif);
+    font-size: 1.15rem;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--fg);
+    text-decoration: none;
+  }
+  .topbar-actions { display: flex; gap: 0.5rem; align-items: center; }
+  .btn-ghost {
+    font: inherit;
+    font-size: 0.72rem;
+    font-weight: 400;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    background: transparent;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 0.45rem 0.85rem;
+    cursor: pointer;
+    transition: color 0.25s, border-color 0.25s, background 0.25s;
+  }
+  .btn-ghost:hover, .btn-ghost.active {
+    color: var(--gold);
+    border-color: var(--gold-dim);
+    background: rgba(201, 169, 98, 0.06);
+  }
+
+  /* ── hero ── */
+  .hero {
+    position: relative;
+    min-height: 92dvh;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: calc(var(--nav-h) + 2rem) 1.5rem 3rem;
+    overflow: hidden;
+  }
+  .hero-bg {
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(180deg, rgba(12,10,9,0.15) 0%, rgba(12,10,9,0.55) 45%, var(--bg) 100%),
+      linear-gradient(135deg, rgba(212,98,58,0.12) 0%, transparent 50%),
+      url("https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1400&q=80&auto=format&fit=crop") center/cover no-repeat;
+    transform: scale(1.05);
+    animation: heroZoom 18s var(--ease) infinite alternate;
+  }
+  @keyframes heroZoom {
+    from { transform: scale(1.05); }
+    to   { transform: scale(1.12); }
+  }
+  .hero-content { position: relative; max-width: 36rem; }
+  .hero-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 0.68rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 1rem;
+    opacity: 0;
+    animation: fadeUp 0.9s var(--ease) 0.2s forwards;
+  }
+  .hero-eyebrow::before {
+    content: "";
+    width: 2rem;
+    height: 1px;
+    background: var(--gold);
+  }
+  .hero h1 {
+    font-family: var(--serif);
+    font-size: clamp(2.8rem, 10vw, 4.5rem);
+    font-weight: 400;
+    line-height: 0.95;
+    margin: 0 0 1.25rem;
+    letter-spacing: -0.02em;
+    opacity: 0;
+    animation: fadeUp 1s var(--ease) 0.35s forwards;
+  }
+  .hero h1 em {
+    font-style: italic;
+    color: var(--gold);
+  }
+  .hero-lead {
+    font-size: 1rem;
+    color: var(--muted);
+    max-width: 28ch;
+    margin: 0 0 2rem;
+    opacity: 0;
+    animation: fadeUp 1s var(--ease) 0.5s forwards;
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(1.25rem); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .hero-cta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    opacity: 0;
+    animation: fadeUp 1s var(--ease) 0.65s forwards;
+  }
+  .btn-primary {
+    font: inherit;
+    font-size: 0.75rem;
+    font-weight: 400;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--bg);
+    background: var(--gold);
+    border: none;
+    border-radius: 999px;
+    padding: 0.85rem 1.6rem;
+    cursor: pointer;
+    transition: transform 0.25s var(--ease), box-shadow 0.25s;
+  }
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 28px rgba(201, 169, 98, 0.25);
+  }
+  .scroll-hint {
+    position: absolute;
+    bottom: 1.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+    color: var(--muted);
+    font-size: 0.62rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    opacity: 0;
+    animation: fadeUp 1s var(--ease) 1s forwards;
+  }
+  .scroll-hint span {
+    width: 1px;
+    height: 2rem;
+    background: linear-gradient(var(--gold), transparent);
+    animation: scrollPulse 2s ease infinite;
+  }
+  @keyframes scrollPulse {
+    0%, 100% { opacity: 0.3; transform: scaleY(0.6); }
+    50%      { opacity: 1; transform: scaleY(1); }
+  }
+
+  /* ── category nav ── */
+  .cat-nav-wrap {
+    position: sticky;
+    top: var(--nav-h);
+    z-index: 90;
+    background: rgba(12, 10, 9, 0.88);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--line);
+  }
+  .cat-nav {
+    display: flex;
+    gap: 0.35rem;
+    padding: 0.65rem 1rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    scroll-snap-type: x mandatory;
+  }
+  .cat-nav::-webkit-scrollbar { display: none; }
+  .cat-pill {
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+    font: inherit;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.3s var(--ease);
+  }
+  .cat-pill:hover { color: var(--fg); }
+  .cat-pill.active {
+    color: var(--gold);
+    border-color: var(--gold-dim);
+    background: rgba(201, 169, 98, 0.08);
+  }
+
+  /* ── sections ── */
+  main { max-width: 52rem; margin: 0 auto; padding: 0 1.25rem 5rem; }
+  .section {
+    padding: 3.5rem 0 1rem;
+    opacity: 0;
+    transform: translateY(1.5rem);
+    transition: opacity 0.7s var(--ease), transform 0.7s var(--ease);
+  }
+  .section.visible { opacity: 1; transform: translateY(0); }
+  .section-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--line);
+  }
+  .section-head h2 {
+    font-family: var(--serif);
+    font-size: clamp(1.8rem, 5vw, 2.4rem);
+    font-weight: 400;
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+  .section-head p {
+    margin: 0;
+    font-size: 0.75rem;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+    text-align: right;
+    max-width: 14rem;
+  }
+
+  /* ── menu items ── */
+  .items { display: flex; flex-direction: column; gap: 0; }
+  .item {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0.25rem 1rem;
+    padding: 1.35rem 0;
+    border-bottom: 1px solid var(--line);
+    cursor: default;
+    transition: background 0.3s;
+  }
+  .item:first-child { border-top: 1px solid var(--line); }
+  .item:hover { background: rgba(245, 240, 235, 0.02); }
+  .item-name {
+    font-family: var(--serif);
+    font-size: 1.25rem;
+    font-weight: 500;
+    margin: 0;
+    grid-column: 1;
+  }
+  .item-price {
+    font-size: 1rem;
+    color: var(--gold);
+    font-variant-numeric: tabular-nums;
+    grid-column: 2;
+    grid-row: 1;
+    align-self: start;
+    white-space: nowrap;
+  }
+  .item-desc {
+    grid-column: 1 / -1;
+    margin: 0.15rem 0 0;
+    font-size: 0.88rem;
+    color: var(--muted);
+    max-width: 42ch;
+  }
+  .item-tags {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-top: 0.5rem;
+  }
+  .tag {
+    font-size: 0.6rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    padding: 0.15rem 0.45rem;
+  }
+  .tag.chef { color: var(--ember); border-color: rgba(212, 98, 58, 0.35); }
+  .tag.veg  { color: #7cb87c; border-color: rgba(124, 184, 124, 0.3); }
+
+  /* ── featured card ── */
+  .feature {
+    display: grid;
+    gap: 1.5rem;
+    margin: 2rem 0 0;
+    padding: 1.5rem;
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  @media (min-width: 640px) {
+    .feature { grid-template-columns: 1.1fr 1fr; align-items: center; }
+  }
+  .feature-img {
+    aspect-ratio: 4/3;
+    border-radius: 2px;
+    background:
+      linear-gradient(135deg, rgba(201,169,98,0.15), transparent),
+      url("https://images.unsplash.com/photo-1544025162-d76694265947?w=800&q=80&auto=format&fit=crop") center/cover;
+    transition: transform 0.6s var(--ease);
+  }
+  .feature:hover .feature-img { transform: scale(1.03); }
+  .feature-body h3 {
+    font-family: var(--serif);
+    font-size: 1.6rem;
+    font-weight: 400;
+    margin: 0 0 0.5rem;
+  }
+  .feature-body p {
+    margin: 0 0 1rem;
+    font-size: 0.9rem;
+    color: var(--muted);
+  }
+  .feature-price {
+    font-family: var(--serif);
+    font-size: 1.5rem;
+    color: var(--gold);
+  }
+  .feature-price small {
+    display: block;
+    font-family: var(--sans);
+    font-size: 0.65rem;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-top: 0.2rem;
+  }
+
+  /* ── tasting menu banner ── */
+  .tasting {
+    margin: 4rem 0 0;
+    padding: 2.5rem 1.75rem;
+    text-align: center;
+    background:
+      radial-gradient(ellipse at 50% 0%, rgba(201,169,98,0.12), transparent 60%),
+      var(--bg-elev);
+    border: 1px solid var(--gold-dim);
+    border-radius: 4px;
+    position: relative;
+    overflow: hidden;
+  }
+  .tasting::before {
+    content: "◆";
+    position: absolute;
+    top: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.5rem;
+    color: var(--gold);
+    opacity: 0.5;
+  }
+  .tasting h3 {
+    font-family: var(--serif);
+    font-size: clamp(1.6rem, 4vw, 2rem);
+    font-weight: 400;
+    margin: 0.5rem 0 0.75rem;
+  }
+  .tasting p {
+    margin: 0 auto 1.25rem;
+    max-width: 32ch;
+    font-size: 0.9rem;
+    color: var(--muted);
+  }
+  .tasting-steps {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem 1.25rem;
+    margin-bottom: 1.5rem;
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+  }
+  .tasting-steps span::before { content: "· "; color: var(--gold); }
+  .tasting-steps span:first-child::before { content: ""; }
+
+  /* ── wine note ── */
+  .wine-bar {
+    margin-top: 3rem;
+    padding: 1.25rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: linear-gradient(90deg, rgba(128,0,32,0.12), transparent);
+    border-left: 2px solid #800020;
+    border-radius: 0 4px 4px 0;
+  }
+  .wine-bar svg { flex-shrink: 0; opacity: 0.6; }
+  .wine-bar p {
+    margin: 0;
+    font-size: 0.82rem;
+    color: var(--muted);
+  }
+  .wine-bar strong { color: var(--fg); font-weight: 400; }
+
+  /* ── footer ── */
+  footer {
+    text-align: center;
+    padding: 3rem 1.5rem calc(2rem + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--line);
+    color: var(--muted);
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+  }
+  footer .brand-footer {
+    font-family: var(--serif);
+    font-size: 1.1rem;
+    color: var(--fg);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 0.75rem;
+  }
+  footer a { color: var(--gold); text-decoration: none; }
+
+  /* ── lang toggle ── */
+  [data-lang="en"] { display: none; }
+  html.lang-en [data-lang="es"] { display: none; }
+  html.lang-en [data-lang="en"] { display: revert; }
+  html.lang-en .item-desc[data-lang="en"],
+  html.lang-en .hero-lead[data-lang="en"] { display: block; }
+
+  /* ── reduced motion ── */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+    html { scroll-behavior: auto; }
+  }
+
+  /* ── desktop polish ── */
+  @media (min-width: 768px) {
+    .hero { padding-inline: 3rem; }
+    main { padding-inline: 2rem; }
+    .item { padding: 1.5rem 0.5rem; }
+    .item-name { font-size: 1.35rem; }
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar" id="topbar">
+  <a class="brand" href="#">Alma de Fuego</a>
+  <div class="topbar-actions">
+    <button class="btn-ghost" id="langBtn" type="button" aria-label="Cambiar idioma">EN</button>
+    <button class="btn-ghost" type="button" onclick="window.print()">Imprimir</button>
+  </div>
+</header>
+
+<section class="hero" aria-label="Presentación">
+  <div class="hero-bg" aria-hidden="true"></div>
+  <div class="hero-content">
+    <p class="hero-eyebrow" data-lang="es">Cocina de autor · Palermo</p>
+    <p class="hero-eyebrow" data-lang="en">Author's cuisine · Palermo</p>
+    <h1>Donde el <em>fuego</em><br/>encuentra el alma</h1>
+    <p class="hero-lead" data-lang="es">Producto de estación, técnicas de brasas y una mirada contemporánea sobre la cocina del sur.</p>
+    <p class="hero-lead" data-lang="en">Seasonal produce, live-fire techniques, and a contemporary take on southern cuisine.</p>
+    <div class="hero-cta">
+      <button class="btn-primary" type="button" onclick="document.getElementById('entradas').scrollIntoView({behavior:'smooth'})">
+        <span data-lang="es">Ver menú</span><span data-lang="en">View menu</span>
+      </button>
+    </div>
+  </div>
+  <div class="scroll-hint" aria-hidden="true">Menú<span></span></div>
+</section>
+
+<nav class="cat-nav-wrap" aria-label="Categorías">
+  <div class="cat-nav" id="catNav">
+    <button class="cat-pill active" data-target="entradas" type="button">Entradas</button>
+    <button class="cat-pill" data-target="brasas" type="button">Brasas</button>
+    <button class="cat-pill" data-target="mar" type="button">Del mar</button>
+    <button class="cat-pill" data-target="vegetal" type="button">Vegetal</button>
+    <button class="cat-pill" data-target="postres" type="button">Postres</button>
+    <button class="cat-pill" data-target="bebidas" type="button">Bebidas</button>
+  </div>
+</nav>
+
+<main>
+
+  <section class="section visible" id="entradas">
+    <div class="section-head">
+      <h2 data-lang="es">Entradas</h2>
+      <h2 data-lang="en">Starters</h2>
+      <p data-lang="es">Para abrir el apetito</p>
+      <p data-lang="en">To awaken the palate</p>
+    </div>
+    <div class="items">
+      <article class="item">
+        <h3 class="item-name">Ostras patagónicas</h3>
+        <span class="item-price">$8.900</span>
+        <p class="item-desc" data-lang="es">Tres unidades · emulsión de limón quemado · aceite de hierbas patagónicas</p>
+        <p class="item-desc" data-lang="en">Three pieces · charred lemon emulsion · Patagonian herb oil</p>
+        <div class="item-tags"><span class="tag chef">Chef</span></div>
+      </article>
+      <article class="item">
+        <h3 class="item-name">Burrata ahumada</h3>
+        <span class="item-price">$7.200</span>
+        <p class="item-desc" data-lang="es">Tomates confitados · pesto de albahaca · crocante de semillas</p>
+        <p class="item-desc" data-lang="en">Confit tomatoes · basil pesto · seed crisp</p>
+        <div class="item-tags"><span class="tag veg">V</span></div>
+      </article>
+      <article class="item">
+        <h3 class="item-name">Tartar de vaca madurada</h3>
+        <span class="item-price">$9.500</span>
+        <p class="item-desc" data-lang="es">Yema curada · mostaza de Dijon · pan de masa madre tostado</p>
+        <p class="item-desc" data-lang="en">Cured yolk · Dijon mustard · toasted sourdough</p>
+      </article>
+    </div>
+    <div class="feature">
+      <div class="feature-img" role="img" aria-label="Plato destacado"></div>
+      <div class="feature-body">
+        <h3 data-lang="es">Croqueta de cordero patagónico</h3>
+        <h3 data-lang="en">Patagonian lamb croquette</h3>
+        <p data-lang="es">Relleno de cordero braseado 12 h, reducción de Malbec y aioli de ajo negro. Nuestra entrada más pedida.</p>
+        <p data-lang="en">12-hour braised lamb, Malbec reduction, black garlic aioli. Our most requested starter.</p>
+        <div class="feature-price">$6.800 <small data-lang="es">porción · 3 unidades</small><small data-lang="en">serving · 3 pieces</small></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="brasas">
+    <div class="section-head">
+      <h2 data-lang="es">Brasas</h2>
+      <h2 data-lang="en">From the fire</h2>
+      <p data-lang="es">Cocción lenta sobre leña de espinillo</p>
+      <p data-lang="en">Slow cooking over espinillo wood</p>
+    </div>
+    <div class="items">
+      <article class="item">
+        <h3 class="item-name">Ojo de bife</h3>
+        <span class="item-price">$18.500</span>
+        <p class="item-desc" data-lang="es">350 g · chimichurri de la casa · papas soufflé · sal de monte</p>
+        <p class="item-desc" data-lang="en">350 g · house chimichurri · soufflé potatoes · mountain salt</p>
+        <div class="item-tags"><span class="tag chef">Signature</span></div>
+      </article>
+      <article class="item">
+        <h3 class="item-name">Costillar de cerdo</h3>
+        <span class="item-price">$14.200</span>
+        <p class="item-desc" data-lang="es">Glaseado de miel y mostaza · col morada fermentada</p>
+        <p class="item-desc" data-lang="en">Honey mustard glaze · fermented purple cabbage</p>
+      </article>
+      <article class="item">
+        <h3 class="item-name">Pollo entero a la leña</h3>
+        <span class="item-price">$16.800</span>
+        <p class="item-desc" data-lang="es">Para compartir · hierbas del valle · jugo de asado</p>
+        <p class="item-desc" data-lang="en">To share · valley herbs · roasting jus</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="section" id="mar">
+    <div class="section-head">
+      <h2 data-lang="es">Del mar</h2>
+      <h2 data-lang="en">From the sea</h2>
+      <p data-lang="es">Pesca del día · llegada matutina</p>
+      <p data-lang="en">Day boat catch · morning arrival</p>
+    </div>
+    <div class="items">
+      <article class="item">
+        <h3 class="item-name">Branzino a la brasa</h3>
+        <span class="item-price">$15.900</span>
+        <p class="item-desc" data-lang="es">Piel crocante · verdeo · puré de coliflor ahumada</p>
+        <p class="item-desc" data-lang="en">Crispy skin · chives · smoked cauliflower purée</p>
+      </article>
+      <article class="item">
+        <h3 class="item-name">Camarones del Atlántico</h3>
+        <span class="item-price">$13.400</span>
+        <p class="item-desc" data-lang="es">Ajo confitado · ají amarillo · arroz bomba</p>
+        <p class="item-desc" data-lang="en">Confit garlic · ají amarillo · bomba rice</p>
+      </article>
+      <article class="item">
+        <h3 class="item-name">Ceviche de corvina</h3>
+        <span class="item-price">$8.600</span>
+        <p class="item-desc" data-lang="es">Leche de tigre de maracuyá · boniato · cancha serrana</p>
+        <p class="item-desc" data-lang="en">Passion fruit leche de tigre · sweet potato · cancha</p>
+      </article>
+    </div>
+    <div class="wine-bar">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 22h8M12 15v7M7 2h10l1 7a5 5 0 0 1-10 0l1-7z"/></svg>
+      <p data-lang="es"><strong>Maridaje sugerido:</strong> Torrontés Valle de Uco 2023 · copa $3.200</p>
+      <p data-lang="en"><strong>Suggested pairing:</strong> Uco Valley Torrontés 2023 · glass $3,200</p>
+    </div>
+  </section>
+
+  <section class="section" id="vegetal">
+    <div class="section-head">
+      <h2 data-lang="es">Vegetal</h2>
+      <h2 data-lang="en">Vegetal</h2>
+      <p data-lang="es">Huerta propia · fermentados</p>
+      <p data-lang="en">House garden · ferments</p>
+    </div>
+    <div class="items">
+      <article class="item">
+        <h3 class="item-name">Calabaza asada</h3>
+        <span class="item-price">$7.800</span>
+        <p class="item-desc" data-lang="es">Manteca noisette · semillas tostadas · reducción de aceto</p>
+        <p class="item-desc" data-lang="en">Brown butter · toasted seeds · balsamic reduction</p>
+        <div class="item-tags"><span class="tag veg">V</span><span class="tag veg">VG</span></div>
+      </article>
+      <article class="item">
+        <h3 class="item-name">Risotto de hongos</h3>
+        <span class="item-price">$9.100</span>
+        <p class="item-desc" data-lang="es">Mix de temporadas · trufa negra · parmesano 24 meses</p>
+        <p class="item-desc" data-lang="en">Seasonal mushroom mix · black truffle · 24-month parmesan</p>
+        <div class="item-tags"><span class="tag veg">V</span></div>
+      </article>
+    </div>
+  </section>
+
+  <section class="section" id="postres">
+    <div class="section-head">
+      <h2 data-lang="es">Postres</h2>
+      <h2 data-lang="en">Desserts</h2>
+      <p data-lang="es">Final dulce</p>
+      <p data-lang="en">Sweet finale</p>
+    </div>
+    <div class="items">
+      <article class="item">
+        <h3 class="item-name">Flan de leche quemada</h3>
+        <span class="item-price">$5.400</span>
+        <p class="item-desc" data-lang="es">Dulce de leche artesanal · sal negra · crumble de almendras</p>
+        <p class="item-desc" data-lang="en">Artisan dulce de leche · black salt · almond crumble</p>
+      </article>
+      <article class="item">
+        <h3 class="item-name">Chocolate 70% Patagonia</h3>
+        <span class="item-price">$6.200</span>
+        <p class="item-desc" data-lang="es">Mousse · frutos rojos · helado de malbec</p>
+        <p class="item-desc" data-lang="en">Mousse · berries · Malbec ice cream</p>
+        <div class="item-tags"><span class="tag chef">Chef</span></div>
+      </article>
+      <article class="item">
+        <h3 class="item-name">Sorbete de limón</h3>
+        <span class="item-price">$4.100</span>
+        <p class="item-desc" data-lang="es">Merengue italiano · aceite de oliva · menta fresca</p>
+        <p class="item-desc" data-lang="en">Italian meringue · olive oil · fresh mint</p>
+        <div class="item-tags"><span class="tag veg">V</span></div>
+      </article>
+    </div>
+  </section>
+
+  <section class="section" id="bebidas">
+    <div class="section-head">
+      <h2 data-lang="es">Bebidas</h2>
+      <h2 data-lang="en">Beverages</h2>
+      <p data-lang="es">Cócteles · vinos · sin alcohol</p>
+      <p data-lang="en">Cocktails · wines · zero-proof</p>
+    </div>
+    <div class="items">
+      <article class="item">
+        <h3 class="item-name">Negroni de humo</h3>
+        <span class="item-price">$4.800</span>
+        <p class="item-desc" data-lang="es">Gin infusionado · vermut rosso · bitter de naranja ahumada</p>
+        <p class="item-desc" data-lang="en">Infused gin · rosso vermouth · smoked orange bitter</p>
+      </article>
+      <article class="item">
+        <h3 class="item-name">Malbec reserva · copa</h3>
+        <span class="item-price">$3.600</span>
+        <p class="item-desc" data-lang="es">Bodega familiar · Luján de Cuyo · cosecha 2021</p>
+        <p class="item-desc" data-lang="en">Family winery · Luján de Cuyo · 2021 vintage</p>
+      </article>
+      <article class="item">
+        <h3 class="item-name">Agua con gas · geranio</h3>
+        <span class="item-price">$1.800</span>
+        <p class="item-desc" data-lang="es">Infusión de geranio de la huerta · hielo clarificado</p>
+        <p class="item-desc" data-lang="en">Garden geranium infusion · clarified ice</p>
+        <div class="item-tags"><span class="tag veg">0%</span></div>
+      </article>
+    </div>
+  </section>
+
+  <div class="tasting">
+    <h3 data-lang="es">Menú degustación Alma</h3>
+    <h3 data-lang="en">Alma tasting menu</h3>
+    <p data-lang="es">Siete tiempos guiados por la cocina. Maridaje opcional con vinos argentinos de autor.</p>
+    <p data-lang="en">Seven courses guided by the kitchen. Optional pairing with Argentine author wines.</p>
+    <div class="tasting-steps">
+      <span data-lang="es">Amuse</span><span data-lang="en">Amuse</span>
+      <span data-lang="es">Entrada</span><span data-lang="en">Starter</span>
+      <span data-lang="es">Pescado</span><span data-lang="en">Fish</span>
+      <span data-lang="es">Carne</span><span data-lang="en">Meat</span>
+      <span data-lang="es">Vegetal</span><span data-lang="en">Vegetal</span>
+      <span data-lang="es">Queso</span><span data-lang="en">Cheese</span>
+      <span data-lang="es">Postre</span><span data-lang="en">Dessert</span>
+    </div>
+    <div class="feature-price" style="font-size:1.8rem">$42.000 <small data-lang="es">por persona · maridaje +$18.000</small><small data-lang="en">per person · pairing +$18,000</small></div>
+  </div>
+
+</main>
+
+<footer>
+  <div class="brand-footer">Alma de Fuego</div>
+  <p>Gorriti 4720 · Palermo · Buenos Aires</p>
+  <p data-lang="es">Reservas · <a href="tel:+541143215678">+54 11 4321-5678</a> · Mié–Dom 20:00–01:00</p>
+  <p data-lang="en">Reservations · <a href="tel:+541143215678">+54 11 4321-5678</a> · Wed–Sun 8pm–1am</p>
+  <p style="margin-top:1.5rem;opacity:0.4;font-size:0.65rem">Demo menu · CatTS static</p>
+</footer>
+
+<script>
+(function () {
+  const html = document.documentElement;
+  const topbar = document.getElementById('topbar');
+  const pills = document.querySelectorAll('.cat-pill');
+  const sections = document.querySelectorAll('.section');
+  let lastY = 0;
+
+  // lang toggle
+  document.getElementById('langBtn').addEventListener('click', function () {
+    const en = html.classList.toggle('lang-en');
+    this.textContent = en ? 'ES' : 'EN';
+    this.setAttribute('aria-label', en ? 'Switch to Spanish' : 'Cambiar a inglés');
+  });
+
+  // scroll spy + hide topbar on scroll down
+  window.addEventListener('scroll', function () {
+    const y = window.scrollY;
+    topbar.classList.toggle('hide', y > lastY && y > 120);
+    lastY = y;
+
+    let current = '';
+    sections.forEach(function (s) {
+      const top = s.getBoundingClientRect().top;
+      if (top < 160) current = s.id;
+    });
+    pills.forEach(function (p) {
+      p.classList.toggle('active', p.dataset.target === current);
+    });
+  }, { passive: true });
+
+  // pill click
+  pills.forEach(function (p) {
+    p.addEventListener('click', function () {
+      const el = document.getElementById(this.dataset.target);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+
+  // reveal on scroll
+  const io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) {
+      if (e.isIntersecting) e.target.classList.add('visible');
+    });
+  }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
+  sections.forEach(function (s) { io.observe(s); });
+
+  // update EN pill labels when lang toggled
+  const enLabels = { entradas: 'Starters', brasas: 'From fire', mar: 'Sea', vegetal: 'Vegetal', postres: 'Desserts', bebidas: 'Drinks' };
+  const esLabels = { entradas: 'Entradas', brasas: 'Brasas', mar: 'Del mar', vegetal: 'Vegetal', postres: 'Postres', bebidas: 'Bebidas' };
+  document.getElementById('langBtn').addEventListener('click', function () {
+    const en = html.classList.contains('lang-en');
+    pills.forEach(function (p) {
+      p.textContent = (en ? enLabels : esLabels)[p.dataset.target] || p.textContent;
+    });
+  });
+})();
+</script>
+</body>
+</html>
