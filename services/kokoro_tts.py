@@ -4,7 +4,7 @@ from pathlib import Path
 
 import httpx
 
-from config import KOKORO_URL, KOKORO_VOICE
+from config import KOKORO_URL, KOKORO_VOICE, TTS_SPEED
 
 
 def configured() -> bool:
@@ -36,7 +36,7 @@ async def synthesize(text: str, output_path: Path, lang: str = "en") -> Path:
         "input": text,
         "voice": KOKORO_VOICE,
         "response_format": "wav",
-        "speed": 1.0,
+        "speed": TTS_SPEED,
     }
     async with httpx.AsyncClient(timeout=120.0) as client:
         response = await client.post(f"{KOKORO_URL}/v1/audio/speech", json=payload)
@@ -52,7 +52,7 @@ async def live_tts(text: str, lang: str = "en") -> tuple[bytes, str]:
         "input": text,
         "voice": KOKORO_VOICE,
         "response_format": "wav",
-        "speed": 1.0,
+        "speed": TTS_SPEED,
     }
     async with httpx.AsyncClient(timeout=60.0) as client:
         response = await client.post(f"{KOKORO_URL}/v1/audio/speech", json=payload)

@@ -56,7 +56,10 @@ install-amd.bat
 CATTS_TTS_ENGINE=fish
 CATTS_FISH_URL=http://127.0.0.1:8080
 CATTS_FISH_ROOT=E:\path\to\fish-speech-zluda
+CATTS_TTS_SPEED=0.9
 ```
+
+`CATTS_TTS_SPEED=0.9` ≈ 10% slower (ffmpeg `atempo` after Fish synth; Kokoro uses native `speed`).
 
 ### 4 — start API (not just WebUI)
 ```powershell

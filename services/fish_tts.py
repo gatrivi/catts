@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import base64
 import logging
+import tempfile
 from pathlib import Path
 
 import httpx
 
-from config import FISH_URL
+from config import FISH_URL, TTS_SPEED
+from services.ffmpeg_util import change_tempo
 
 logger = logging.getLogger(__name__)
 
@@ -59,6 +61,26 @@ def _payload(text: str, ref_audio: Path | None = None, ref_text: str = "") -> di
     }
 
 
+def _apply_speed(wav_bytes: bytes, output_path: Path | None = None) -> bytes:
+    """Fish 1.5 API has no speed field — stretch with ffmpeg atempo when needed."""
+    if abs(TTS_SPEED - 1.0) < 1e-3:
+        if output_path is not None:
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            output_path.write_bytes(wav_bytes)
+        return wav_bytes
+
+    with tempfile.TemporaryDirectory(prefix="catts_fish_speed_") as td:
+        raw = Path(td) / "raw.wav"
+        out = Path(td) / "slow.wav"
+        raw.write_bytes(wav_bytes)
+        change_tempo(raw, out, TTS_SPEED)
+        data = out.read_bytes()
+    if output_path is not None:
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_bytes(data)
+    return data
+
+
 async def synthesize(
     text: str,
     output_path: Path,
@@ -77,8 +99,7 @@ async def synthesize(
         )
         response.raise_for_status()
 
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_bytes(response.content)
+    _apply_speed(response.content, output_path)
     return output_path
 
 
@@ -98,4 +119,4 @@ async def live_tts(
             headers={"Content-Type": "application/json"},
         )
         response.raise_for_status()
-    return response.content, "fish"
+    return _apply_speed(response.content), "fish"

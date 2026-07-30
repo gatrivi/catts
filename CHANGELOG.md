@@ -6,6 +6,7 @@
 - Client: `services/fish_tts.py` → local `POST /v1/tts`
 - Scripts: `setup_fish_zluda.ps1`, `start_fish_api.ps1`
 - Docs: `docs/FISH_ZLUDA_RX6600.md`, updated `TTS_MODEL_DECISION.md`
+- `CATTS_TTS_SPEED` (default `0.9` ≈ 10% slower): Fish via ffmpeg atempo, Kokoro via API `speed`
 
 ## v0.7 — 2026-07-03
 

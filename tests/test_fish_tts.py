@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import base64
+import struct
+import wave
 from pathlib import Path
 
+from services.ffmpeg_util import change_tempo
 from services.fish_tts import _payload, configured, status_message
 
 
@@ -32,3 +35,16 @@ def test_status_and_configured(monkeypatch):
     assert configured() is True
     assert "8080" in status_message(True)
     assert "start_fish_api" in status_message(False)
+
+
+def test_change_tempo_noop(tmp_path: Path):
+    src = tmp_path / "a.wav"
+    dst = tmp_path / "b.wav"
+    with wave.open(str(src), "w") as wf:
+        wf.setnchannels(1)
+        wf.setsampwidth(2)
+        wf.setframerate(22050)
+        wf.writeframes(struct.pack("<h", 1000) * 2205)
+    out = change_tempo(src, dst, 1.0)
+    assert out == dst
+    assert dst.read_bytes() == src.read_bytes()
