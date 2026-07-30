@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.7.3 — 2026-07-30
+
+- **Fish Speech + ZLUDA** engine (`CATTS_TTS_ENGINE=fish`) for AMD GPUs (RX 6600)
+- Client: `services/fish_tts.py` → local `POST /v1/tts`
+- Scripts: `setup_fish_zluda.ps1`, `start_fish_api.ps1`
+- Docs: `docs/FISH_ZLUDA_RX6600.md`, updated `TTS_MODEL_DECISION.md`
+
 ## v0.7 — 2026-07-03
 
 ### UX
