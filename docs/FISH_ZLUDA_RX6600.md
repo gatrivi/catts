@@ -23,6 +23,7 @@ CATTS talks to its HTTP API (`POST /v1/tts`). Engine id: `fish`.
 CATTS client + health wiring + scripts (`setup_fish_zluda.ps1`, `start_fish_api.ps1`).
 
 ### 1 — HIP / ZLUDA host prep (you, on Windows)
+0. **Disk:** keep ~**15 GB free** on the drive that holds `fish-speech-zluda` (torch CUDA wheel ~2.7 GB + `fish-speech-1.5` weights + venv/ZLUDA; peak during install can be higher).
 1. Install **Python 3.10.11 or 3.11** from python.org (not Store). Add to PATH.
 2. Install [VC++ redistributable](https://aka.ms/vs/17/release/vc_redist.x64.exe).
 3. Install **HIP SDK 5.7.1** (Windows).
