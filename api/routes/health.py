@@ -6,11 +6,10 @@ from fastapi.responses import Response
 
 from api.deps import require_api_key
 from api.schemas import HealthResponse, LiveTTSRequest
-from config import OCR_ENGINE, WORKER_URL
+from config import OCR_BATCH, OCR_ENGINE, OCR_FAST, WORKER_URL
 from db import get_voice, voice_dir
-from services import kokoro_tts, stt_client, translate_client
+from services import fish_tts, kokoro_tts, melotts_tts, pocket_tts, stt_client, translate_client
 from services.ocr_client import check_worker_health
-from services import pocket_tts
 from services.tts_client import engine_label, live_tts
 from services.voice_default import resolve_default_voice_id
 from services.voice_ref import prepare_xtts_reference
@@ -34,16 +33,30 @@ async def health():
         tts_message = pocket_tts.status_message()
     elif tts_engine == "edge":
         tts_ready = True
+    elif tts_engine == "fish":
+        tts_ready = await fish_tts.ready()
+        tts_message = fish_tts.status_message(tts_ready)
     elif tts_engine == "gptsovits":
         tts_ready = bool(WORKER_URL)
     elif tts_engine == "kokoro":
         tts_ready = await kokoro_tts.ready()
         tts_message = kokoro_tts.status_message(tts_ready)
+    elif tts_engine == "melotts":
+        status = melotts_tts.worker_status()
+        tts_ready = bool(status.get("ready"))
+        tts_message = status.get("message") or "MeloTTS status unavailable"
+    elif tts_engine == "chatterbox":
+        from services import chatterbox_tts
+
+        tts_ready = chatterbox_tts.available()
+        tts_message = "Chatterbox installed (CPU)" if tts_ready else "pip install chatterbox-tts"
     return HealthResponse(
         status="ok",
         worker_reachable=worker_ok,
         worker_url=WORKER_URL or "(not set)",
         ocr_engine=OCR_ENGINE,
+        ocr_fast=OCR_FAST,
+        ocr_batch=OCR_BATCH,
         tts_engine=tts_engine,
         tts_ready=tts_ready,
         tts_message=tts_message,
@@ -56,29 +69,41 @@ async def health():
     )
 
 
-def _resolve_ref_audio(voice_id: str) -> Path | None:
+def _resolve_ref_audio(voice_id: str, engine: str | None = None) -> Path | None:
+    """Chatterbox gets full PCM wav; XTTS gets energy-picked clips."""
+    from services.voice_ref import prepare_playable_wav
+
     voice = get_voice(voice_id)
     if not voice:
         return None
+    candidates: list[Path] = []
     if voice.get("artifact_path"):
         ref = Path(voice["artifact_path"])
         if ref.is_file():
-            return prepare_xtts_reference(ref)
-        nested = ref / "reference.wav"
-        if nested.is_file():
-            return prepare_xtts_reference(nested)
+            candidates.append(ref)
+        elif ref.is_dir():
+            nested = ref / "reference.wav"
+            if nested.is_file():
+                candidates.append(nested)
     vdir = voice_dir(voice_id)
-    for name in ("reference.wav", "sample.wav"):
+    for name in ("chatterbox_ref.wav", "reference.wav", "sample.wav", "reference_pcm.wav"):
         p = vdir / name
         if p.is_file():
-            return prepare_xtts_reference(p)
-    return None
+            candidates.append(p)
+    if not candidates:
+        return None
+    preferred = next((c for c in candidates if c.name == "chatterbox_ref.wav"), None)
+    src = preferred or max(candidates, key=lambda p: p.stat().st_size)
+    wav = prepare_playable_wav(src, src.parent / f"{src.stem}_pcm.wav")
+    if (engine or "") == "xtts":
+        return prepare_xtts_reference(wav)
+    return wav
 
 
 @router.post("/tts/live")
 async def tts_live(req: LiveTTSRequest, _: None = Depends(require_api_key)):
     tts_engine = engine_label()
-    max_words = 80 if tts_engine == "kokoro" else 12
+    max_words = 80 if tts_engine in {"kokoro", "melotts", "chatterbox", "edge", "fish", "pocket"} else 12
     words = req.text.split()
     if len(words) > max_words:
         raise HTTPException(400, f"Live TTS limited to {max_words} words")
@@ -87,7 +112,10 @@ async def tts_live(req: LiveTTSRequest, _: None = Depends(require_api_key)):
     if tts_engine in {"xtts", "pocket", "chatterbox"}:
         if not voice_id:
             raise HTTPException(400, "No voice — save a voice sample first")
-        ref_audio = _resolve_ref_audio(voice_id)
+        try:
+            ref_audio = _resolve_ref_audio(voice_id, engine=tts_engine)
+        except Exception as exc:
+            raise HTTPException(400, f"Bad reference audio: {exc}") from exc
         if not ref_audio:
             raise HTTPException(
                 400,
@@ -97,6 +125,14 @@ async def tts_live(req: LiveTTSRequest, _: None = Depends(require_api_key)):
             xtts = worker_status()
             if not xtts.get("ready", False):
                 raise HTTPException(503, xtts.get("message") or "XTTS is not ready")
+        if tts_engine == "chatterbox":
+            from services import chatterbox_tts
+
+            if not chatterbox_tts.available():
+                raise HTTPException(503, "chatterbox-tts not installed")
+        if tts_engine == "pocket":
+            if not pocket_tts.available():
+                raise HTTPException(503, "pocket-tts not installed")
     elif tts_engine == "kokoro":
         from services import kokoro_tts
 
@@ -104,11 +140,18 @@ async def tts_live(req: LiveTTSRequest, _: None = Depends(require_api_key)):
             raise HTTPException(503, "Kokoro not configured — set CATTS_KOKORO_URL")
         if not await kokoro_tts.ready():
             raise HTTPException(503, kokoro_tts.status_message(False))
+    elif tts_engine == "melotts":
+        if req.lang != "es":
+            raise HTTPException(400, "MeloTTS supports Spanish only")
+        if not melotts_tts.available():
+            raise HTTPException(503, "MeloTTS is not installed")
     t0 = time.perf_counter()
     try:
         audio, engine_used = await live_tts(req.text, voice_id or "", req.lang, ref_audio=ref_audio)
     except RuntimeError as exc:
         raise HTTPException(503, str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(500, f"TTS failed: {exc}") from exc
     elapsed_ms = int((time.perf_counter() - t0) * 1000)
     return Response(
         content=audio,

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import importlib
 import json
 import os
 import sqlite3
@@ -50,6 +51,15 @@ def has_module(name: str) -> bool:
 
 def module_report(names: list[str]) -> dict[str, bool]:
     return {name: has_module(name) for name in names}
+
+
+def import_status(name: str) -> dict[str, str]:
+    """Find-spec alone misses binary/dependency incompatibilities."""
+    try:
+        importlib.import_module(name)
+        return {"status": "PASS", "module": name, "error": ""}
+    except Exception as exc:
+        return {"status": "FAIL", "module": name, "error": str(exc)}
 
 
 def status(values: dict[str, bool]) -> str:
@@ -151,6 +161,7 @@ def main() -> int:
         "api_modules": {"status": status(api), "modules": api},
         "book_modules": {"status": status(books), "modules": books},
         "voice_modules": {"status": status(voice), "modules": voice},
+        "fastkokoro_import": import_status("fastkokoro.openai"),
         "stt_translate_modules": {"status": status(stt_translate), "modules": stt_translate},
         "ffmpeg": _ffmpeg_status(),
         "ocr": {
@@ -172,6 +183,7 @@ def main() -> int:
             report["api_modules"],
             report["book_modules"],
             report["voice_modules"],
+            report["fastkokoro_import"],
             report["stt_translate_modules"],
         ]
     )

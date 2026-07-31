@@ -19,7 +19,7 @@ Local **audiobook + voice** tool for CPU/AMD (no NVIDIA required).
 
 ### 4) Tools (STT + Translate)
 - `POST /stt/transcribe` (Whisper local)
-- `POST /stt/translate` (Argos offline EN↔ES)
+- `POST /stt/translate` (Argos offline EN↔ES; opcional Madlad400 para mejor calidad)
 
 ## Autenticación (API key)
 
@@ -32,6 +32,9 @@ CATTS_API_KEY=
 CATTS_API_PORT=59200
 CATTS_WORKER_URL=
 CATTS_OCR_ENGINE=none
+CATTS_OCR_FAST=tesseract
+CATTS_OCR_BATCH=omniroute
+CATTS_OMNIROUTE_URL=http://127.0.0.1:20128/v1
 CATTS_TTS_ENGINE=xtts
 CATTS_KOKORO_URL=http://127.0.0.1:8880
 CATTS_KOKORO_VOICE=af_bella
@@ -46,6 +49,14 @@ Para probar TTS local sin clonación ni gate de XTTS, arrancá Kokoro-FastAPI y 
 
 ```powershell
 cd e:\zengatrivi-drive-e\catts
+npm start
+# or: .\scripts\start_api.ps1
+```
+
+Health: `npm run health` → `http://127.0.0.1:59200/health`
+
+Equiv. manual:
+```powershell
 .\.venv\Scripts\python.exe -m uvicorn api.main:app --host 0.0.0.0 --port 59200
 ```
 
@@ -53,6 +64,7 @@ Abrí:
 - `http://127.0.0.1:59200/`
 
 La UI es `static/index.html`.
+ES HQ default: `.env` → `CATTS_TTS_ENGINE=edge` (`es-AR-TomasNeural`).
 
 ## Endpoints (backend)
 
@@ -69,8 +81,9 @@ La UI es `static/index.html`.
 - `POST /tts/live` (live interpreting)
 - `POST /stt/transcribe`
 - `POST /stt/translate`
-- `POST /ocr/image` (requiere `CATTS_WORKER_URL`)
-- `POST /ocr/pdf` (requiere `CATTS_WORKER_URL`)
+- `POST /ocr/fast` (Tesseract — page now → `data/ocr/*-fast.md`)
+- `POST /ocr/batch` (PDF or N images + optional `titles`; quality path)
+- `POST /ocr/image` / `POST /ocr/pdf` (legacy aliases → batch / Unlimited worker)
 
 ## Motores (qué usa)
 
@@ -78,13 +91,14 @@ Resumen (según `services/*`):
 - **TTS rápido local**: Kokoro-FastAPI (`CATTS_TTS_ENGINE=kokoro`, sin clonación)
 - **Voice clone TTS**: XTTS v2 (vía worker persistente, requiere aceptar términos Coqui)
 - **STT + script match**: faster-whisper (`small` por defecto)
-- **Translate EN↔ES**: Argos offline (subproceso en `.venv`)
+- **Translate EN↔ES**: Argos offline (default) o Madlad400 offline (mejor calidad)
+  Para Madlad: descargalo una vez con `python scripts/setup_madlad_model.py` (se guarda en `data/madlad_runtime/model`) y dejá `CATTS_TRANSLATE_ENGINE=auto` o `madlad`.
 - **Lectura de libros**: extracción + partición en capítulos en CPU
 
-OCR (PDF escaneados):
-- Si `CATTS_OCR_ENGINE=unlimited` y hay `CATTS_WORKER_URL`, se delega a `WORKER_URL/ocr/pdf`.
-- Si el worker devuelve `404`, cae a un fallback local basado en `pymupdf` (si está disponible).
-
+OCR:
+- **Fast:** `CATTS_OCR_FAST=tesseract` (binario Tesseract en PATH).
+- **Batch:** `CATTS_OCR_BATCH=omniroute` (default) | `unlimited` | `tesseract`. Audiobook jobs OCR page 1 first, then buffer.
+- Legacy: `CATTS_OCR_ENGINE=unlimited` + `CATTS_WORKER_URL` still works.
 ## Límites / “cómo se rompe”
 
 - Live TTS requiere referencia de audio de la voz (por ejemplo `reference.wav` o `sample.wav` en `data/voices/<id>/`).

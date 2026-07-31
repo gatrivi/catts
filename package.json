@@ -1,0 +1,13 @@
+{
+  "name": "catts",
+  "private": true,
+  "description": "CATTS local API + TTS",
+  "scripts": {
+    "start": "node scripts/npm-start.cjs",
+    "start:api": "node scripts/npm-start.cjs",
+    "stop": "node scripts/npm-stop.cjs",
+    "stop:heavy": "node scripts/npm-stop.cjs --heavy",
+    "health": "node scripts/npm-health.cjs",
+    "watch:slack": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/watch_api_slack.ps1"
+  }
+}

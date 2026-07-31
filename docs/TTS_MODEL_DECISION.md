@@ -1,33 +1,33 @@
 # TTS model decision
 
-Date: 2026-07-07
+Date: 2026-07-07 · Updated: 2026-07-08
 
-## Decision
+## User preference (binding)
+See [VOICE_CLONE_PREFERENCE.md](VOICE_CLONE_PREFERENCE.md).
 
-Use Kokoro-FastAPI first as the no-auth local TTS sanity check. Keep XTTS disabled unless its Coqui CPML/commercial terms are explicitly accepted. Evaluate `patientx/fish-speech-zluda` second for AMD/ZLUDA voice cloning.
+**Train-once quality > zero-shot speed.** Days of training OK. Audiobooks + interpreter (train day X, use day Y).
 
-For live interpreting “ttw”, we will keep CATTS’ `/tts/live` endpoint stable and, when we implement live cloning for it, use `patientx/fish-speech-zluda` as the next voice-cloning engine.
+## Current decision (revised)
 
-## Candidates
-
-| Engine | Role | Fit |
+| Priority | Engine | Role |
 |---|---|---|
-| Kokoro-FastAPI | Fast local TTS API | Best first test. OpenAI-compatible `/v1/audio/speech`, no voice cloning, simple latency check. |
-| fish-speech-zluda | AMD/ZLUDA voice cloning | Best next clone candidate, but heavier setup and needs separate validation. |
-| XTTS v2 | Existing clone path | Installed but blocked by explicit Coqui terms; not the low-friction default. |
-| Edge TTS | Fallback | Works as generic cloud TTS, but violates the “less external dependency” goal. |
+| 1 | **GPT-SoVITS-class** (few-shot train) | Target for real voice clone (EN/ES, Córdoba) — MIT, quality-first |
+| 2 | Chatterbox (MIT) | Commercial-friendly fallback if SoVITS won’t run on AMD Win |
+| 3 | Fish-speech-zluda | Only if HIP 5.7.1 works; check NC license before selling |
+| — | Kokoro | Non-clone narration / sanity TTS |
+| — | XTTS | **Deprioritize** — CPML non-commercial + poor accent/quality here |
 
-## CATTS settings
+Do **not** burn tokens on more XTTS zero-shot tuning.
+
+## CATTS settings (interim)
 
 ```powershell
-CATTS_TTS_ENGINE=kokoro
+CATTS_TTS_ENGINE=kokoro   # or xtts only for private experiments
 CATTS_KOKORO_URL=http://127.0.0.1:8880
-CATTS_KOKORO_VOICE=af_bella
 ```
 
-Start Kokoro-FastAPI separately, then restart CATTS. `/health` should show `tts_engine=kokoro` and `tts_ready=true`.
-
-Sources:
-
-- Kokoro-FastAPI: https://github.com/remsky/Kokoro-FastAPI
+## Sources
+- GPT-SoVITS: https://github.com/RVC-Boss/GPT-SoVITS
 - fish-speech-zluda: https://github.com/patientx/fish-speech-zluda
+- Chatterbox: https://github.com/resemble-ai/chatterbox
+- HIP 5.7.1 hub: https://www.amd.com/en/developer/resources/rocm-hub/hip-sdk.html

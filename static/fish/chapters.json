@@ -1,0 +1,30 @@
+{
+  "work": "our-fathers-fish",
+  "engine": "fish",
+  "chapters": [
+    {
+      "chapter": 1,
+      "id": "of_es",
+      "title": "Padre Nuestro",
+      "lang": "es",
+      "engine": "fish",
+      "file": "/static/fish/of_es.wav",
+      "words": 57,
+      "duration_s": 42.26,
+      "wall_s": 124.0,
+      "ref": "fish_ref_es_15s.wav"
+    },
+    {
+      "chapter": 2,
+      "id": "of_en",
+      "title": "Our Father",
+      "lang": "en",
+      "engine": "fish",
+      "file": "/static/fish/of_en.wav",
+      "words": 56,
+      "duration_s": 41.52,
+      "wall_s": 118.2,
+      "ref": "fish_ref_en_15s.wav"
+    }
+  ]
+}

@@ -13,7 +13,7 @@ from services.ingest import extract_text
 from services.job_cleanup import cleanup_job_artifacts
 from services.voice_labels import label_job_chapters
 from services.job_manifest import write_job_readme
-from services.ocr_client import ocr_pdf_via_worker_endpoint
+from services.ocr_client import batch_configured, ocr_batch_pdf
 from services.tts_client import engine_label, synthesize
 from services.voice_trainer import run_voice_training
 from text_processor import chapters_to_markdown, chapters_to_plain, process_book
@@ -129,17 +129,38 @@ async def _run_audiobook(job_id: str) -> None:
             text = extract_text(pdf_path)
             (jdir / "extracted.txt").write_text(text, encoding="utf-8")
         except ValueError as exc:
-            if OCR_ENGINE == "unlimited":
-                update_job(job_id, stage="ocr", progress=5, message="No text layer — running OCR")
+            if not (batch_configured() or OCR_ENGINE == "unlimited"):
+                raise RuntimeError(
+                    f"{exc} Set CATTS_OCR_BATCH=tesseract|omniroute|unlimited for scanned PDFs."
+                ) from exc
+            update_job(job_id, stage="ocr", progress=5, message="No text layer — OCR page 1 first")
+            ocr_buf = jdir / "ocr_buffer.txt"
+            manuscript_partial = jdir / "manuscript_partial.md"
+            page1_ready = {"done": False}
 
-                def ocr_progress(done: int, total: int, msg: str) -> None:
-                    pct = 5 + (done / max(total, 1)) * 40
-                    update_job(job_id, stage="ocr", progress=pct, message=msg)
+            def ocr_progress(done: int, total: int, msg: str) -> None:
+                pct = 5 + (done / max(total, 1)) * 40
+                update_job(job_id, stage="ocr", progress=pct, message=msg)
 
-                text = await ocr_pdf_via_worker_endpoint(pdf_path, on_progress=ocr_progress)
-                (jdir / "ocr_output.txt").write_text(text, encoding="utf-8")
-            else:
-                raise RuntimeError(str(exc)) from exc
+            def on_page(done: int, total: int, cumulative: str) -> None:
+                ocr_buf.write_text(cumulative, encoding="utf-8")
+                if done == 1 and not page1_ready["done"]:
+                    page1_ready["done"] = True
+                    manuscript_partial.write_text(cumulative, encoding="utf-8")
+                    _set_meta(job_id, manuscript_ready=True, ocr_pages_done=1, ocr_pages_total=total)
+                    update_job(
+                        job_id,
+                        stage="ocr",
+                        progress=5 + (1 / max(total, 1)) * 40,
+                        message=f"Page 1 ready — buffering OCR {1}/{total}",
+                    )
+                else:
+                    _set_meta(job_id, ocr_pages_done=done, ocr_pages_total=total)
+
+            text = await ocr_batch_pdf(pdf_path, on_progress=ocr_progress, on_page=on_page)
+            (jdir / "ocr_output.txt").write_text(text, encoding="utf-8")
+            if not ocr_buf.exists():
+                ocr_buf.write_text(text, encoding="utf-8")
     else:
         raise RuntimeError("No input file found for job")
 
