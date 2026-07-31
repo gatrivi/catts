@@ -227,7 +227,7 @@ async def live_tts(text: str, voice_id: str, lang: str = "en", ref_audio: Path |
             return r.content, "gptsovits"
 
     if eng == "fish" and fish_tts.configured():
-        return await fish_tts.live_tts(text, voice_id, lang, ref_audio=ref_audio)
+        return await fish_tts.live_tts(text, ref_audio=ref_audio, lang=lang, voice_id=voice_id or None)
 
     if eng == "kokoro" and kokoro_tts.configured():
         return await kokoro_tts.live_tts(text, lang)

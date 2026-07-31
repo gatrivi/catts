@@ -37,7 +37,7 @@ Pocket resume: `scripts/bake_book_pocket_resume.py`. **VV book queue stays STOPP
 | FastKokoro | Ready `:8880` | EN+ES `ef_dora`. Sample: `/tts/samples/kokoro-es.wav`. Kill when idle. |
 | Piper es_MX | Disabled | Legacy only. |
 | XTTS | Discarded | CPML + poor quality here. |
-| Fish/ZLUDA | **Working** | Root `../fish-speech-zluda`. gfx1032 in HIP Program Files. Cold+warmup ~9 min; warm OF ~2 min. Our Fathers: `/static/fish/`. Cassian ch2 bake: `scripts/bake_cassian_fish_chapter.py --id 02` → download `/static/c2.html` (`static/cassian2/chapter2.mp3`). See `FISH_SPEECH_ZLUDA_STATUS.md`. |
+| Fish/ZLUDA | **Working + voice-locked** | Root `../fish-speech-zluda`. gfx1032 in HIP Program Files. Cold+warmup ~9 min; warm OF ~2 min. **Must lock one ref wav** or chunks randomize speakers — see `docs/FISH_VOICE_LOCK.md`. Our Fathers: `/static/fish/`. |
 | Chatterbox | Installed, **OOM** @16GB | Best clone quality; needs ~8 GB free (kill STT/Cursor). Voice `0b0ad49fcac94af4`. |
 | GPT-SoVITS | Next | Train-once; needs worker/NVIDIA. |
 | OmniVoice | Missing | — |

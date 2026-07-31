@@ -196,9 +196,15 @@ async def _render_audiobook_audio(
     chapters: list,
     meta: dict,
 ) -> None:
-    voice_id = job.get("voice_id")
+    from db import voice_dir as voice_dir_fn
+    from services.tts_runtime import get_engine
+    from services.voice_default import resolve_default_voice_id
+
+    eng = get_engine()
+    voice_id = job.get("voice_id") or resolve_default_voice_id()
     lang = job.get("lang") or (chapters[0].get("language") if chapters else None) or meta.get("lang") or "en"
     ref_audio = None
+
     if voice_id:
         voice = get_voice(voice_id)
         if voice and voice.get("artifact_path"):
@@ -207,6 +213,23 @@ async def _render_audiobook_audio(
                 ref_audio = ref
             elif (ref / "reference.wav").exists():
                 ref_audio = ref / "reference.wav"
+        vd = voice_dir_fn(voice_id)
+        for name in (
+            "fish_ref_en_15s.wav",
+            "fish_ref_es_15s.wav",
+            "fish_ref_15s.wav",
+            "reference.wav",
+            "sample.wav",
+        ):
+            p = vd / name
+            if p.is_file():
+                ref_audio = p
+                break
+
+    if eng == "fish":
+        from services.fish_tts import resolve_fish_ref
+
+        ref_audio = resolve_fish_ref(lang=lang, voice_id=voice_id, ref_audio=ref_audio)
 
     audio_dir = jdir / "audio"
     audio_dir.mkdir(exist_ok=True)
@@ -240,13 +263,13 @@ async def _render_audiobook_audio(
     label_job_chapters(jdir, voice_id)
     cleanup_job_artifacts(jdir)
     write_job_readme(job_id)
-    eng = engine_label()
-    if voice_id and eng == "xtts":
+    label = engine_label()
+    if voice_id and label == "xtts":
         voice_note = " (your voice via XTTS)"
-    elif voice_id and eng == "edge":
+    elif voice_id and label == "edge":
         voice_note = " (voice sample saved — clone engine not installed, used Edge preview)"
     elif voice_id:
-        voice_note = f" (voice linked — {eng})"
+        voice_note = f" (voice linked — {label})"
     else:
         voice_note = ""
     update_job(

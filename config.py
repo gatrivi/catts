@@ -63,8 +63,9 @@ STT_MODEL = os.getenv("CATTS_STT_MODEL", "small")  # faster-whisper: tiny|base|s
 ACCEPT_COQUI_CPML = os.getenv("CATTS_ACCEPT_COQUI_CPML", "").lower() in ("1", "true", "yes")
 
 MAX_CONCURRENT_JOBS = int(os.getenv("CATTS_MAX_CONCURRENT_JOBS", "1"))
-TTS_CHUNK_MIN = int(os.getenv("CATTS_TTS_CHUNK_MIN", "200"))
-TTS_CHUNK_MAX = int(os.getenv("CATTS_TTS_CHUNK_MAX", "400"))
+# Fish: fewer/larger chunks = less per-chunk overhead on ZLUDA (default bumped).
+TTS_CHUNK_MIN = int(os.getenv("CATTS_TTS_CHUNK_MIN", "400"))
+TTS_CHUNK_MAX = int(os.getenv("CATTS_TTS_CHUNK_MAX", "800"))
 PDF_OCR_DPI = int(os.getenv("CATTS_PDF_OCR_DPI", "300"))
 KEEP_INTERMEDIATE_AUDIO = os.getenv("CATTS_KEEP_INTERMEDIATES", "false").lower() in ("1", "true", "yes")
 

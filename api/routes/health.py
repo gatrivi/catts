@@ -86,12 +86,31 @@ def _resolve_ref_audio(voice_id: str, engine: str | None = None) -> Path | None:
             if nested.is_file():
                 candidates.append(nested)
     vdir = voice_dir(voice_id)
-    for name in ("chatterbox_ref.wav", "reference.wav", "sample.wav", "reference_pcm.wav"):
+    for name in (
+        "fish_ref_en_15s.wav",
+        "fish_ref_es_15s.wav",
+        "fish_ref_15s.wav",
+        "fish_ref.wav",
+        "chatterbox_ref.wav",
+        "reference.wav",
+        "sample.wav",
+        "reference_pcm.wav",
+    ):
         p = vdir / name
         if p.is_file():
             candidates.append(p)
     if not candidates:
         return None
+    if (engine or "") == "fish":
+        preferred_names = {
+            "fish_ref_en_15s.wav",
+            "fish_ref_es_15s.wav",
+            "fish_ref_15s.wav",
+            "fish_ref.wav",
+        }
+        preferred = next((c for c in candidates if c.name in preferred_names), None)
+        src = preferred or max(candidates, key=lambda p: p.stat().st_size)
+        return prepare_playable_wav(src, src.parent / f"{src.stem}_pcm.wav")
     preferred = next((c for c in candidates if c.name == "chatterbox_ref.wav"), None)
     src = preferred or max(candidates, key=lambda p: p.stat().st_size)
     wav = prepare_playable_wav(src, src.parent / f"{src.stem}_pcm.wav")
@@ -109,13 +128,18 @@ async def tts_live(req: LiveTTSRequest, _: None = Depends(require_api_key)):
         raise HTTPException(400, f"Live TTS limited to {max_words} words")
     voice_id = req.voice_id or resolve_default_voice_id()
     ref_audio = None
-    if tts_engine in {"xtts", "pocket", "chatterbox"}:
+    if tts_engine in {"xtts", "pocket", "chatterbox", "fish"}:
         if not voice_id:
             raise HTTPException(400, "No voice — save a voice sample first")
         try:
             ref_audio = _resolve_ref_audio(voice_id, engine=tts_engine)
         except Exception as exc:
             raise HTTPException(400, f"Bad reference audio: {exc}") from exc
+        if not ref_audio and tts_engine == "fish":
+            try:
+                ref_audio = fish_tts.resolve_fish_ref(lang=req.lang, voice_id=voice_id)
+            except RuntimeError as exc:
+                raise HTTPException(400, str(exc)) from exc
         if not ref_audio:
             raise HTTPException(
                 400,
@@ -133,6 +157,11 @@ async def tts_live(req: LiveTTSRequest, _: None = Depends(require_api_key)):
         if tts_engine == "pocket":
             if not pocket_tts.available():
                 raise HTTPException(503, "pocket-tts not installed")
+        if tts_engine == "fish":
+            if not fish_tts.configured():
+                raise HTTPException(503, "Fish Speech not configured — set CATTS_FISH_URL")
+            if not await fish_tts.ready():
+                raise HTTPException(503, fish_tts.status_message(False))
     elif tts_engine == "kokoro":
         from services import kokoro_tts
 
