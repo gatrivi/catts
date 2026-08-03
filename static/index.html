@@ -1,545 +1,1084 @@
 ﻿<!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>CATTS</title>
   <style>
-    :root { --bg:#0f1115; --card:#1a1d24; --text:#e8eaed; --muted:#9aa0a6; --accent:#6ea8fe; --ok:#3dd68c; --warn:#f5a524; --err:#f87171; }
+    :root {
+      --bg: #0f1115;
+      --panel: #1a1d24;
+      --surface: #12151b;
+      --text: #e8eaed;
+      --muted: #9aa0a6;
+      --line: #2a2f3a;
+      --accent: #6ea8fe;
+      --ok: #3dd68c;
+      --warn: #f5a524;
+      --err: #f87171;
+      --busy: #f5a524;
+    }
+    color-scheme: dark;
     * { box-sizing: border-box; }
-    body { margin:0; font-family: system-ui, sans-serif; background:var(--bg); color:var(--text); background-image: radial-gradient(ellipse at top, #161a24 0%, var(--bg) 55%); min-height:100vh; }
-    body.player-open { padding-bottom: 11rem; }
-    header { padding:1rem 1.5rem; border-bottom:1px solid #2a2f3a; display:flex; justify-content:space-between; align-items:center; background:rgba(15,17,21,.92); backdrop-filter:blur(8px); position:sticky; top:0; z-index:50; }
-    h1 { margin:0; font-size:1.25rem; }
-    #activityBar { display:flex; flex-wrap:wrap; gap:.4rem .75rem; align-items:center; padding:.4rem 1.5rem; background:#12151b; border-bottom:1px solid #2a2f3a; font-size:.75rem; color:var(--muted); position:sticky; top:52px; z-index:49; }
-    #activityBar .pill { display:inline-flex; align-items:center; gap:.3rem; padding:.15rem .5rem; border-radius:99px; background:#1a1d24; border:1px solid #2a2f3a; }
-    #activityBar .pill.ok { border-color:#1a3d2e; color:var(--ok); }
-    #activityBar .pill.busy { border-color:#5a4520; color:var(--warn); }
-    #activityBar .pill.err { border-color:#5a2828; color:var(--err); }
-    main { max-width:960px; margin:0 auto; padding:1rem 1.25rem 2rem; display:grid; gap:.65rem; }
-    .flow { border:1px solid #2a3140; border-radius:12px; padding:.75rem; background:rgba(26,29,36,.55); display:grid; gap:.55rem; }
-    .flow-head { display:flex; align-items:center; gap:.6rem; padding:.15rem .25rem .35rem; }
-    .flow-num { width:1.5rem; height:1.5rem; border-radius:99px; background:var(--accent); color:#0b1020; font-weight:700; font-size:.8rem; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-    .flow-title { font-weight:700; font-size:1rem; }
-    .flow-sub { font-size:.78rem; color:var(--muted); }
-    .steps { display:flex; flex-wrap:wrap; gap:.35rem; margin:0 0 .25rem; }
-    .step { font-size:.72rem; color:var(--muted); padding:.15rem .45rem; border-radius:99px; background:#12151b; border:1px solid #2a2f3a; }
-    .step.on { color:var(--accent); border-color:#3a5080; }
-    .panel { background:var(--card); border:1px solid #2a2f3a; border-radius:10px; overflow:hidden; }
-    .panel-head { width:100%; display:flex; align-items:center; gap:.6rem; padding:.85rem 1rem; background:transparent; border:none; color:var(--text); cursor:pointer; text-align:left; margin:0; font:inherit; }
-    .panel-head:hover { background:#22262f; }
-    .panel-title { font-size:.95rem; font-weight:600; flex:1; }
-    .panel-hint { font-size:.75rem; color:var(--muted); font-weight:400; }
-    .panel-badge { font-size:.72rem; padding:.15rem .45rem; border-radius:99px; background:#2a3140; color:var(--muted); }
-    .panel-chevron { color:var(--muted); transition:transform .2s; font-size:.85rem; }
-    .panel.open .panel-chevron { transform:rotate(180deg); }
-    .panel-body { display:none; padding:0 1rem 1rem; border-top:1px solid #252a35; }
-    .panel.open .panel-body { display:block; }
-    .panel-body > :first-child { margin-top:.85rem; }
-    .subtle { font-size:.8rem; color:var(--muted); }
-    label { display:block; font-size:.8rem; color:var(--muted); margin:.55rem 0 .25rem; }
-    label.inline { display:inline-flex; align-items:center; gap:.35rem; margin:.25rem .75rem .25rem 0; width:auto; }
-    input:not([type=file]):not([type=checkbox]):not([type=radio]), select, button.action-btn { width:100%; padding:.55rem .7rem; border-radius:8px; border:1px solid #3a4150; background:#12151b; color:var(--text); }
-    button.action-btn { cursor:pointer; background:var(--accent); color:#0b1020; border:none; font-weight:600; margin-top:.65rem; }
-    button.action-btn.secondary { background:#2a3140; color:var(--text); border:1px solid #3a4150; }
-    button.action-btn.play { background:#3dd68c; color:#0b1020; }
-    .row { display:grid; grid-template-columns:1fr 1fr; gap:.75rem; }
-    @media (max-width:640px) { .row { grid-template-columns:1fr; } }
-    .file-picker { display:flex; flex-wrap:wrap; align-items:center; gap:.5rem; margin:.25rem 0 .5rem; }
-    .file-input-hidden { position:absolute; width:0; height:0; opacity:0; pointer-events:none; }
-    .file-btn { display:inline-flex; align-items:center; gap:.45rem; padding:.5rem .85rem; border-radius:8px; border:1px dashed #4a5568; background:#161a22; color:var(--text); cursor:pointer; font-size:.85rem; font-weight:500; margin:0; width:auto; transition:border-color .15s, background .15s; }
-    .file-btn:hover { border-color:var(--accent); background:#1c2230; color:var(--accent); }
-    .file-btn-icon { opacity:.85; }
-    .file-name { font-size:.8rem; color:var(--muted); max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-    .file-name.has-file { color:var(--ok); font-weight:500; }
-    .job-item { border:1px solid #2a2f3a; border-radius:8px; margin-bottom:.5rem; overflow:hidden; background:#14181f; }
-    .job-item.running { border-color:#5a4520; }
-    .job-item.failed { border-color:#5a2828; }
-    .job-head { width:100%; display:flex; align-items:center; gap:.5rem; padding:.6rem .75rem; background:transparent; border:none; color:var(--text); cursor:pointer; text-align:left; margin:0; font:inherit; }
-    .job-head:hover { background:#1c2129; }
-    .job-title { font-weight:600; font-size:.9rem; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-    .status-badge { font-size:.7rem; padding:.12rem .4rem; border-radius:4px; text-transform:uppercase; letter-spacing:.03em; flex-shrink:0; }
-    .status-badge.done { background:#1a3d2e; color:var(--ok); }
-    .status-badge.running, .status-badge.queued { background:#3d3018; color:var(--warn); }
-    .status-badge.failed { background:#3d1f1f; color:var(--err); }
-    .status-badge.ready { background:#1a3d2e; color:var(--ok); }
-    .status-badge.training { background:#3d3018; color:var(--warn); }
-    .job-chevron { color:var(--muted); transition:transform .2s; }
-    .job-item.open .job-chevron { transform:rotate(90deg); }
-    .job-top { display:flex; align-items:stretch; }
-    .job-top .job-head { flex:1; min-width:0; }
-    .job-quick-play { flex-shrink:0; width:auto; margin:0; padding:.55rem .7rem; border:none; border-left:1px solid #2a2f3a; border-radius:0; background:#1a3d2e; color:var(--ok); font-weight:700; cursor:pointer; font-size:.9rem; }
-    .job-quick-play:hover { background:#245a42; }
-    .job-body { display:none; padding:0 .75rem .75rem; }
-    .job-item.open .job-body { display:block; }
-    .job-item.running .job-body { display:block; }
-    .bar { height:6px; background:#2a2f3a; border-radius:99px; overflow:hidden; margin:.4rem 0; }
-    .bar>i { display:block; height:100%; background:var(--accent); width:0; transition:width .3s; }
-    .status { font-size:.8rem; }
-    .status.done { color:var(--ok); } .status.failed { color:var(--err); } .status.running { color:var(--warn); }
-    .path { font-size:.75rem; color:var(--muted); word-break:break-all; margin-top:.35rem; }
-    .actions { display:flex; flex-wrap:wrap; gap:.4rem; margin-top:.5rem; align-items:center; }
-    .actions button, .actions select, .actions .action-btn { width:auto; margin:0; padding:.35rem .6rem; font-size:.78rem; }
-    .actions select { width:auto; min-width:7rem; padding:.35rem .5rem; }
-    .player { margin-top:.5rem; }
-    .wave-player { margin-top:.5rem; padding:.6rem; background:#12151b; border:1px solid #3a4150; border-radius:8px; }
-    .wave-meta { display:flex; justify-content:space-between; align-items:center; gap:.5rem; margin-bottom:.35rem; font-size:.8rem; }
-    .wave-label { color:var(--muted); }
-    .wave-level { font-size:.75rem; }
-    .wave-level.ok { color:var(--ok); }
-    .wave-level.warn { color:var(--warn); }
-    .wave-silent { font-size:.8rem; color:var(--warn); margin-bottom:.35rem; }
-    .wave-main, .wave-lookahead { width:100%; display:block; border-radius:4px; background:#0a0c10; cursor:pointer; }
-    .wave-lookahead-wrap { margin-top:.45rem; }
-    .wave-lookahead-title { font-size:.72rem; color:var(--muted); margin:.25rem 0 .15rem; }
-    .wave-controls { display:flex; align-items:center; gap:.5rem; margin-top:.45rem; }
-    .wave-controls .wave-play { width:auto; margin:0; padding:.3rem .65rem; font-size:.85rem; }
-    .wave-seek { flex:1; margin:0; accent-color:var(--accent); }
-    .wave-time { font-size:.75rem; color:var(--muted); white-space:nowrap; min-width:5.5rem; text-align:right; }
-    .file-tag { font-size:.72rem; color:var(--muted); font-family:ui-monospace,monospace; word-break:break-all; }
-    .instructions { font-size:.85rem; color:var(--muted); line-height:1.45; margin-bottom:.75rem; }
-    .script-box { background:#12151b; border:1px solid #3a4150; border-radius:8px; padding:.75rem; max-height:180px; overflow:auto; font-size:.9rem; line-height:1.5; white-space:pre-wrap; margin:.5rem 0; }
-    .mic-row { display:flex; gap:.5rem; align-items:center; flex-wrap:wrap; margin:.5rem 0; }
-    .mic-btn { width:auto; min-width:140px; background:#e5534b; color:#fff; border:none; padding:.5rem .85rem; border-radius:8px; cursor:pointer; font-weight:600; margin:0; }
-    .mic-btn.recording { animation: pulse 1s infinite; }
-    @keyframes pulse { 50% { opacity:.65; } }
-    .rec-status { font-size:.85rem; color:var(--warn); }
-    #health { font-size:.85rem; color:var(--muted); cursor:help; }
-    #globalPlayerDock { position:fixed; bottom:0; left:0; right:0; z-index:100; background:#1a1d24; border-top:2px solid var(--accent); padding:.75rem 1rem 1rem; box-shadow:0 -4px 24px rgba(0,0,0,.45); max-height:42vh; overflow:auto; }
-    #globalPlayerDock[hidden] { display:none !important; }
-    #globalPlayerHost { max-width:960px; margin:0 auto; }
-    #globalPlayerHost .wave-main { height:80px; min-height:80px; }
-    #globalPlayerHost audio { display:none; }
-    .dock-close { max-width:960px; margin:0 auto .35rem; display:flex; justify-content:flex-end; }
-    .dock-close button { width:auto; margin:0; padding:.2rem .55rem; font-size:.8rem; background:#2a3140; color:var(--muted); border:1px solid #3a4150; border-radius:6px; cursor:pointer; }
-    .dock-close button:hover { color:var(--text); }
-    .ver { font-size:.7rem; color:var(--muted); margin-left:.5rem; }
-    .word-chip { display:inline-block; padding:.2rem .5rem; margin:.15rem .2rem 0 0; background:#2a3140; border-radius:4px; cursor:pointer; font-size:.85rem; }
-    .word-chip:hover { background:#3a4a60; }
-    .word-target { display:flex; gap:1rem; font-size:.85rem; color:var(--muted); margin:.35rem 0; }
-    #ttsBanner { background:#3d2a00; border:1px solid #7a5a10; color:#f5d08c; padding:.6rem .75rem; border-radius:8px; font-size:.85rem; display:none; align-items:flex-start; justify-content:space-between; gap:.75rem; }
-    .banner-dismiss { flex-shrink:0; width:auto; margin:0; padding:.15rem .45rem; background:transparent; border:1px solid #7a5a10; color:#f5d08c; border-radius:4px; cursor:pointer; font-size:.85rem; line-height:1; }
-    .banner-dismiss:hover { background:#4a3810; }
-    .toolbar-row { display:flex; flex-wrap:wrap; gap:.4rem; align-items:center; margin-bottom:.5rem; }
-    .toolbar-row .action-btn { width:auto; margin:0; padding:.35rem .65rem; font-size:.78rem; }
-    .job-help { font-size:.78rem; color:var(--muted); line-height:1.5; margin:.45rem 0; }
-    .action-group { margin-top:.55rem; }
-    .action-group-label { font-size:.7rem; color:var(--muted); margin-bottom:.2rem; }
-    .empty-state { font-size:.85rem; color:var(--muted); padding:.5rem 0; }
-    .status-box { margin:.5rem 0; padding:.55rem .7rem; border-radius:8px; font-size:.82rem; line-height:1.4; border:1px solid #3a4150; background:#12151b; }
-    .status-box.idle { color:var(--muted); border-color:#2a2f3a; }
-    .status-box.ok { color:var(--ok); border-color:#1a3d2e; background:#0f1a14; }
-    .status-box.busy { color:var(--warn); border-color:#5a4520; background:#1a1508; }
-    .status-box.err { color:var(--err); border-color:#5a2828; background:#1a0f0f; }
-    .status-box strong { color:var(--text); }
-    .voice-meter { height:8px; background:#2a2f3a; border-radius:99px; overflow:hidden; margin:.35rem 0 .2rem; }
-    .voice-meter>i { display:block; height:100%; background:var(--accent); width:0; transition:width .3s; }
-    .voice-meter.good>i { background:var(--ok); }
-    .voice-meter.mid>i { background:var(--warn); }
-    .voice-meter.bad>i { background:var(--err); }
-    .voice-meter.miss>i { background:#4a5568; width:100% !important; opacity:.35; }
-    .voice-stats { font-size:.75rem; color:var(--muted); display:flex; flex-wrap:wrap; gap:.35rem .75rem; margin:.2rem 0; }
-    .voice-stats b { color:var(--text); font-weight:600; }
+    body {
+      margin: 0;
+      font: 14px/1.4 system-ui, Segoe UI, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    body.player-open { padding-bottom: 9rem; }
+    header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: .6rem 1rem;
+      background: var(--panel);
+      border-bottom: 1px solid var(--line);
+      position: sticky;
+      top: 0;
+      z-index: 40;
+    }
+    header h1 { margin: 0; font-size: 1.05rem; font-weight: 700; }
+    header .ver { color: var(--muted); font-weight: 400; font-size: .75rem; }
+    #health { margin-left: auto; font-size: .8rem; color: var(--muted); max-width: 40%; text-align: right; }
+    nav.tabs {
+      display: flex;
+      gap: 0;
+      background: var(--panel);
+      border-bottom: 1px solid var(--line);
+      padding: 0 .5rem;
+      position: sticky;
+      top: 42px;
+      z-index: 39;
+    }
+    nav.tabs button {
+      border: none;
+      background: transparent;
+      padding: .65rem .9rem;
+      font: inherit;
+      font-weight: 600;
+      color: var(--muted);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+    }
+    nav.tabs button:hover { color: var(--text); }
+    nav.tabs button.active { color: var(--accent); border-bottom-color: var(--accent); }
+    main { max-width: 720px; margin: 0 auto; padding: 1rem; }
+    .tab { display: none; }
+    .tab.active { display: block; }
+    h2 { margin: 0 0 .35rem; font-size: 1.1rem; }
+    .hint { color: var(--muted); font-size: .85rem; margin: 0 0 1rem; }
+    .box {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      padding: .85rem 1rem;
+      margin-bottom: .85rem;
+    }
+    .box h3 { margin: 0 0 .65rem; font-size: .95rem; }
+    label { display: block; font-size: .8rem; color: var(--muted); margin: .5rem 0 .2rem; }
+    label.inline { display: inline-flex; align-items: center; gap: .35rem; margin: .25rem .75rem .25rem 0; width: auto; }
+    input:not([type=file]):not([type=checkbox]):not([type=radio]),
+    select, textarea {
+      width: 100%;
+      padding: .45rem .55rem;
+      border: 1px solid var(--line);
+      background: var(--surface);
+      color: var(--text);
+      font: inherit;
+    }
+    textarea { resize: vertical; font-family: inherit; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: .65rem; }
+    @media (max-width: 560px) { .row { grid-template-columns: 1fr; } }
+    .actions { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .65rem; align-items: center; }
+    button.btn {
+      padding: .45rem .75rem;
+      border: 1px solid var(--line);
+      background: #2a3140;
+      color: var(--text);
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button.btn:hover { background: #343b4d; }
+    button.btn:disabled { opacity: .5; cursor: not-allowed; }
+    button.btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+    button.btn.primary:hover { filter: brightness(1.05); }
+    button.btn.play { background: var(--ok); color: #fff; border-color: var(--ok); }
+    button.btn.danger { color: var(--err); }
+    button.btn.mic { background: #cf222e; color: #fff; border-color: #cf222e; min-width: 7rem; }
+    button.btn.mic.recording { animation: pulse 1s infinite; }
+    @keyframes pulse { 50% { opacity: .65; } }
+    .file-row { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin: .25rem 0; }
+    .file-input-hidden { position: absolute; width: 0; height: 0; opacity: 0; pointer-events: none; }
+    .file-name { font-size: .8rem; color: var(--muted); }
+    .file-name.has-file { color: var(--ok); font-weight: 600; }
+    .status {
+      margin: .5rem 0;
+      padding: .5rem .65rem;
+      border: 1px solid var(--line);
+      font-size: .82rem;
+      background: var(--surface);
+    }
+    .status.ok { border-color: #1a3d2e; color: var(--ok); background: #0f1a14; }
+    .status.busy { border-color: #5a4520; color: var(--warn); background: #1a1508; }
+    .status.err { border-color: #5a2828; color: var(--err); background: #1a0f0f; }
+    .status.idle { color: var(--muted); }
+    .item {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      margin-bottom: .5rem;
+    }
+    .item.running, .item.queued { border-color: #5a4520; }
+    .item.failed { border-color: #5a2828; }
+    .item-head {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      padding: .55rem .7rem;
+      width: 100%;
+      border: none;
+      background: transparent;
+      font: inherit;
+      text-align: left;
+      cursor: pointer;
+    }
+    .item-head:hover { background: #22262f; }
+    .item-title { flex: 1; font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .badge {
+      font-size: .7rem;
+      text-transform: uppercase;
+      padding: .1rem .35rem;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      flex-shrink: 0;
+    }
+    .badge.done, .badge.ready { color: var(--ok); border-color: #1a3d2e; }
+    .badge.running, .badge.queued, .badge.training { color: var(--warn); border-color: #5a4520; }
+    .badge.failed { color: var(--err); border-color: #5a2828; }
+    .item-body { display: none; padding: 0 .7rem .7rem; border-top: 1px solid var(--line); }
+    .item.open .item-body, .item.running .item-body, .item.queued .item-body { display: block; }
+    .bar { height: 5px; background: #2a2f3a; margin: .4rem 0; }
+    .bar > i { display: block; height: 100%; background: var(--accent); width: 0; }
+    .path, .subtle { font-size: .78rem; color: var(--muted); word-break: break-all; }
+    .empty { color: var(--muted); padding: .5rem 0; }
+    .script-box {
+      border: 1px solid var(--line);
+      padding: .65rem;
+      max-height: 160px;
+      overflow: auto;
+      white-space: pre-wrap;
+      background: var(--surface);
+      font-size: .88rem;
+    }
+    .word-chip {
+      display: inline-block;
+      padding: .15rem .4rem;
+      margin: .1rem .15rem 0 0;
+      border: 1px solid var(--line);
+      background: #22262f;
+      cursor: pointer;
+      font-size: .8rem;
+    }
+    .word-chip:hover { border-color: var(--accent); color: var(--accent); }
+    .meter { height: 6px; background: #2a2f3a; margin: .3rem 0; }
+    .meter > i { display: block; height: 100%; background: var(--accent); width: 0; }
+    .meter.good > i { background: var(--ok); }
+    .meter.mid > i { background: var(--warn); }
+    .meter.bad > i { background: var(--err); }
+    .meter.miss > i { background: #4a5568; width: 100% !important; opacity: .4; }
+    .stats { font-size: .75rem; color: var(--muted); display: flex; flex-wrap: wrap; gap: .35rem .75rem; }
+    .stats b { color: var(--text); }
+    #ttsBanner {
+      display: none;
+      background: #3d2a00;
+      border: 1px solid #7a5a10;
+      color: #f5d08c;
+      padding: .55rem .7rem;
+      margin-bottom: .85rem;
+      font-size: .85rem;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: .75rem;
+    }
+    #globalPlayerDock {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      z-index: 100;
+      background: var(--panel);
+      border-top: 2px solid var(--accent);
+      padding: .6rem 1rem .85rem;
+      max-height: 40vh;
+      overflow: auto;
+    }
+    #globalPlayerDock[hidden] { display: none !important; }
+    #globalPlayerHost { max-width: 720px; margin: 0 auto; }
+    #globalPlayerHost audio { display: none; }
+    .dock-close { max-width: 720px; margin: 0 auto .25rem; text-align: right; }
+    .wave-player { border: 1px solid var(--line); padding: .55rem; background: var(--surface); margin-top: .4rem; }
+    .wave-meta { display: flex; justify-content: space-between; gap: .5rem; font-size: .8rem; margin-bottom: .3rem; }
+    .wave-level.ok { color: var(--ok); }
+    .wave-level.warn { color: var(--warn); }
+    .wave-silent { color: var(--warn); font-size: .8rem; margin-bottom: .3rem; }
+    .wave-main, .wave-lookahead { width: 100%; display: block; background: #0a0c10; cursor: pointer; }
+    .wave-lookahead-title { font-size: .72rem; color: var(--muted); margin: .25rem 0 .1rem; }
+    .wave-controls { display: flex; align-items: center; gap: .45rem; margin-top: .4rem; }
+    .wave-seek { flex: 1; }
+    .wave-time { font-size: .75rem; color: var(--muted); white-space: nowrap; }
+    code { font-size: .85em; }
+
+    .lang-toggle {
+      display: inline-flex;
+      border: 1px solid var(--line);
+      margin-left: .5rem;
+      flex-shrink: 0;
+    }
+    .lang-toggle button {
+      border: none;
+      background: var(--surface);
+      padding: .25rem .55rem;
+      font: inherit;
+      font-size: .78rem;
+      font-weight: 700;
+      color: var(--muted);
+      cursor: pointer;
+    }
+    .lang-toggle button.active { background: var(--accent); color: #0b1020; }
+    .about-list { margin: .4rem 0 .8rem 1.1rem; padding: 0; }
+    .about-list li { margin: .25rem 0; }
+    a { color: var(--accent); }
   </style>
 </head>
 <body>
   <header>
-    <h1>CATTS <span class="ver">v0.7.2</span></h1>
-    <div id="health">checkingâ€¦</div>
+    <h1>CATTS <span class="ver">v0.7.6</span></h1>
+    <div class="lang-toggle" id="langToggle" title="UI language">
+      <button type="button" data-lang="es" class="active">ES</button>
+      <button type="button" data-lang="en">EN</button>
+    </div>
+    <div id="health">…</div>
   </header>
-  <div id="activityBar" aria-live="polite">
-    <span class="pill" id="pillTts">TTSâ€¦</span>
-    <span class="pill" id="pillStt">STTâ€¦</span>
-    <span class="pill" id="pillJobs">Books idle</span>
-    <span class="pill" id="pillVoices">Voices idle</span>
-  </div>
+  <nav class="tabs" id="tabs">
+    <button type="button" data-tab="about" data-i18n="tab_about" class="active">Acerca de</button>
+    <button type="button" data-tab="prayers" data-i18n="tab_prayers">Oraciones</button>
+    <button type="button" data-tab="books" data-i18n="tab_books">Libros</button>
+    <button type="button" data-tab="voice" data-i18n="tab_voice">Voz</button>
+    <button type="button" data-tab="live" data-i18n="tab_live">En vivo</button>
+    <button type="button" data-tab="tools" data-i18n="tab_tools">STT / Traducir</button>
+    <button type="button" data-tab="more" data-i18n="tab_more">Más</button>
+  </nav>
   <main>
     <div id="ttsBanner"></div>
 
-    <div class="flow" id="flowBooks">
-      <div class="flow-head">
-        <span class="flow-num">1</span>
-        <div>
-          <div class="flow-title">Audiobook</div>
-          <div class="flow-sub">Upload PDF / EPUB / DOCX â†’ process â†’ listen (your voice if selected)</div>
-        </div>
-      </div>
-      <div class="steps">
-        <span class="step on">1. Upload</span>
-        <span class="step on">2. Process</span>
-        <span class="step on">3. TTS / Play</span>
+    <!-- ABOUT -->
+    <section class="tab active" id="tab-about">
+      <h2 data-i18n="about_title">Qué es CATTS</h2>
+      <p class="hint" data-i18n="about_lead">Herramienta local para audiolibros con tu voz y traducción en vivo (EN/ES).</p>
+
+      <div class="box">
+        <h3 data-i18n="about_flow_title">Flujo principal</h3>
+        <ol class="about-list">
+          <li data-i18n="about_1">OCR / texto de un PDF (o EPUB / DOCX)</li>
+          <li data-i18n="about_2">Preprocesar el texto para TTS</li>
+          <li data-i18n="about_3">Narrar con tu voz entrenada (inglés o español)</li>
+        </ol>
+        <h3 data-i18n="about_live_title">Traducción en vivo</h3>
+        <ol class="about-list" start="4">
+          <li data-i18n="about_4">STT en inglés o español</li>
+          <li data-i18n="about_5">Traducir</li>
+          <li data-i18n="about_6">TTS en el otro idioma</li>
+          <li data-i18n="about_7">Por respiración / punto / coma (frases cortas)</li>
+        </ol>
+        <h3 data-i18n="about_bonus_title">Extra</h3>
+        <ul class="about-list">
+          <li data-i18n="about_8">Divide libros en capítulos</li>
+          <li data-i18n="about_9">OCR por lotes de imágenes (ver docs/OCR.md)</li>
+        </ul>
       </div>
 
-    <section class="panel open" data-panel="newbook">
-      <button type="button" class="panel-head" aria-expanded="true">
-        <span class="panel-title">Upload book <span class="panel-hint">â€” PDF / EPUB / DOCX</span></span>
-        <span class="panel-chevron">â–¼</span>
-      </button>
-      <div class="panel-body">
-        <div id="bookStatus" class="status-box idle">Pick a file, choose your voice (default), then Start processing. Progress appears under Library.</div>
-        <label>Book file</label>
-        <div class="file-picker">
+      <div class="box">
+        <h3 data-i18n="about_where_title">Dónde hacer cada cosa</h3>
+        <ul class="about-list">
+          <li data-i18n="about_where_prayers"><strong>Oraciones</strong> — rezar con audio manifest v1</li>
+          <li data-i18n="about_where_books"><strong>Libros</strong> — subir, procesar, escuchar</li>
+          <li data-i18n="about_where_voice"><strong>Voz</strong> — grabar o subir muestra (1–3 min)</li>
+          <li data-i18n="about_where_live"><strong>En vivo</strong> — frase corta con tu voz / motor TTS</li>
+          <li data-i18n="about_where_tools"><strong>STT / Traducir</strong> — transcribir audio y traducir texto</li>
+          <li data-i18n="about_where_more"><strong>Más</strong> — clave API, smoke test, LiteUI</li>
+        </ul>
+        <p class="hint" data-i18n="about_tip" style="margin:0">Tip: guarda una voz antes de narrar un libro o usar En vivo (salvo Kokoro).</p>
+      </div>
+    </section>
+
+    <!-- PRAYERS (manifest v1 audio works) -->
+    <section class="tab" id="tab-prayers">
+      <h2 data-i18n="prayers_title">Oraciones (audio)</h2>
+      <p class="hint" data-i18n="prayers_hint">Base ES pregenerada (Edge). Play arma la cola del capítulo y avanza solo.</p>
+      <div class="box">
+        <div class="row" style="align-items:center;gap:.5rem;flex-wrap:wrap">
+          <button type="button" class="btn primary" id="prayersRefresh" data-i18n="prayers_refresh">Actualizar</button>
+          <button type="button" class="btn" id="prayersStop" data-i18n="prayers_stop">Detener</button>
+          <span class="subtle" id="prayersStatus"></span>
+        </div>
+        <div id="prayersList" class="subtle" style="margin-top:.75rem">…</div>
+      </div>
+      <div class="box" id="prayerPlayerBox" style="display:none">
+        <h3 id="prayerNowTitle">—</h3>
+        <p class="subtle" id="prayerNowMeta"></p>
+        <audio id="prayerAudio" controls style="width:100%;margin-top:.5rem"></audio>
+      </div>
+    </section>
+
+    <!-- BOOKS -->
+    <section class="tab" id="tab-books">
+      <h2 data-i18n="books_title">Audiolibro</h2>
+      <p class="hint" data-i18n="books_hint">Subir → procesar → escuchar. Elige tu voz antes de empezar.</p>
+
+      <div class="box">
+        <h3 data-i18n="books_new">Libro nuevo</h3>
+        <div id="bookStatus" class="status idle" data-i18n="books_status_idle">Elige un archivo y pulsa Empezar.</div>
+        <label data-i18n="books_file">Archivo (PDF / EPUB / DOCX / TXT)</label>
+        <div class="file-row">
           <input type="file" id="bookFile" class="file-input-hidden" accept=".pdf,.epub,.docx,.txt,.md" />
-          <button type="button" class="file-btn" id="bookFileBtn"><span class="file-btn-icon">ðŸ“„</span><span>Choose fileâ€¦</span></button>
-          <span class="file-name" id="bookFileName">No file selected</span>
+          <button type="button" class="btn" id="bookFileBtn" data-i18n="btn_choose_file">Elegir archivo…</button>
+          <span class="file-name" id="bookFileName" data-i18n="file_none">Sin archivo</span>
         </div>
-        <label>Click words from filename â†’</label>
-        <div class="word-target">
-          <label class="inline"><input type="radio" name="metaTarget" value="title" checked /> Title</label>
-          <label class="inline"><input type="radio" name="metaTarget" value="author" /> Author</label>
+        <div class="word-target" style="margin-top:.35rem">
+          <label class="inline"><input type="radio" name="metaTarget" value="title" checked /> <span data-i18n="label_title">Título</span></label>
+          <label class="inline"><input type="radio" name="metaTarget" value="author" /> <span data-i18n="label_author">Autor</span></label>
         </div>
-        <div id="fnameWords" class="subtle">Select a file to see filename words</div>
+        <div id="fnameWords" class="subtle" data-i18n="books_fname_hint">Las palabras del nombre aparecen al elegir el archivo.</div>
         <div class="row">
           <div>
-            <label>Title</label>
-            <input id="bookTitle" placeholder="Book title" />
+            <label data-i18n="label_title">Título</label>
+            <input id="bookTitle" data-i18n-placeholder="ph_title" placeholder="Título" />
           </div>
           <div>
-            <label>Author</label>
-            <input id="bookAuthor" placeholder="Author (optional)" />
+            <label data-i18n="label_author">Autor</label>
+            <input id="bookAuthor" data-i18n-placeholder="ph_optional" placeholder="Opcional" />
           </div>
         </div>
         <div class="row">
           <div>
-            <label>Language</label>
-            <select id="bookLang"><option value="">auto</option><option value="en">English</option><option value="es">Spanish</option></select>
+            <label data-i18n="label_language">Idioma</label>
+            <select id="bookLang">
+              <option value="" data-i18n="opt_auto">auto</option>
+              <option value="en" data-i18n="opt_en">Inglés</option>
+              <option value="es" data-i18n="opt_es">Español</option>
+            </select>
           </div>
           <div>
-            <label>Chapter names</label>
+            <label data-i18n="label_chapters">Capítulos</label>
             <select id="chapterMode">
-              <option value="detect">From document headers</option>
-              <option value="detect_number">Numbered + header subtitle</option>
-              <option value="number">Simple Chapter 1, 2, 3â€¦</option>
+              <option value="detect" data-i18n="opt_ch_detect">Desde encabezados</option>
+              <option value="detect_number" data-i18n="opt_ch_numsub">Numerados + subtítulo</option>
+              <option value="number" data-i18n="opt_ch_simple">Capítulo 1, 2, 3…</option>
             </select>
           </div>
         </div>
-        <label>Voice</label>
-        <select id="bookVoice"><option value="">Your voice (default)</option></select>
-        <label class="inline"><input type="checkbox" id="genAudio" checked /> Generate audiobook audio (TTS)</label>
-        <button type="button" class="action-btn" id="uploadBtn">Start processing</button>
+        <label data-i18n="label_voice">Voz</label>
+        <select id="bookVoice"><option value="" data-i18n="opt_default_voice">Voz por defecto</option></select>
+        <label class="inline"><input type="checkbox" id="genAudio" checked /> <span data-i18n="books_gen_audio">Generar audio (TTS)</span></label>
+        <div class="actions">
+          <button type="button" class="btn primary" id="uploadBtn" data-i18n="btn_start">Empezar</button>
+        </div>
       </div>
-    </section>
 
-    <section class="panel open" data-panel="books">
-      <button type="button" class="panel-head" aria-expanded="true">
-        <span class="panel-title">Library <span class="panel-hint">â€” progress &amp; play</span></span>
-        <span class="panel-badge" id="booksCount">0</span>
-        <span class="panel-chevron">â–¼</span>
-      </button>
-      <div class="panel-body">
-        <p class="job-help">Processing runs in the background. Click <strong>â–¶</strong> when status is done. Use <strong>Re-record book</strong> to apply your voice.</p>
+      <div class="box">
+        <h3><span data-i18n="books_library">Biblioteca</span> <span id="booksCount" class="subtle"></span></h3>
+        <p class="hint" style="margin-top:0" data-i18n="books_library_hint">Abre un trabajo para capítulos / archivos. Reproducir usa el reproductor inferior.</p>
         <div id="jobs"></div>
       </div>
     </section>
-    </div>
 
-    <div class="flow" id="flowVoice">
-      <div class="flow-head">
-        <span class="flow-num">2</span>
-        <div>
-          <div class="flow-title">Your voice (EN / ES)</div>
-          <div class="flow-sub">Save a sample â†’ check script match â†’ use for books &amp; live interpreting</div>
-        </div>
-      </div>
-      <div class="steps">
-        <span class="step on">1. Record / upload</span>
-        <span class="step on">2. Script match (STT)</span>
-        <span class="step on">3. Live speak</span>
-      </div>
+    <!-- VOICE -->
+    <section class="tab" id="tab-voice">
+      <h2 data-i18n="voice_title">Tu voz</h2>
+      <p class="hint" data-i18n="voice_hint">Graba o sube 1–3 min leyendo el guion. Una muestra por idioma.</p>
 
-    <section class="panel open" data-panel="voice">
-      <button type="button" class="panel-head" aria-expanded="true">
-        <span class="panel-title">Save voice sample <span class="panel-hint">â€” EN or ES</span></span>
-        <span class="panel-badge" id="voicesCount">0</span>
-        <span class="panel-chevron">â–¼</span>
-      </button>
-      <div class="panel-body">
-        <p class="instructions">Record 1â€“3 min reading the script (one voice per language). After save, STT checks how well it matches the script.</p>
+      <div class="box">
+        <h3 data-i18n="voice_save_title">Guardar muestra</h3>
         <div class="row">
           <div>
-            <label>Voice name</label>
-            <input id="voiceName" placeholder="GastÃ³n â€” EspaÃ±ol" />
+            <label data-i18n="label_name">Nombre</label>
+            <input id="voiceName" data-i18n-placeholder="ph_voice_name" placeholder="Gastón — ES" />
           </div>
           <div>
-            <label>Language</label>
-            <select id="voiceLang"><option value="en">English</option><option value="es">Spanish</option></select>
+            <label data-i18n="label_language">Idioma</label>
+            <select id="voiceLang">
+              <option value="en" data-i18n="opt_en">Inglés</option>
+              <option value="es" data-i18n="opt_es" selected>Español</option>
+            </select>
           </div>
         </div>
-        <label>Script to read</label>
+        <label data-i18n="voice_script_label">Guion para leer</label>
         <div class="script-box" id="voiceScript"></div>
-        <div class="mic-row">
-          <button type="button" class="mic-btn" id="micBtn">ðŸŽ¤ Record</button>
-          <span class="rec-status" id="recStatus">Not recording</span>
+        <div class="actions">
+          <button type="button" class="btn mic" id="micBtn" data-i18n="btn_record">Grabar</button>
+          <span class="subtle" id="recStatus" data-i18n="rec_idle">Sin grabar</span>
         </div>
-        <div id="voicePreview" class="player"></div>
-        <label>Or upload recording</label>
-        <div class="file-picker">
+        <div id="voicePreview"></div>
+        <label data-i18n="voice_or_upload">O subir audio</label>
+        <div class="file-row">
           <input type="file" id="voiceFile" class="file-input-hidden" accept="audio/*" />
-          <button type="button" class="file-btn" id="voiceFileBtn"><span class="file-btn-icon">ðŸŽµ</span><span>Choose audioâ€¦</span></button>
-          <span class="file-name" id="voiceFileName">WAV / MP3, 1â€“5 min</span>
+          <button type="button" class="btn" id="voiceFileBtn" data-i18n="btn_choose_audio">Elegir audio…</button>
+          <span class="file-name" id="voiceFileName">WAV / MP3</span>
         </div>
-        <button type="button" class="action-btn" id="voiceBtn">Save voice sample</button>
-        <div id="voicePlayStatus" class="status-box idle">Hear sample plays your recording (not Live TTS). Status appears here.</div>
-        <div id="voices" style="margin-top:1rem"></div>
+        <div class="actions">
+          <button type="button" class="btn primary" id="voiceBtn" data-i18n="btn_save_sample">Guardar muestra</button>
+        </div>
+        <div id="voicePlayStatus" class="status idle" data-i18n="status_here">Estado aquí.</div>
+      </div>
+
+      <div class="box">
+        <h3><span data-i18n="voice_saved">Voces guardadas</span> <span id="voicesCount" class="subtle"></span></h3>
+        <div id="voices"></div>
       </div>
     </section>
 
-    <section class="panel open" data-panel="live">
-      <button type="button" class="panel-head" aria-expanded="true">
-        <span class="panel-title">Live interpreting <span class="panel-hint">â€” speak with your voice</span></span>
-        <span class="panel-chevron">â–¼</span>
-      </button>
-      <div class="panel-body">
-        <p class="instructions" id="liveInstructions">Type a phrase and press Speak. Engine follows <code>CATTS_TTS_ENGINE</code> in .env.</p>
-        <div id="liveStatus" class="status-box idle">Checking TTSâ€¦</div>
-        <label>Phrase</label>
-        <input id="liveText" placeholder="Hello, this is a test." />
-        <label>Voice</label>
-        <select id="liveVoice"><option value="">Your voice (default)</option></select>
-        <button type="button" class="action-btn play" id="liveBtn">Speak</button>
-        <div id="livePlayer" class="player"></div>
+    <!-- LIVE -->
+    <section class="tab" id="tab-live">
+      <h2 data-i18n="live_title">TTS en vivo</h2>
+      <p class="hint" id="liveInstructions" data-i18n="live_hint">Escribe una frase corta, elige voz + motor, Hablar.</p>
+
+      <div class="box">
+        <h3 data-i18n="tts_samples_title">Prueba de calidad: ñ</h3>
+        <p class="hint" data-i18n="tts_samples_hint">Misma frase con ñ y tildes en todos los motores. La velocidad no cuenta todavía.</p>
+        <div class="actions" id="ttsSampleButtons">
+          <button type="button" class="btn play" data-sample="edge-es-ar" data-label="Edge AR">Reproducir · Edge AR</button>
+          <button type="button" class="btn play" data-sample="kokoro-es" data-label="Kokoro ES">Reproducir · Kokoro ES</button>
+          <button type="button" class="btn play" data-sample="melotts-es" data-label="MeloTTS ES">Reproducir · MeloTTS ES</button>
+          <button type="button" class="btn play" data-sample="chatterbox-latam-v3" data-label="Chatterbox LatAm V3">Reproducir · Chatterbox LatAm V3</button>
+          <button type="button" class="btn play" data-sample="chatterbox-gaston" data-label="Chatterbox Gaston">Reproducir · Chatterbox Gaston</button>
+        </div>
+        <div id="ttsSampleStatus" class="status idle" data-i18n="tts_samples_ready">Lista para escuchar.</div>
+      </div>
+
+      <div class="box">
+        <div id="liveStatus" class="status idle" data-i18n="live_checking">Comprobando TTS…</div>
+        <label data-i18n="label_tts_engine">Motor TTS</label>
+        <div class="row" style="align-items:end">
+          <div>
+            <select id="ttsEngineSelect"><option value="">loading…</option></select>
+          </div>
+          <div>
+            <button type="button" class="btn" id="ttsEngineApply" data-i18n="btn_use_engine">Usar motor</button>
+          </div>
+        </div>
+        <div id="ttsEngineNote" class="subtle"></div>
+        <label data-i18n="label_phrase">Frase</label>
+        <input id="liveText" data-i18n-placeholder="ph_live" placeholder="Hola, esto es una prueba." />
+        <label data-i18n="label_voice">Voz</label>
+        <select id="liveVoice"><option value="" data-i18n="opt_default_voice">Voz por defecto</option></select>
+        <div class="actions">
+          <button type="button" class="btn play" id="liveBtn" data-i18n="btn_speak">Hablar</button>
+        </div>
+        <div id="livePlayer"></div>
       </div>
     </section>
-    </div>
 
-    <section class="panel" data-panel="speech">
-      <button type="button" class="panel-head" aria-expanded="false">
-        <span class="panel-title">Tools <span class="panel-hint">â€” transcribe &amp; translate</span></span>
-        <span class="panel-chevron">â–¼</span>
-      </button>
-      <div class="panel-body">
-        <p class="instructions">Local Whisper STT (EN/ES) + offline Argos translation. Run <code>scripts/setup_stt.ps1</code> once.</p>
-        <label>Transcribe audio (EN / ES)</label>
-        <div class="file-picker">
+    <!-- TOOLS -->
+    <section class="tab" id="tab-tools">
+      <h2 data-i18n="tools_title">STT / Traducir</h2>
+      <p class="hint" data-i18n="tools_hint">Whisper (EN/ES) + traducción Argos offline.</p>
+
+      <div class="box">
+        <h3 data-i18n="tools_transcribe">Transcribir</h3>
+        <div class="file-row">
           <input type="file" id="sttFile" class="file-input-hidden" accept="audio/*" />
-          <button type="button" class="file-btn" id="sttFileBtn"><span class="file-btn-icon">ðŸŽ™</span><span>Choose audioâ€¦</span></button>
+          <button type="button" class="btn" id="sttFileBtn" data-i18n="btn_choose_audio">Elegir audio…</button>
           <span class="file-name" id="sttFileName">WAV / MP3 / M4A</span>
         </div>
-        <label>Language hint</label>
-        <select id="sttLang"><option value="">auto-detect</option><option value="en">English</option><option value="es">Spanish</option></select>
-        <button type="button" class="action-btn" id="sttBtn">Transcribe</button>
-        <label>Transcription</label>
-        <textarea id="sttOut" rows="4" readonly placeholder="Transcription appears hereâ€¦" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #3a4150;background:#12151b;color:var(--text);"></textarea>
-        <label>Translate</label>
-        <textarea id="translateIn" rows="3" placeholder="Paste text to translateâ€¦" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #3a4150;background:#12151b;color:var(--text);"></textarea>
+        <label data-i18n="label_lang_hint">Pista de idioma</label>
+        <select id="sttLang">
+          <option value="" data-i18n="opt_auto">auto</option>
+          <option value="en" data-i18n="opt_en">Inglés</option>
+          <option value="es" data-i18n="opt_es">Español</option>
+        </select>
+        <div class="actions">
+          <button type="button" class="btn primary" id="sttBtn" data-i18n="btn_transcribe">Transcribir</button>
+        </div>
+        <label data-i18n="label_result">Resultado</label>
+        <textarea id="sttOut" rows="4" readonly data-i18n-placeholder="ph_transcription" placeholder="Transcripción…"></textarea>
+      </div>
+
+      <div class="box">
+        <h3 data-i18n="tools_translate">Traducir</h3>
+        <textarea id="translateIn" rows="3" data-i18n-placeholder="ph_paste" placeholder="Pega texto…"></textarea>
         <div class="row">
           <div>
-            <label>From</label>
-            <select id="translateFrom"><option value="en">English</option><option value="es">Spanish</option></select>
+            <label data-i18n="label_from">De</label>
+            <select id="translateFrom">
+              <option value="en" data-i18n="opt_en">Inglés</option>
+              <option value="es" data-i18n="opt_es">Español</option>
+            </select>
           </div>
           <div>
-            <label>To</label>
-            <select id="translateTo"><option value="es">Spanish</option><option value="en">English</option></select>
+            <label data-i18n="label_to">A</label>
+            <select id="translateTo">
+              <option value="es" data-i18n="opt_es">Español</option>
+              <option value="en" data-i18n="opt_en">Inglés</option>
+            </select>
           </div>
         </div>
-        <button type="button" class="action-btn secondary" id="translateBtn">Translate</button>
-        <label>Translation</label>
-        <textarea id="translateOut" rows="4" readonly placeholder="Translation appears hereâ€¦" style="width:100%;padding:.55rem;border-radius:8px;border:1px solid #3a4150;background:#12151b;color:var(--text);"></textarea>
-      </div>
-    </section>
-
-    <section class="panel" data-panel="diagnostics">
-      <button type="button" class="panel-head" aria-expanded="false">
-        <span class="panel-title">Diagnostics <span class="panel-hint">â€” smoke check</span></span>
-        <span class="panel-chevron">â–¼</span>
-      </button>
-      <div class="panel-body">
-        <p class="job-help">Run a quick end-to-end check and see exactly where it fails (API + STT + Translate + Voice + Audio decode).</p>
-        <div id="smokeSummary" class="status-box idle">Idle.</div>
         <div class="actions">
-          <button type="button" class="action-btn" id="smokeBtn">Run smoke check</button>
-          <button type="button" class="action-btn secondary" id="smokeClearBtn">Clear</button>
+          <button type="button" class="btn" id="translateBtn" data-i18n="btn_translate">Traducir</button>
         </div>
-        <label>Steps</label>
-        <div id="smokeSteps" class="status-box idle" style="max-height:260px; overflow:auto;"></div>
-        <div class="subtle" style="margin-top:.5rem;">
-          Tip: if your `CATTS_API_KEY` is set, paste it into the UI (it will be sent as `X-API-Key`).
-        </div>
+        <label data-i18n="label_result">Resultado</label>
+        <textarea id="translateOut" rows="4" readonly data-i18n-placeholder="ph_translation" placeholder="Traducción…"></textarea>
       </div>
     </section>
 
-    <section class="panel" data-panel="links">
-      <button type="button" class="panel-head" aria-expanded="false">
-        <span class="panel-title">External links <span class="panel-hint">— companion projects</span></span>
-        <span class="panel-chevron">â–¼</span>
-      </button>
-      <div class="panel-body">
-        <p class="instructions">These links are exposed by the CATTS API so the UI can render them consistently.</p>
-        <div id="linksBox" class="status-box idle">Loading links…</div>
-        <div id="linksList" class="subtle" style="margin-top:.5rem;"></div>
-      </div>
-    </section>
+    <!-- MORE -->
+    <section class="tab" id="tab-more">
+      <h2 data-i18n="more_title">Más</h2>
+      <p class="hint" data-i18n="more_hint">Diagnóstico y extras. No hace falta para el uso diario.</p>
 
-    <section class="panel" data-panel="liteui">
-      <button type="button" class="panel-head" aria-expanded="false">
-        <span class="panel-title">LiteUI Studio <span class="panel-hint">— image/video workstation</span></span>
-        <span class="panel-chevron">â–¼</span>
-      </button>
-      <div class="panel-body">
-        <p class="instructions">This panel can start LiteUI Studio locally (runs its own backend + Gradio UI).</p>
-        <div id="liteuiStatusBox" class="status-box idle">Idle.</div>
+      <div class="box">
+        <h3 data-i18n="more_apikey">Clave API</h3>
+        <p class="hint" data-i18n="more_apikey_hint">Si hay <code>CATTS_API_KEY</code>, pégala aquí (se guarda en este navegador).</p>
+        <input id="apiKeyInput" type="password" placeholder="X-API-Key" autocomplete="off" />
         <div class="actions">
-          <button type="button" class="action-btn" id="liteuiStartBtn">Start</button>
-          <button type="button" class="action-btn secondary" id="liteuiOpenBtn">Open UI</button>
+          <button type="button" class="btn" id="apiKeySave" data-i18n="btn_save_key">Guardar clave</button>
+          <button type="button" class="btn" id="apiKeyClear" data-i18n="btn_clear">Borrar</button>
         </div>
-        <div id="liteuiError" class="subtle" style="margin-top:.5rem;white-space:pre-wrap;"></div>
+      </div>
+
+      <div class="box">
+        <h3 data-i18n="more_smoke">Prueba rápida</h3>
+        <div id="smokeSummary" class="status idle" data-i18n="idle">En espera.</div>
+        <div class="actions">
+          <button type="button" class="btn primary" id="smokeBtn" data-i18n="btn_run_smoke">Ejecutar</button>
+          <button type="button" class="btn" id="smokeClearBtn" data-i18n="btn_clear">Borrar</button>
+        </div>
+        <div id="smokeSteps" class="status idle" style="max-height:240px;overflow:auto;margin-top:.5rem"></div>
+      </div>
+
+      <div class="box">
+        <h3 data-i18n="more_links">Enlaces</h3>
+        <div id="linksBox" class="status idle">…</div>
+        <div id="linksList"></div>
+      </div>
+
+      <div class="box">
+        <h3>LiteUI Studio</h3>
+        <p class="hint" data-i18n="more_liteui_hint">Estación de imagen/vídeo (proceso aparte). Abre en otra pestaña.</p>
+        <div id="liteuiStatusBox" class="status idle">Idle.</div>
+        <div class="actions">
+          <button type="button" class="btn primary" id="liteuiStartBtn" data-i18n="btn_start_lite">Iniciar</button>
+          <button type="button" class="btn" id="liteuiOpenBtn" data-i18n="btn_open_ui">Abrir UI</button>
+        </div>
+        <div id="liteuiError" class="subtle" style="white-space:pre-wrap;margin-top:.4rem"></div>
       </div>
     </section>
   </main>
+
   <div id="globalPlayerDock" hidden>
-    <div class="dock-close"><button type="button" id="globalPlayerClose" title="Close player">âœ• Close</button></div>
-    <div id="globalPlayerHost" class="player"></div>
+    <div class="dock-close"><button type="button" class="btn" id="globalPlayerClose" data-i18n="btn_close_player">Cerrar reproductor</button></div>
+    <div id="globalPlayerHost"></div>
   </div>
+
   <script>
-    function chapterAudioUrl(jobId, chapterNum) {
-      return `/jobs/${jobId}/chapters/${chapterNum}/audio`;
+
+    const LANG_KEY = 'catts_ui_lang';
+    let uiLang = localStorage.getItem(LANG_KEY) || 'es';
+    const I18N = {
+      es: {
+        tab_about: 'Acerca de', tab_prayers: 'Oraciones', tab_books: 'Libros', tab_voice: 'Voz', tab_live: 'En vivo',
+        tab_tools: 'STT / Traducir', tab_more: 'Más',
+        prayers_title: 'Oraciones (audio)',
+        prayers_hint: 'Base ES pregenerada (Edge). Play arma la cola del capítulo y avanza solo.',
+        prayers_refresh: 'Actualizar', prayers_stop: 'Detener',
+        prayers_play: 'Reproducir', prayers_empty: 'Sin obras. Generá fixtures/prayer-* con generate_audio_work.py',
+        about_where_prayers: '<strong>Oraciones</strong> — rezar con audio manifest v1',
+        about_title: 'Qué es CATTS',
+        about_lead: 'Herramienta local para audiolibros con tu voz y traducción en vivo (EN/ES).',
+        about_flow_title: 'Flujo principal',
+        about_1: 'OCR / texto de un PDF (o EPUB / DOCX)',
+        about_2: 'Preprocesar el texto para TTS',
+        about_3: 'Narrar con tu voz entrenada (inglés o español)',
+        about_live_title: 'Traducción en vivo',
+        about_4: 'STT en inglés o español',
+        about_5: 'Traducir',
+        about_6: 'TTS en el otro idioma',
+        about_7: 'Por respiración / punto / coma (frases cortas)',
+        about_bonus_title: 'Extra',
+        about_8: 'Divide libros en capítulos',
+        about_9: 'OCR por lotes de imágenes (ver docs/OCR.md)',
+        about_where_title: 'Dónde hacer cada cosa',
+        about_where_books: '<strong>Libros</strong> — subir, procesar, escuchar',
+        about_where_voice: '<strong>Voz</strong> — grabar o subir muestra (1–3 min)',
+        about_where_live: '<strong>En vivo</strong> — frase corta con tu voz / motor TTS',
+        about_where_tools: '<strong>STT / Traducir</strong> — transcribir audio y traducir texto',
+        about_where_more: '<strong>Más</strong> — clave API, smoke test, LiteUI',
+        about_tip: 'Tip: guarda una voz antes de narrar un libro o usar En vivo (salvo Kokoro).',
+        books_title: 'Audiolibro',
+        books_hint: 'Subir → procesar → escuchar. Elige tu voz antes de empezar.',
+        books_new: 'Libro nuevo',
+        books_status_idle: 'Elige un archivo y pulsa Empezar.',
+        books_file: 'Archivo (PDF / EPUB / DOCX / TXT)',
+        btn_choose_file: 'Elegir archivo…',
+        file_none: 'Sin archivo',
+        label_title: 'Título', label_author: 'Autor', label_language: 'Idioma',
+        label_chapters: 'Capítulos', label_voice: 'Voz', label_name: 'Nombre',
+        label_phrase: 'Frase', label_result: 'Resultado', label_from: 'De', label_to: 'A',
+        label_tts_engine: 'Motor TTS', label_lang_hint: 'Pista de idioma',
+        books_fname_hint: 'Las palabras del nombre aparecen al elegir el archivo.',
+        ph_title: 'Título', ph_optional: 'Opcional', ph_voice_name: 'Gastón — ES',
+        ph_live: 'Hola, esto es una prueba.', ph_transcription: 'Transcripción…',
+        ph_paste: 'Pega texto…', ph_translation: 'Traducción…',
+        opt_auto: 'auto', opt_en: 'Inglés', opt_es: 'Español',
+        opt_ch_detect: 'Desde encabezados', opt_ch_numsub: 'Numerados + subtítulo',
+        opt_ch_simple: 'Capítulo 1, 2, 3…', opt_default_voice: 'Voz por defecto',
+        books_gen_audio: 'Generar audio (TTS)', btn_start: 'Empezar',
+        books_library: 'Biblioteca',
+        books_library_hint: 'Abre un trabajo para capítulos / archivos. Reproducir usa el reproductor inferior.',
+        books_empty: 'Aún no hay libros.',
+        voice_title: 'Tu voz',
+        voice_hint: 'Graba o sube 1–3 min leyendo el guion. Una muestra por idioma.',
+        voice_save_title: 'Guardar muestra', voice_script_label: 'Guion para leer',
+        btn_record: 'Grabar', btn_stop: 'Parar', rec_idle: 'Sin grabar',
+        voice_or_upload: 'O subir audio', btn_choose_audio: 'Elegir audio…',
+        btn_save_sample: 'Guardar muestra', status_here: 'Estado aquí.',
+        voice_saved: 'Voces guardadas', voice_empty: 'Aún no hay voces.',
+        live_title: 'TTS en vivo',
+        live_hint: 'Escribe una frase corta, elige voz + motor, Hablar.',
+        live_checking: 'Comprobando TTS…', btn_use_engine: 'Usar motor', btn_speak: 'Hablar',
+        tts_samples_title: 'Prueba de calidad: ñ',
+        tts_samples_hint: 'MeloTTS ES (preset) + clon Chatterbox. La velocidad no cuenta todavía.',
+        tts_samples_ready: 'Lista para escuchar.',
+        tts_samples_loading: 'Cargando muestra…',
+        tts_samples_playing: 'Reproduciendo muestra.',
+        tts_samples_failed: 'No se pudo reproducir:',
+        tools_title: 'STT / Traducir',
+        tools_hint: 'Whisper (EN/ES) + traducción Argos offline.',
+        tools_transcribe: 'Transcribir', btn_transcribe: 'Transcribir',
+        tools_translate: 'Traducir', btn_translate: 'Traducir',
+        more_title: 'Más',
+        more_hint: 'Diagnóstico y extras. No hace falta para el uso diario.',
+        more_apikey: 'Clave API',
+        more_apikey_hint: 'Si hay <code>CATTS_API_KEY</code>, pégala aquí (se guarda en este navegador).',
+        btn_save_key: 'Guardar clave', btn_clear: 'Borrar', idle: 'En espera.',
+        more_smoke: 'Prueba rápida', btn_run_smoke: 'Ejecutar',
+        more_links: 'Enlaces',
+        more_liteui_hint: 'Estación de imagen/vídeo (proceso aparte). Abre en otra pestaña.',
+        btn_start_lite: 'Iniciar', btn_open_ui: 'Abrir UI',
+        btn_close_player: 'Cerrar reproductor',
+        btn_play: 'Reproducir', btn_pause: 'Pausa', btn_folder: 'Carpeta',
+        btn_audio: 'Audio', btn_rerecord: 'Re-grabar', btn_remove: 'Quitar',
+        btn_hear: 'Oír', btn_check_script: 'Revisar guion', btn_rename: 'Renombrar',
+        chapter: 'Capítulo…', no_sample: 'sin muestra', ready: 'lista',
+        sample: 'Muestra', match: 'Coincidencia', checking: 'comprobando…',
+        not_checked: 'sin revisar', missing_sample: 'falta',
+      },
+      en: {
+        tab_about: 'About', tab_prayers: 'Prayers', tab_books: 'Books', tab_voice: 'Voice', tab_live: 'Live',
+        tab_tools: 'STT / Translate', tab_more: 'More',
+        prayers_title: 'Prayers (audio)',
+        prayers_hint: 'Prebuilt ES Edge works. Play queues the chapter and advances.',
+        prayers_refresh: 'Refresh', prayers_stop: 'Stop',
+        prayers_play: 'Play', prayers_empty: 'No works yet. Run generate_audio_work.py on fixtures/prayer-*',
+        about_where_prayers: '<strong>Prayers</strong> — pray with audio manifest v1',
+        about_title: 'What is CATTS',
+        about_lead: 'Local tool for audiobooks in your voice and live EN/ES interpreting.',
+        about_flow_title: 'Main flow',
+        about_1: 'OCR / text from a PDF (or EPUB / DOCX)',
+        about_2: 'Preprocess text for TTS',
+        about_3: 'Narrate with your trained voice (English or Spanish)',
+        about_live_title: 'Live translation',
+        about_4: 'STT in English or Spanish',
+        about_5: 'Translate',
+        about_6: 'TTS in the other language',
+        about_7: 'Breath / period / comma chunks (short phrases)',
+        about_bonus_title: 'Bonus',
+        about_8: 'Splits books into chapters',
+        about_9: 'Batch image OCR (see docs/OCR.md)',
+        about_where_title: 'Where to do what',
+        about_where_books: '<strong>Books</strong> — upload, process, listen',
+        about_where_voice: '<strong>Voice</strong> — record or upload a sample (1–3 min)',
+        about_where_live: '<strong>Live</strong> — short phrase with your voice / TTS engine',
+        about_where_tools: '<strong>STT / Translate</strong> — transcribe audio and translate text',
+        about_where_more: '<strong>More</strong> — API key, smoke test, LiteUI',
+        about_tip: 'Tip: save a voice before narrating a book or using Live (except Kokoro).',
+        books_title: 'Audiobook',
+        books_hint: 'Upload → process → play. Pick your voice before starting.',
+        books_new: 'New book',
+        books_status_idle: 'Choose a file, then Start.',
+        books_file: 'File (PDF / EPUB / DOCX / TXT)',
+        btn_choose_file: 'Choose file…',
+        file_none: 'No file',
+        label_title: 'Title', label_author: 'Author', label_language: 'Language',
+        label_chapters: 'Chapters', label_voice: 'Voice', label_name: 'Name',
+        label_phrase: 'Phrase', label_result: 'Result', label_from: 'From', label_to: 'To',
+        label_tts_engine: 'TTS engine', label_lang_hint: 'Language hint',
+        books_fname_hint: 'Filename words appear here after you pick a file.',
+        ph_title: 'Title', ph_optional: 'Optional', ph_voice_name: 'Gaston — ES',
+        ph_live: 'Hello, this is a test.', ph_transcription: 'Transcription…',
+        ph_paste: 'Paste text…', ph_translation: 'Translation…',
+        opt_auto: 'auto', opt_en: 'English', opt_es: 'Spanish',
+        opt_ch_detect: 'From headers', opt_ch_numsub: 'Numbered + subtitle',
+        opt_ch_simple: 'Chapter 1, 2, 3…', opt_default_voice: 'Default voice',
+        books_gen_audio: 'Generate audio (TTS)', btn_start: 'Start processing',
+        books_library: 'Library',
+        books_library_hint: 'Expand a job for chapters / files. Play opens the bottom player.',
+        books_empty: 'No books yet.',
+        voice_title: 'Your voice',
+        voice_hint: 'Record or upload 1–3 min reading the script. One sample per language.',
+        voice_save_title: 'Save sample', voice_script_label: 'Script to read',
+        btn_record: 'Record', btn_stop: 'Stop', rec_idle: 'Not recording',
+        voice_or_upload: 'Or upload audio', btn_choose_audio: 'Choose audio…',
+        btn_save_sample: 'Save sample', status_here: 'Status here.',
+        voice_saved: 'Saved voices', voice_empty: 'No voices yet.',
+        live_title: 'Live TTS',
+        live_hint: 'Type a short phrase, pick voice + engine, Speak.',
+        live_checking: 'Checking TTS…', btn_use_engine: 'Use engine', btn_speak: 'Speak',
+        tts_samples_title: 'Quality test: ñ',
+        tts_samples_hint: 'MeloTTS ES (preset) + Chatterbox clone. Speed does not count yet.',
+        tts_samples_ready: 'Ready to play.',
+        tts_samples_loading: 'Loading sample…',
+        tts_samples_playing: 'Playing sample.',
+        tts_samples_failed: 'Could not play:',
+        tools_title: 'STT / Translate',
+        tools_hint: 'Whisper (EN/ES) + Argos offline translate.',
+        tools_transcribe: 'Transcribe', btn_transcribe: 'Transcribe',
+        tools_translate: 'Translate', btn_translate: 'Translate',
+        more_title: 'More',
+        more_hint: 'Diagnostics and optional companions. Not needed day-to-day.',
+        more_apikey: 'API key',
+        more_apikey_hint: 'If <code>CATTS_API_KEY</code> is set, paste it here (stored in this browser).',
+        btn_save_key: 'Save key', btn_clear: 'Clear', idle: 'Idle.',
+        more_smoke: 'Smoke check', btn_run_smoke: 'Run smoke',
+        more_links: 'External links',
+        more_liteui_hint: 'Image/video workstation (separate process). Opens in a new tab.',
+        btn_start_lite: 'Start', btn_open_ui: 'Open UI',
+        btn_close_player: 'Close player',
+        btn_play: 'Play', btn_pause: 'Pause', btn_folder: 'Folder',
+        btn_audio: 'Audio', btn_rerecord: 'Re-record', btn_remove: 'Remove',
+        btn_hear: 'Hear', btn_check_script: 'Check script', btn_rename: 'Rename',
+        chapter: 'Chapter…', no_sample: 'no sample', ready: 'ready',
+        sample: 'Sample', match: 'Match', checking: 'checking…',
+        not_checked: 'not checked', missing_sample: 'missing',
+      }
+    };
+    function t(key) {
+      return (I18N[uiLang] && I18N[uiLang][key]) || (I18N.en[key]) || key;
+    }
+    function applyUiLang() {
+      document.documentElement.lang = uiLang;
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        const val = t(key);
+        if (val.includes('<')) el.innerHTML = val;
+        else el.textContent = val;
+      });
+      document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        el.placeholder = t(el.getAttribute('data-i18n-placeholder'));
+      });
+      document.querySelectorAll('#langToggle button').forEach(b => {
+        b.classList.toggle('active', b.dataset.lang === uiLang);
+      });
+      const rec = document.getElementById('recStatus');
+      const mic = document.getElementById('micBtn');
+      if (rec && mic && !mic.classList.contains('recording') && (typeof recordedBlob === 'undefined' || !recordedBlob)) {
+        rec.textContent = t('rec_idle');
+      }
+    }
+    function setUiLang(lang) {
+      uiLang = (lang === 'en') ? 'en' : 'es';
+      localStorage.setItem(LANG_KEY, uiLang);
+      applyUiLang();
+      if (typeof refreshJobs === 'function' && !uiBusy) refreshJobs().catch(() => {});
+      if (typeof refreshVoices === 'function' && !uiBusy) refreshVoices().catch(() => {});
     }
 
+    const API = '';
+    const PRESET_TTS_ENGINES = new Set(['kokoro', 'edge', 'melotts']);
+    const jobFilesCache = {};
+    const openJobs = new Set();
+    const openVoices = new Set();
+    const TAB_KEY = 'catts_tab';
+    let mediaRecorder = null;
+    let recordChunks = [];
+    let recordedBlob = null;
+    let recordTimer = null;
+    let recordSeconds = 0;
+    let activeAudio = null;
+    let activeRaf = null;
+    let activePlayerHostId = null;
+    let refreshPaused = false;
+    let uiBusy = false;
+    let lastHealth = null;
+    let statusTimer = null;
+    let defaultVoiceId = null;
+    let lastVoicesCache = [];
+    let lastJobsCache = [];
+    let syncBookFileName = () => {};
+    let syncVoiceFileName = () => {};
+
+    const VOICE_SCRIPTS = {
+      en: `Welcome to CATTS voice training. Read this in your natural voice, calmly, as if narrating an audiobook.
+
+My name is [say your name]. I am recording a personal voice for reading books and live interpretation.
+
+The quick brown fox jumps over the lazy dog. Pack my box with five dozen liquor jugs.
+
+One, two, three, four, five, six, seven, eight, nine, ten.
+
+Some sentences are short. Others are longer, with pauses, questions, and variety in tone — but always natural.
+
+How are you today? I hope you are well.
+
+Numbers and dates matter: January fifteenth, twenty twenty-six. Twenty-five percent, three point fourteen.
+
+Thank you. This sample will teach CATTS to sound like me.`,
+
+      es: `Bienvenido al entrenamiento de voz de CATTS. Lee esto con tu voz natural, con calma, como si narraras un audiolibro.
+
+Me llamo [di tu nombre]. Estoy grabando mi voz personal para libros e interpretación en vivo.
+
+El veloz murciélago hindú comía feliz cardillo y kiwi. La cigüeña tocaba el saxofón.
+
+Uno, dos, tres, cuatro, cinco, seis, siete, ocho, nueve, diez.
+
+Algunas frases son cortas. Otras son más largas, con pausas, preguntas y variedad de tono, pero siempre natural.
+
+¿Cómo estás hoy? Espero que muy bien.
+
+Los números y las fechas importan: quince de enero de dos mil veintiséis. Veinticinco por ciento, tres coma catorce.
+
+Gracias. Esta muestra enseñará a CATTS a sonar como yo.`
+    };
+
+    /* ---- tabs ---- */
+    function showTab(id) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.id === 'tab-' + id));
+      document.querySelectorAll('nav.tabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === id));
+      localStorage.setItem(TAB_KEY, id);
+    }
+    document.getElementById('tabs').addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-tab]');
+      if (btn) showTab(btn.dataset.tab);
+    });
+    document.getElementById('langToggle').addEventListener('click', (e) => {
+      const b = e.target.closest('button[data-lang]');
+      if (b) setUiLang(b.dataset.lang);
+    });
+    showTab(localStorage.getItem(TAB_KEY) || 'about');
+
+    /* ---- prayer works (manifest v1) ---- */
+    const prayerAudio = document.getElementById('prayerAudio');
+    let prayerQueue = [];
+    let prayerQi = 0;
+    let prayerManifest = null;
+
+    function prayerStop() {
+      prayerQueue = [];
+      prayerQi = 0;
+      try { prayerAudio.pause(); prayerAudio.removeAttribute('src'); prayerAudio.load(); } catch (_) {}
+      document.getElementById('prayerPlayerBox').style.display = 'none';
+      document.getElementById('prayersStatus').textContent = '';
+    }
+
+    function prayerPlayNext() {
+      if (prayerQi >= prayerQueue.length) {
+        document.getElementById('prayersStatus').textContent = 'Fin';
+        return;
+      }
+      const item = prayerQueue[prayerQi++];
+      document.getElementById('prayerPlayerBox').style.display = 'block';
+      document.getElementById('prayerNowTitle').textContent = item.title;
+      document.getElementById('prayerNowMeta').textContent =
+        `${prayerQi}/${prayerQueue.length}` + (item.context ? ` · ${item.context}` : '');
+      document.getElementById('prayersStatus').textContent = `Reproduciendo ${prayerQi}/${prayerQueue.length}`;
+      prayerAudio.src = item.src;
+      prayerAudio.play().catch((e) => {
+        document.getElementById('prayersStatus').textContent = String(e.message || e);
+      });
+    }
+
+    prayerAudio.addEventListener('ended', () => prayerPlayNext());
+
+    async function loadPrayers() {
+      const box = document.getElementById('prayersList');
+      box.textContent = '…';
+      try {
+        const data = await api('/works');
+        const works = data.works || [];
+        if (!works.length) {
+          box.textContent = t('prayers_empty');
+          return;
+        }
+        box.innerHTML = works.map((w) => `
+          <div class="item" style="margin-bottom:.5rem">
+            <div class="item-head" style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
+              <strong>${escapeHtml(w.title || w.id)}</strong>
+              <span class="badge">${escapeHtml(w.kind || '')}</span>
+              <span class="subtle">${w.assetCount || 0} assets · ${w.chapterCount || 0} caps</span>
+              <button type="button" class="btn primary" data-work="${escapeHtml(w.id)}" data-i18n="prayers_play">Play</button>
+              <button type="button" class="btn" data-expand="${escapeHtml(w.id)}">Caps</button>
+            </div>
+            <div class="item-body" id="prayer-ch-${escapeHtml(w.id)}" style="display:none;margin-top:.35rem"></div>
+          </div>
+        `).join('');
+        box.querySelectorAll('button[data-work]').forEach((btn) => {
+          btn.onclick = () => playWork(btn.dataset.work);
+        });
+        box.querySelectorAll('button[data-expand]').forEach((btn) => {
+          btn.onclick = () => expandChapters(btn.dataset.expand);
+        });
+      } catch (e) {
+        box.textContent = String(e.message || e);
+      }
+    }
+
+    async function expandChapters(workId) {
+      const el = document.getElementById('prayer-ch-' + workId);
+      if (!el) return;
+      if (el.style.display !== 'none' && el.dataset.loaded === '1') {
+        el.style.display = 'none';
+        return;
+      }
+      try {
+        const m = await api('/works/' + encodeURIComponent(workId));
+        el.dataset.loaded = '1';
+        el.style.display = 'block';
+        el.innerHTML = (m.chapters || []).map((c) =>
+          `<button type="button" class="btn" style="margin:.15rem" data-work="${escapeHtml(workId)}" data-ch="${escapeHtml(c.id)}">${escapeHtml(c.title)} (${(c.assetIds||[]).length})</button>`
+        ).join('') || '<span class="subtle">—</span>';
+        el.querySelectorAll('button[data-ch]').forEach((b) => {
+          b.onclick = () => playWork(b.dataset.work, b.dataset.ch);
+        });
+      } catch (e) {
+        el.style.display = 'block';
+        el.textContent = String(e.message || e);
+      }
+    }
+
+    async function playWork(workId, chapterId) {
+      try {
+        prayerManifest = await api('/works/' + encodeURIComponent(workId));
+        const byId = Object.fromEntries((prayerManifest.assets || []).map((a) => [a.id, a]));
+        const chapters = prayerManifest.chapters || [];
+        const ch = chapterId
+          ? chapters.find((c) => c.id === chapterId)
+          : chapters[0];
+        if (!ch) throw new Error('sin capítulos');
+        prayerQueue = (ch.assetIds || []).map((aid, i) => {
+          const a = byId[aid];
+          return {
+            title: a ? (a.id + (ch.assetIds.filter((x) => x === aid).length > 1 ? ` · #${i + 1}` : '')) : aid,
+            context: ch.title,
+            src: a && a.src,
+          };
+        }).filter((x) => x.src);
+        if (!prayerQueue.length) throw new Error('sin audio');
+        prayerQi = 0;
+        prayerPlayNext();
+      } catch (e) {
+        document.getElementById('prayersStatus').textContent = String(e.message || e);
+      }
+    }
+
+    document.getElementById('prayersRefresh').onclick = loadPrayers;
+    document.getElementById('prayersStop').onclick = prayerStop;
+    const _showTab = showTab;
+    showTab = function (id) {
+      _showTab(id);
+      if (id === 'prayers') loadPrayers();
+    };
+    showTab(localStorage.getItem(TAB_KEY) || 'about');
+
+    /* ---- helpers ---- */
+    function headers() {
+      const h = {};
+      const key = localStorage.getItem('catts_api_key');
+      if (key) h['X-API-Key'] = key;
+      return h;
+    }
+
+    async function api(path, opts = {}) {
+      const r = await fetch(API + path, { ...opts, headers: { ...headers(), ...(opts.headers || {}) } });
+      if (!r.ok) {
+        const detail = (await r.json().catch(() => ({}))).detail || r.statusText;
+        throw new Error(`${detail} (${r.status})`);
+      }
+      const ct = r.headers.get('content-type') || '';
+      if (ct.includes('json')) return r.json();
+      return r;
+    }
+
+    function setStatus(elId, kind, html) {
+      const el = document.getElementById(elId);
+      if (!el) return;
+      el.className = 'status ' + (kind || 'idle');
+      el.innerHTML = html;
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? '').replace(/[&<>"']/g, ch => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[ch]));
+    }
+
+    function userActionForError(message) {
+      const msg = String(message || '').toLowerCase();
+      if (msg.includes('kokoro') || msg.includes('8880')) return 'Start Kokoro: .\\scripts\\start_kokoro.ps1 then retry.';
+      if (msg.includes('xtts') && (msg.includes('not ready') || msg.includes('loading')))
+        return 'Switch TTS engine to Chatterbox → Use engine, then Speak.';
+      if (msg.includes('riff') || msg.includes('reference') || msg.includes('bad reference'))
+        return 'Pick voice Fausto, or re-save the voice sample as WAV.';
+      if (msg.includes('chatterbox')) return 'Wait for first CPU load (minutes), or play data\\chatterbox_gaston_es.wav.';
+      if (msg.includes('catts_accept_coqui_cpml') || msg.includes('coqui') || msg.includes('cpml'))
+        return 'Accept Coqui terms; set CATTS_ACCEPT_COQUI_CPML=1 and restart.';
+      if (msg.includes('ocr') || msg.includes('worker') || msg.includes('catts_worker_url'))
+        return 'Configure OCR worker, or use an embedded-text PDF.';
+      if (msg.includes('ffmpeg')) return 'Run setup so ffmpeg is installed.';
+      if (msg.includes('timeout') || msg.includes('timed out')) return 'Retry with a shorter phrase or smaller file.';
+      if (msg.includes('no sample') || msg.includes('empty')) return 'Record or upload a fresh voice sample.';
+      return 'Pick Chatterbox + Fausto, Use engine, Speak. Or open data\\chatterbox_gaston_es.wav.';
+    }
+
+    function startElapsed(elId, baseHtml) {
+      const t0 = Date.now();
+      if (statusTimer) clearInterval(statusTimer);
+      const tick = () => {
+        const s = Math.round((Date.now() - t0) / 1000);
+        setStatus(elId, 'busy', baseHtml + ` <strong>${s}s</strong>…`);
+      };
+      tick();
+      statusTimer = setInterval(tick, 500);
+      return () => { if (statusTimer) { clearInterval(statusTimer); statusTimer = null; } };
+    }
+
+    function setFileLabel(nameEl, file, emptyLabel) {
+      nameEl.textContent = file ? file.name : emptyLabel;
+      nameEl.classList.toggle('has-file', !!file);
+    }
+
+    function wireFilePicker(inputId, btnId, nameId, emptyLabel) {
+      const input = document.getElementById(inputId);
+      const nameEl = document.getElementById(nameId);
+      document.getElementById(btnId).onclick = () => input.click();
+      return () => setFileLabel(nameEl, input.files[0], emptyLabel);
+    }
+
+    /* ---- player ---- */
     function openGlobalDock() {
       const dock = document.getElementById('globalPlayerDock');
       dock.removeAttribute('hidden');
-      dock.style.display = 'block';
       document.body.classList.add('player-open');
-      dock.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     }
 
     function closeGlobalDock() {
       const dock = document.getElementById('globalPlayerDock');
       dock.setAttribute('hidden', '');
-      dock.style.display = 'none';
       document.body.classList.remove('player-open');
       stopActivePlayer();
       document.getElementById('globalPlayerHost').innerHTML = '';
     }
 
-    async function playInGlobalDock(blob, label, cacheKey) {
-      openGlobalDock();
-      const host = document.getElementById('globalPlayerHost');
-      host.innerHTML = '<div class="wave-player"><div class="wave-label">' + (label || 'Audio') + '</div><div class="wave-status subtle">Decoding waveformâ€¦</div></div>';
-      stopActivePlayer();
-      await mountWavePlayer(host, blob, label, { autoplay: true, cacheKey });
-    }
-
-    async function playBook(id) {
-      openJobs.add(id);
-      document.querySelector(`.job-item[data-id="${id}"]`)?.classList.add('open');
-      openGlobalDock();
-      const host = document.getElementById('globalPlayerHost');
-      host.innerHTML = '<div class="wave-player"><div class="wave-status subtle">Loading chapterâ€¦</div></div>';
-      try {
-        const f = await getJobFiles(id);
-        let lastErr = null;
-        for (const ch of f.chapters || []) {
-          try {
-            const blob = await fetchChapterBlob(id, ch.index);
-            const label = ch.title || `Chapter ${ch.index}`;
-            await playInGlobalDock(blob, label, `job:${id}:ch${ch.index}`);
-            return;
-          } catch (e) { lastErr = e; }
-        }
-        throw lastErr || new Error('No playable chapter â€” use Re-record book');
-      } catch (err) {
-        host.innerHTML = '<div class="wave-silent">âš  ' + (err.message || err) + '</div>';
-      }
-    }
-
-    async function playChapter(id, num) {
-      if (!num) return;
-      openJobs.add(id);
-      document.querySelector(`.job-item[data-id="${id}"]`)?.classList.add('open');
-      openGlobalDock();
-      const host = document.getElementById('globalPlayerHost');
-      host.innerHTML = '<div class="wave-player"><div class="wave-status subtle">Loading chapterâ€¦</div></div>';
-      try {
-        const blob = await fetchChapterBlob(id, num);
-        const f = await getJobFiles(id);
-        const ch = (f.chapters || []).find(c => String(c.index) === String(num));
-        const label = ch?.title || `Chapter ${num}`;
-        await playInGlobalDock(blob, label, `job:${id}:ch${num}`);
-      } catch (err) {
-        host.innerHTML = '<div class="wave-silent">âš  ' + (err.message || err) + '</div>';
-      }
-    }
-
-    async function delJob(id) {
-      if (!confirm('Remove this book from CATTS? Files stay on disk until you delete the folder.')) return;
-      try {
-        delete jobFilesCache[id];
-        await api(`/jobs/${id}`, { method: 'DELETE' });
-        openJobs.delete(id);
-        await refreshJobs();
-      } catch (e) {
-        alert('Remove failed: ' + (e.message || e));
-      }
-    }
-
-    function bindJobActions() {
-      const box = document.getElementById('jobs');
-      if (!box || box.dataset.bound) return;
-      box.dataset.bound = '1';
-      box.addEventListener('click', (e) => {
-        const btn = e.target.closest('[data-action]');
-        if (btn) {
-          e.preventDefault();
-          e.stopPropagation();
-          const id = btn.dataset.id;
-          const act = btn.dataset.action;
-          if (act === 'play') playBook(id);
-          else if (act === 'folder') openFolder(id);
-          else if (act === 'md') dlManuscript(id, 'md');
-          else if (act === 'txt') dlManuscript(id, 'txt');
-          else if (act === 'download') dlResult(id);
-          else if (act === 'rerecord') regenerateJob(id);
-          else if (act === 'delete') delJob(id);
-          return;
-        }
-        const head = e.target.closest('[data-toggle-job]');
-        if (head) {
-          const item = head.closest('.job-item');
-          if (!item) return;
-          const id = item.dataset.id;
-          if (item.classList.contains('running') || item.classList.contains('queued')) return;
-          item.classList.toggle('open');
-          if (item.classList.contains('open')) openJobs.add(id);
-          else openJobs.delete(id);
-          return;
-        }
-      });
-      box.addEventListener('change', (e) => {
-        const sel = e.target.closest('select[data-action=chapter]');
-        if (sel?.value) playChapter(sel.dataset.id, sel.value);
-      });
-    }
-
-    let activeAudio = null;
-    let activeRaf = null;
-    let activePlayerHostId = null;
-    let refreshPaused = false;
-
     function isPlayableBlob(blob) {
       return blob && blob.size > 4096;
-    }
-
-    async function fetchChapterBlob(id, num) {
-      const r = await fetch(API + `/jobs/${id}/chapters/${num}/audio`, { headers: headers() });
-      if (!r.ok) throw new Error('Chapter audio not found');
-      const blob = await r.blob();
-      if (!isPlayableBlob(blob)) {
-        throw new Error(`Chapter ${num} looks silent or corrupt â€” click Regenerate audio`);
-      }
-      return blob;
-    }
-
-    async function fetchBestPlayableChapter(id) {
-      const f = await getJobFiles(id);
-      if (!f.chapters.length) throw new Error('No chapter audio â€” click Regenerate audio');
-      for (const ch of f.chapters) {
-        try {
-          const blob = await fetchChapterBlob(id, ch.index);
-          return { blob, label: ch.title || `Chapter ${ch.index}` };
-        } catch (_) { /* try next */ }
-      }
-      throw new Error('All chapters look silent â€” click Regenerate audio');
     }
 
     function fmtTime(sec) {
@@ -568,24 +1107,7 @@
           duration: entry.duration,
           maxPeak: entry.maxPeak,
         }));
-      } catch (_) { /* quota */ }
-    }
-
-    async function getPeaks(blob, cacheKey, buckets = 720) {
-      if (cacheKey) {
-        if (wavePeaksCache.has(cacheKey)) return wavePeaksCache.get(cacheKey);
-        const stored = peaksFromStorage(cacheKey);
-        if (stored) {
-          wavePeaksCache.set(cacheKey, stored);
-          return stored;
-        }
-      }
-      const entry = await decodePeaks(blob, buckets);
-      if (cacheKey) {
-        wavePeaksCache.set(cacheKey, entry);
-        peaksToStorage(cacheKey, entry);
-      }
-      return entry;
+      } catch (_) {}
     }
 
     async function decodePeaks(blob, buckets = 720) {
@@ -607,6 +1129,17 @@
       return { peaks, duration: buf.duration, maxPeak };
     }
 
+    async function getPeaks(blob, cacheKey, buckets = 720) {
+      if (cacheKey) {
+        if (wavePeaksCache.has(cacheKey)) return wavePeaksCache.get(cacheKey);
+        const stored = peaksFromStorage(cacheKey);
+        if (stored) { wavePeaksCache.set(cacheKey, stored); return stored; }
+      }
+      const entry = await decodePeaks(blob, buckets);
+      if (cacheKey) { wavePeaksCache.set(cacheKey, entry); peaksToStorage(cacheKey, entry); }
+      return entry;
+    }
+
     function drawWaveform(canvas, peaks, duration, startSec, endSec, playSec, { playhead = true, fill = '#6ea8fe', bg = '#1e2430' } = {}) {
       const w = canvas.width = canvas.clientWidth * devicePixelRatio;
       const h = canvas.height = canvas.clientHeight * devicePixelRatio;
@@ -615,13 +1148,11 @@
       g.fillStyle = bg;
       g.fillRect(0, 0, w, h);
       if (!peaks.length || !duration) return;
-
       const i0 = Math.floor((startSec / duration) * peaks.length);
       const i1 = Math.ceil((endSec / duration) * peaks.length);
       const slice = peaks.subarray(i0, Math.max(i1, i0 + 1));
       const mid = h / 2;
       const barW = w / slice.length;
-
       for (let i = 0; i < slice.length; i++) {
         const amp = slice[i];
         const barH = Math.max(1, amp * mid * 0.92);
@@ -630,7 +1161,6 @@
         g.fillStyle = played ? fill : '#4a5568';
         g.fillRect(x, mid - barH, Math.max(1, barW - 1), barH * 2);
       }
-
       if (playhead && duration && playSec >= startSec && playSec <= endSec) {
         const frac = (playSec - startSec) / (endSec - startSec);
         const x = frac * w;
@@ -646,53 +1176,41 @@
     function stopActivePlayer() {
       if (activeRaf) cancelAnimationFrame(activeRaf);
       activeRaf = null;
-      if (activeAudio) {
-        activeAudio.pause();
-        activeAudio = null;
-      }
+      if (activeAudio) { activeAudio.pause(); activeAudio = null; }
       activePlayerHostId = null;
     }
 
     async function mountWavePlayer(container, blob, label, { autoplay = true, lookaheadSec = 5, cacheKey = null } = {}) {
       if (!container) return;
       if (!isPlayableBlob(blob)) {
-        container.innerHTML = '<div class="wave-silent">âš  Audio file is empty or too small â€” use <strong>Re-record book</strong>.</div>';
+        container.innerHTML = '<div class="wave-silent">Audio empty/corrupt — use Re-record.</div>';
         return;
       }
-
       const url = URL.createObjectURL(blob);
       activePlayerHostId = container.id || null;
-      container.innerHTML = `
-        <div class="wave-player">
-          <div class="wave-label">${label || 'Audio'}</div>
-          <div class="wave-status subtle">Decoding waveformâ€¦</div>
-        </div>`;
-
+      container.innerHTML = '<div class="wave-player"><div class="subtle">Decoding…</div></div>';
       let peaks, duration, maxPeak;
       try {
         ({ peaks, duration, maxPeak } = await getPeaks(blob, cacheKey));
       } catch (_) {
-        container.innerHTML = '<div class="wave-silent">âš  Could not decode audio for waveform.</div>';
+        container.innerHTML = '<div class="wave-silent">Could not decode audio.</div>';
         URL.revokeObjectURL(url);
         return;
       }
-
       const silent = maxPeak < 0.008;
       const wrap = document.createElement('div');
       wrap.className = 'wave-player';
       wrap.innerHTML = `
         <div class="wave-meta">
           <span class="wave-label"></span>
-          <span class="wave-level ${silent ? 'warn' : 'ok'}">${silent ? 'Low signal' : 'Signal OK'} Â· ${fmtTime(duration)}</span>
+          <span class="wave-level ${silent ? 'warn' : 'ok'}">${silent ? 'Low signal' : 'OK'} · ${fmtTime(duration)}</span>
         </div>
-        <div class="wave-silent" ${silent ? '' : 'hidden'}>âš  Waveform looks flat â€” file may be silent. Try <strong>Re-record book</strong>.</div>
-        <canvas class="wave-main" style="height:72px"></canvas>
-        <div class="wave-lookahead-wrap">
-          <div class="wave-lookahead-title">Next ${lookaheadSec}s</div>
-          <canvas class="wave-lookahead" style="height:48px"></canvas>
-        </div>
+        <div class="wave-silent" ${silent ? '' : 'hidden'}>Waveform flat — try Re-record.</div>
+        <canvas class="wave-main" style="height:64px"></canvas>
+        <div class="wave-lookahead-title">Next ${lookaheadSec}s</div>
+        <canvas class="wave-lookahead" style="height:40px"></canvas>
         <div class="wave-controls">
-          <button type="button" class="wave-play action-btn play">â–¶</button>
+          <button type="button" class="btn play wave-play">${t('btn_play')}</button>
           <input type="range" class="wave-seek" min="0" max="1000" value="0" />
           <span class="wave-time">0:00 / ${fmtTime(duration)}</span>
         </div>`;
@@ -704,7 +1222,6 @@
       wrap.insertBefore(audio, wrap.firstChild);
       activeAudio = audio;
       wrap.querySelector('.wave-label').textContent = label || 'Audio';
-      const playerAudio = audio;
       const mainCanvas = wrap.querySelector('.wave-main');
       const laCanvas = wrap.querySelector('.wave-lookahead');
       const seek = wrap.querySelector('.wave-seek');
@@ -712,232 +1229,325 @@
       const playBtn = wrap.querySelector('.wave-play');
 
       function redraw() {
-        const t = playerAudio.currentTime || 0;
+        const t = audio.currentTime || 0;
         drawWaveform(mainCanvas, peaks, duration, 0, duration, t);
         drawWaveform(laCanvas, peaks, duration, t, Math.min(duration, t + lookaheadSec), t, { fill: '#f5a524' });
         seek.value = duration ? Math.round((t / duration) * 1000) : 0;
         timeEl.textContent = `${fmtTime(t)} / ${fmtTime(duration)}`;
-        if (!playerAudio.paused) activeRaf = requestAnimationFrame(redraw);
+        if (!audio.paused) activeRaf = requestAnimationFrame(redraw);
       }
-
       function seekTo(sec) {
-        playerAudio.currentTime = Math.max(0, Math.min(duration, sec));
+        audio.currentTime = Math.max(0, Math.min(duration, sec));
         redraw();
       }
-
       playBtn.onclick = () => {
-        if (playerAudio.paused) {
-          playerAudio.play();
-          playBtn.textContent = 'â¸';
+        if (audio.paused) {
+          audio.play();
+          playBtn.textContent = t('btn_pause');
           redraw();
         } else {
-          playerAudio.pause();
-          playBtn.textContent = 'â–¶';
+          audio.pause();
+          playBtn.textContent = t('btn_play');
           if (activeRaf) cancelAnimationFrame(activeRaf);
         }
       };
       seek.oninput = () => seekTo((seek.value / 1000) * duration);
       mainCanvas.onclick = (e) => {
         const rect = mainCanvas.getBoundingClientRect();
-        const frac = (e.clientX - rect.left) / rect.width;
-        seekTo(frac * duration);
-        if (playerAudio.paused && autoplay) playerAudio.play().then(() => { playBtn.textContent = 'â¸'; redraw(); });
+        seekTo(((e.clientX - rect.left) / rect.width) * duration);
+        if (audio.paused && autoplay) audio.play().then(() => { playBtn.textContent = t('btn_pause'); redraw(); });
       };
-      playerAudio.onended = () => { playBtn.textContent = 'â–¶'; if (activeRaf) cancelAnimationFrame(activeRaf); };
+      audio.onended = () => { playBtn.textContent = t('btn_play'); if (activeRaf) cancelAnimationFrame(activeRaf); };
       requestAnimationFrame(() => {
         redraw();
-        if (autoplay) playerAudio.play().then(() => { playBtn.textContent = 'â¸'; redraw(); }).catch(() => {});
+        if (autoplay) audio.play().then(() => { playBtn.textContent = t('btn_pause'); redraw(); }).catch(() => {});
       });
-      const onResize = () => redraw();
       if (typeof ResizeObserver !== 'undefined') {
-        const ro = new ResizeObserver(onResize);
+        const ro = new ResizeObserver(() => redraw());
         ro.observe(mainCanvas);
         ro.observe(laCanvas);
       }
     }
 
-    let uiBusy = false;
-    let lastHealth = null;
-    let statusTimer = null;
-
-    function setStatus(elId, kind, html) {
-      const el = document.getElementById(elId);
-      if (!el) return;
-      el.className = 'status-box ' + (kind || 'idle');
-      el.innerHTML = html;
-    }
-
-    function escapeHtml(value) {
-      return String(value ?? '').replace(/[&<>"']/g, ch => ({
-        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-      }[ch]));
-    }
-
-    function userActionForError(message) {
-      const msg = String(message || '').toLowerCase();
-      if (msg.includes('kokoro') || msg.includes('8880')) {
-        return 'Start Kokoro: .\\scripts\\start_kokoro.ps1 (port 8880), then retry.';
-      }
-      if (msg.includes('catts_accept_coqui_cpml') || msg.includes('coqui') || msg.includes('cpml')) {
-        return 'Accept/reject Coqui terms; if accepted, set CATTS_ACCEPT_COQUI_CPML=1 and restart.';
-      }
-      if (msg.includes('ocr') || msg.includes('worker') || msg.includes('catts_worker_url')) {
-        return 'Configure OCR worker, or use an embedded-text PDF.';
-      }
-      if (msg.includes('ffmpeg')) return 'Run setup again so bundled ffmpeg is installed.';
-      if (msg.includes('timeout') || msg.includes('timed out')) return 'Retry with a shorter phrase or smaller file.';
-      if (msg.includes('no sample') || msg.includes('empty')) return 'Record or upload a fresh voice sample.';
-      return 'Run Diagnostics, fix the failing step, then retry.';
-    }
-
-    function startElapsed(elId, baseHtml) {
-      const t0 = Date.now();
-      if (statusTimer) clearInterval(statusTimer);
-      const tick = () => {
-        const s = Math.round((Date.now() - t0) / 1000);
-        setStatus(elId, 'busy', baseHtml + ` <strong>${s}s</strong> elapsedâ€¦`);
-      };
-      tick();
-      statusTimer = setInterval(tick, 500);
-      return () => { if (statusTimer) { clearInterval(statusTimer); statusTimer = null; } };
-    }
-
-    window.playVoiceSample = async (id, label) => {
-      openVoices.add(id);
-      document.querySelector(`.voice-item[data-id="${id}"]`)?.classList.add('open');
-      document.querySelector('[data-panel="voice"]')?.classList.add('open');
-      uiBusy = true;
-      const stopElapsed = startElapsed(
-        'voicePlayStatus',
-        `Loading sample for <strong>${label || id}</strong> â€”`,
-      );
+    async function playInGlobalDock(blob, label, cacheKey) {
       openGlobalDock();
-      document.getElementById('globalPlayerHost').innerHTML =
-        '<div class="wave-player"><div class="wave-status subtle">Loading your recordingâ€¦</div></div>';
+      const host = document.getElementById('globalPlayerHost');
+      host.innerHTML = '<div class="wave-player"><div class="subtle">Decoding…</div></div>';
+      stopActivePlayer();
+      await mountWavePlayer(host, blob, label, { autoplay: true, cacheKey });
+    }
+
+    async function playTtsSample(id, label) {
+      setStatus('ttsSampleStatus', 'busy', `<strong>${escapeHtml(label)}</strong> · ${t('tts_samples_loading')}`);
       try {
-        const r = await fetch(API + `/voices/${id}/sample`, { headers: headers() });
+        const r = await fetch(API + `/tts/samples/${encodeURIComponent(id)}.wav`, { headers: headers() });
         if (!r.ok) {
           const detail = (await r.json().catch(() => ({}))).detail || r.statusText;
-          throw new Error(detail || 'No sample audio for this voice');
+          throw new Error(detail || `HTTP ${r.status}`);
         }
         const blob = await r.blob();
-        if (!blob || blob.size < 1000) {
-          throw new Error('Sample file is empty or missing â€” save a voice sample again');
-        }
-        stopElapsed();
-        setStatus('voicePlayStatus', 'busy', 'Decoding waveformâ€¦');
-        await playInGlobalDock(blob, `Sample â€” ${label || id}`, `voice:${id}`);
-        setStatus(
-          'voicePlayStatus',
-          'ok',
-          `Playing your <strong>recording</strong> (${Math.round(blob.size / 1024)} KB). This is the sample, not Live TTS clone.`,
-        );
+        if (!isPlayableBlob(blob)) throw new Error('Audio empty/corrupt');
+        await playInGlobalDock(blob, `Muestra · ${label}`, `tts-sample:${id}`);
+        setStatus('ttsSampleStatus', 'ok', `<strong>${escapeHtml(label)}</strong> · ${t('tts_samples_playing')}`);
       } catch (e) {
-        stopElapsed();
-        const msg = e.message || String(e);
-        setStatus('voicePlayStatus', 'err', `Hear sample failed: <strong>${msg}</strong>`);
-        document.getElementById('globalPlayerHost').innerHTML =
-          `<div class="wave-silent">âš  ${msg}</div>`;
-        alert('Hear sample failed: ' + msg);
-      } finally {
-        uiBusy = false;
+        setStatus('ttsSampleStatus', 'err', `${t('tts_samples_failed')} <strong>${escapeHtml(e.message || e)}</strong>`);
+      }
+    }
+
+    async function getJobFiles(id) {
+      if (!jobFilesCache[id]) jobFilesCache[id] = await api(`/jobs/${id}/files`);
+      return jobFilesCache[id];
+    }
+
+    async function fetchChapterBlob(id, num) {
+      const r = await fetch(API + `/jobs/${id}/chapters/${num}/audio`, { headers: headers() });
+      if (!r.ok) throw new Error('Chapter audio not found');
+      const blob = await r.blob();
+      if (!isPlayableBlob(blob)) throw new Error(`Chapter ${num} silent/corrupt — Re-record`);
+      return blob;
+    }
+
+    async function playBook(id) {
+      openJobs.add(id);
+      document.querySelector(`.item[data-id="${id}"]`)?.classList.add('open');
+      openGlobalDock();
+      const host = document.getElementById('globalPlayerHost');
+      host.innerHTML = '<div class="wave-player"><div class="subtle">Loading…</div></div>';
+      try {
+        const f = await getJobFiles(id);
+        let lastErr = null;
+        for (const ch of f.chapters || []) {
+          try {
+            const blob = await fetchChapterBlob(id, ch.index);
+            await playInGlobalDock(blob, ch.title || `Chapter ${ch.index}`, `job:${id}:ch${ch.index}`);
+            return;
+          } catch (e) { lastErr = e; }
+        }
+        throw lastErr || new Error('No playable chapter — Re-record');
+      } catch (err) {
+        host.innerHTML = '<div class="wave-silent">' + escapeHtml(err.message || err) + '</div>';
+      }
+    }
+
+    async function playChapter(id, num) {
+      if (!num) return;
+      openJobs.add(id);
+      document.querySelector(`.item[data-id="${id}"]`)?.classList.add('open');
+      openGlobalDock();
+      const host = document.getElementById('globalPlayerHost');
+      host.innerHTML = '<div class="wave-player"><div class="subtle">Loading…</div></div>';
+      try {
+        const blob = await fetchChapterBlob(id, num);
+        const f = await getJobFiles(id);
+        const ch = (f.chapters || []).find(c => String(c.index) === String(num));
+        await playInGlobalDock(blob, ch?.title || `Chapter ${num}`, `job:${id}:ch${num}`);
+      } catch (err) {
+        host.innerHTML = '<div class="wave-silent">' + escapeHtml(err.message || err) + '</div>';
+      }
+    }
+
+    async function delJob(id) {
+      if (!confirm('Remove this book from CATTS? Files stay on disk until you delete the folder.')) return;
+      try {
+        delete jobFilesCache[id];
+        await api(`/jobs/${id}`, { method: 'DELETE' });
+        openJobs.delete(id);
+        await refreshJobs();
+      } catch (e) {
+        alert('Remove failed: ' + (e.message || e));
+      }
+    }
+
+    window.regenerateJob = async (id) => {
+      const voice = document.getElementById('bookVoice').value || document.getElementById('liveVoice').value;
+      if (!voice && !confirm('No voice selected — regenerate with default anyway?')) return;
+      const fd = new FormData();
+      if (voice) fd.append('voice_id', voice);
+      try {
+        await api(`/jobs/${id}/regenerate`, { method: 'POST', body: fd });
+        delete jobFilesCache[id];
+        openJobs.add(id);
+        showTab('books');
+        alert('Regenerating — watch Library.');
+        await refreshJobs();
+      } catch (e) {
+        alert(e.message || String(e));
       }
     };
 
-    const API = '';
-    const jobFilesCache = {};
-    const openJobs = new Set();
-    const openVoices = new Set();
-    const PANEL_KEY = 'catts_panels';
-    let mediaRecorder = null;
-    let recordChunks = [];
-    let recordedBlob = null;
-    let recordTimer = null;
-    let recordSeconds = 0;
+    window.openFolder = async (id) => {
+      const res = await api(`/jobs/${id}/reveal`, { method: 'POST' });
+      const f = await getJobFiles(id);
+      const pathEl = document.getElementById(`path-${id}`);
+      if (pathEl) pathEl.textContent = res.opened || f.folder;
+    };
 
-    function initPanels() {
-      let saved = {};
-      try { saved = JSON.parse(localStorage.getItem(PANEL_KEY) || '{}'); } catch (_) {}
-      document.querySelectorAll('.panel').forEach(panel => {
-        const id = panel.dataset.panel;
-        const open = id in saved ? saved[id] : ['books', 'newbook', 'voice', 'live'].includes(id);
-        panel.classList.toggle('open', open);
-        panel.querySelector('.panel-head').addEventListener('click', () => {
-          panel.classList.toggle('open');
-          const state = {};
-          document.querySelectorAll('.panel').forEach(p => {
-            state[p.dataset.panel] = p.classList.contains('open');
-          });
-          localStorage.setItem(PANEL_KEY, JSON.stringify(state));
-        });
+    window.dlManuscript = async (id, fmt) => {
+      const r = await fetch(API + `/jobs/${id}/manuscript?format=${fmt}`, { headers: headers() });
+      const blob = await r.blob();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `book.${fmt}`;
+      a.click();
+    };
+
+    window.dlResult = async (id) => {
+      const r = await fetch(API + `/jobs/${id}/result`, { headers: headers() });
+      if (!r.ok) return alert('Not ready');
+      const blob = await r.blob();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'audiobook';
+      a.click();
+    };
+
+    function chapterOptions(chapters) {
+      if (!chapters.length) return '';
+      return chapters.map(c => `<option value="${c.index}">${c.title || ('Chapter ' + c.index)}</option>`).join('');
+    }
+
+    function jobHtml(j) {
+      const cls = j.status;
+      const done = j.status === 'done';
+      const active = cls === 'running' || cls === 'queued';
+      const isOpen = active || openJobs.has(j.id);
+      const label = j.display_name || j.title || j.id;
+      const errorHtml = j.error
+        ? `<br><span style="color:var(--err)">${escapeHtml(j.error)}</span><br><span class="subtle"><strong>Fix:</strong> ${escapeHtml(userActionForError(j.error || j.message))}</span>`
+        : '';
+      const playBtns = done ? `
+        <div class="actions">
+          <button type="button" class="btn play" data-action="play" data-id="${j.id}">${t('btn_play')}</button>
+          <select data-action="chapter" data-id="${j.id}" id="ch-${j.id}" style="width:auto;min-width:8rem">
+            <option value="">${t('chapter')}</option>
+          </select>
+          <button type="button" class="btn" data-action="folder" data-id="${j.id}">${t('btn_folder')}</button>
+          <button type="button" class="btn" data-action="md" data-id="${j.id}">MD</button>
+          <button type="button" class="btn" data-action="txt" data-id="${j.id}">TXT</button>
+          <button type="button" class="btn" data-action="download" data-id="${j.id}">${t('btn_audio')}</button>
+          <button type="button" class="btn" data-action="rerecord" data-id="${j.id}">${t('btn_rerecord')}</button>
+          <button type="button" class="btn danger" data-action="delete" data-id="${j.id}">${t('btn_remove')}</button>
+        </div>` : `
+        <div class="actions">
+          <button type="button" class="btn danger" data-action="delete" data-id="${j.id}">${t('btn_remove')}</button>
+        </div>`;
+      return `<div class="item ${cls} ${isOpen ? 'open' : ''}" data-id="${j.id}">
+        <button type="button" class="item-head" data-toggle-job="${j.id}">
+          <span class="item-title">${escapeHtml(label)}</span>
+          <span class="badge ${cls}">${j.status}</span>
+        </button>
+        <div class="item-body">
+          <div class="subtle">${j.author ? 'by ' + escapeHtml(j.author) + ' · ' : ''}${j.progress}%</div>
+          <div class="bar"><i style="width:${j.progress}%"></i></div>
+          <div class="subtle">${escapeHtml(j.message || '')}${errorHtml}</div>
+          <div class="path" id="path-${j.id}"></div>
+          ${playBtns}
+        </div>
+      </div>`;
+    }
+
+    function bindJobActions() {
+      const box = document.getElementById('jobs');
+      if (!box || box.dataset.bound) return;
+      box.dataset.bound = '1';
+      box.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-action]');
+        if (btn) {
+          e.preventDefault();
+          e.stopPropagation();
+          const id = btn.dataset.id;
+          const act = btn.dataset.action;
+          if (act === 'play') playBook(id);
+          else if (act === 'folder') openFolder(id);
+          else if (act === 'md') dlManuscript(id, 'md');
+          else if (act === 'txt') dlManuscript(id, 'txt');
+          else if (act === 'download') dlResult(id);
+          else if (act === 'rerecord') regenerateJob(id);
+          else if (act === 'delete') delJob(id);
+          return;
+        }
+        const head = e.target.closest('[data-toggle-job]');
+        if (head) {
+          const item = head.closest('.item');
+          if (!item || item.classList.contains('running') || item.classList.contains('queued')) return;
+          const id = item.dataset.id;
+          item.classList.toggle('open');
+          if (item.classList.contains('open')) openJobs.add(id);
+          else openJobs.delete(id);
+        }
+      });
+      box.addEventListener('change', (e) => {
+        const sel = e.target.closest('select[data-action=chapter]');
+        if (sel?.value) playChapter(sel.dataset.id, sel.value);
       });
     }
 
-    function setFileLabel(nameEl, file, emptyLabel) {
-      nameEl.textContent = file ? file.name : emptyLabel;
-      nameEl.classList.toggle('has-file', !!file);
+    async function hydrateJobExtras(jobs) {
+      for (const j of jobs.filter(x => x.status === 'done')) {
+        try {
+          const f = await getJobFiles(j.id);
+          const pathEl = document.getElementById(`path-${j.id}`);
+          if (pathEl) {
+            const title = j.display_name || j.title || 'this book';
+            pathEl.textContent = `On disk — folder named like "${title}".`;
+          }
+          const sel = document.getElementById(`ch-${j.id}`);
+          if (sel && f.chapters.length) {
+            sel.innerHTML = '<option value="">' + t('chapter') + '</option>' + chapterOptions(f.chapters);
+          }
+        } catch (e) { console.error(e); }
+      }
     }
 
-    function wireFilePicker(inputId, btnId, nameId, emptyLabel) {
-      const input = document.getElementById(inputId);
-      const nameEl = document.getElementById(nameId);
-      document.getElementById(btnId).onclick = () => input.click();
-      return () => setFileLabel(nameEl, input.files[0], emptyLabel);
+    async function refreshJobs() {
+      const jobs = await api('/jobs');
+      lastJobsCache = jobs;
+      document.getElementById('booksCount').textContent = jobs.length ? `(${jobs.length})` : '';
+      document.getElementById('jobs').innerHTML = jobs.length
+        ? jobs.map(jobHtml).join('')
+        : '<p class="empty">' + t('books_empty') + '</p>';
+      await hydrateJobExtras(jobs);
     }
 
-    window.toggleJobItem = (btn) => {
-      const item = btn.closest('.job-item');
-      const id = item.dataset.id;
-      if (item.classList.contains('running') || item.classList.contains('queued')) return;
-      item.classList.toggle('open');
-      if (item.classList.contains('open')) openJobs.add(id);
-      else openJobs.delete(id);
-    };
+    /* ---- voices ---- */
+    function resolveVoiceId() {
+      return document.getElementById('liveVoice').value
+        || document.getElementById('bookVoice').value
+        || defaultVoiceId
+        || '';
+    }
 
-    window.toggleVoiceItem = (btn) => {
-      const item = btn.closest('.voice-item');
-      const id = item.dataset.id;
-      item.classList.toggle('open');
-      if (item.classList.contains('open')) openVoices.add(id);
-      else openVoices.delete(id);
-    };
+    function fillVoiceSelect(selectId, voices, placeholder, preferId) {
+      const sel = document.getElementById(selectId);
+      const prev = sel.value;
+      const opts = voices.filter(v => v.ready).map(v =>
+        `<option value="${v.id}" data-lang="${v.lang || 'en'}">${escapeHtml(v.display_name || v.name)}</option>`
+      ).join('');
+      sel.innerHTML = `<option value="">${placeholder}</option>` + opts;
+      const pick = prev || preferId || defaultVoiceId;
+      if (pick && [...sel.options].some(o => o.value === pick)) sel.value = pick;
+    }
 
-    let syncBookFileName = () => {};
-    let syncVoiceFileName = () => {};
+    function voiceMeterClass(v) {
+      if (!v.has_sample) return 'miss';
+      if (v.script_match == null) return '';
+      if (v.script_match >= 70) return 'good';
+      if (v.script_match >= 40) return 'mid';
+      return 'bad';
+    }
 
-    const VOICE_SCRIPTS = {
-      en: `Welcome to CATTS voice training. Read this in your natural voice, calmly, as if narrating an audiobook.
+    function voiceMeterWidth(v) {
+      if (!v.has_sample) return 100;
+      if (v.script_match == null) return v.quality_status === 'checking' ? 40 : 8;
+      return Math.max(4, Math.min(100, v.script_match));
+    }
 
-My name is [say your name]. I am recording a personal voice for reading books and live interpretation.
-
-The quick brown fox jumps over the lazy dog. Pack my box with five dozen liquor jugs.
-
-One, two, three, four, five, six, seven, eight, nine, ten.
-
-Some sentences are short. Others are longer, with pauses, questions, and variety in tone â€” but always natural.
-
-How are you today? I hope you are well.
-
-Numbers and dates matter: January fifteenth, twenty twenty-six. Twenty-five percent, three point fourteen.
-
-Thank you. This sample will teach CATTS to sound like me.`,
-
-      es: `Bienvenido al entrenamiento de voz de CATTS. Lee esto con tu voz natural, con calma, como si narraras un audiolibro.
-
-Me llamo [di tu nombre]. Estoy grabando mi voz personal para libros y interpretaciÃ³n en vivo.
-
-El veloz murciÃ©lago hindÃº comÃ­a feliz cardillo y kiwi. La cigÃ¼eÃ±a tocaba el saxofÃ³n.
-
-Uno, dos, tres, cuatro, cinco, seis, siete, ocho, nueve, diez.
-
-Algunas frases son cortas. Otras son mÃ¡s largas, con pausas, preguntas y variedad de tono, pero siempre natural.
-
-Â¿CÃ³mo estÃ¡s hoy? Espero que muy bien.
-
-Los nÃºmeros y las fechas importan: quince de enero de dos mil veintisÃ©is. Veinticinco por ciento, tres coma catorce.
-
-Gracias. Esta muestra enseÃ±arÃ¡ a CATTS a sonar como yo.`
-    };
+    function fmtBytes(n) {
+      if (n == null) return '—';
+      if (n < 1024) return n + ' B';
+      if (n < 1e6) return Math.round(n / 1024) + ' KB';
+      return (n / 1e6).toFixed(1) + ' MB';
+    }
 
     function updateVoiceScript() {
       const lang = document.getElementById('voiceLang').value;
@@ -953,12 +1563,10 @@ Gracias. Esta muestra enseÃ±arÃ¡ a CATTS a sonar como yo.`
     async function toggleRecording() {
       const micBtn = document.getElementById('micBtn');
       const recStatus = document.getElementById('recStatus');
-
       if (mediaRecorder && mediaRecorder.state === 'recording') {
         mediaRecorder.stop();
         return;
       }
-
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         recordChunks = [];
@@ -974,76 +1582,295 @@ Gracias. Esta muestra enseÃ±arÃ¡ a CATTS a sonar como yo.`
           recordedBlob = new Blob(recordChunks, { type: mime });
           document.getElementById('voiceFile').value = '';
           syncVoiceFileName();
-          micBtn.textContent = 'ðŸŽ¤ Record';
+          micBtn.textContent = t('btn_record');
           micBtn.classList.remove('recording');
-          recStatus.textContent = `Recorded ${formatRecTime(recordSeconds)} â€” check waveform below, then Start training`;
-          mountWavePlayer(document.getElementById('voicePreview'), recordedBlob, 'Recording preview', { autoplay: false });
+          recStatus.textContent = `Recorded ${formatRecTime(recordSeconds)} — preview below, then Save`;
+          mountWavePlayer(document.getElementById('voicePreview'), recordedBlob, 'Preview', { autoplay: false });
         };
         mediaRecorder.start(1000);
-        micBtn.textContent = 'â¹ Stop';
+        micBtn.textContent = t('btn_stop');
         micBtn.classList.add('recording');
-        recStatus.textContent = 'Recordingâ€¦ 0:00 (aim for 1â€“3 min)';
+        recStatus.textContent = 'Recording… 0:00 (aim 1–3 min)';
         recordTimer = setInterval(() => {
           recordSeconds += 1;
-          recStatus.textContent = `Recordingâ€¦ ${formatRecTime(recordSeconds)} (aim for 1â€“3 min)`;
+          recStatus.textContent = `Recording… ${formatRecTime(recordSeconds)} (aim 1–3 min)`;
         }, 1000);
       } catch (e) {
-        alert('Microphone access denied or unavailable. Upload a file instead.');
+        alert('Mic denied. Upload a file instead.');
       }
     }
 
-    document.getElementById('micBtn').onclick = toggleRecording;
-
-    document.getElementById('voiceFile').onchange = async (e) => {
-      const f = e.target.files[0];
-      syncVoiceFileName();
-      if (!f) return;
-      recordedBlob = null;
-      await mountWavePlayer(document.getElementById('voicePreview'), f, f.name, { autoplay: false });
+    window.toggleVoiceItem = (btn) => {
+      const item = btn.closest('.item');
+      const id = item.dataset.id;
+      item.classList.toggle('open');
+      if (item.classList.contains('open')) openVoices.add(id);
+      else openVoices.delete(id);
     };
-    document.getElementById('voiceLang').onchange = () => {
-      updateVoiceScript();
-      const lang = document.getElementById('voiceLang').value;
-      const nameField = document.getElementById('voiceName');
-      if (!nameField.value) {
-        nameField.placeholder = lang === 'es' ? 'GastÃ³n â€” EspaÃ±ol' : 'Alex â€” English';
+
+    window.playVoiceSample = async (id, label) => {
+      openVoices.add(id);
+      document.querySelector(`.item[data-id="${id}"]`)?.classList.add('open');
+      showTab('voice');
+      uiBusy = true;
+      const stopElapsed = startElapsed('voicePlayStatus', `Loading <strong>${escapeHtml(label || id)}</strong> —`);
+      openGlobalDock();
+      document.getElementById('globalPlayerHost').innerHTML = '<div class="wave-player"><div class="subtle">Loading…</div></div>';
+      try {
+        const r = await fetch(API + `/voices/${id}/sample`, { headers: headers() });
+        if (!r.ok) {
+          const detail = (await r.json().catch(() => ({}))).detail || r.statusText;
+          throw new Error(detail || 'No sample');
+        }
+        const blob = await r.blob();
+        if (!blob || blob.size < 1000) throw new Error('Sample empty — save again');
+        stopElapsed();
+        setStatus('voicePlayStatus', 'busy', 'Decoding…');
+        await playInGlobalDock(blob, `Sample — ${label || id}`, `voice:${id}`);
+        setStatus('voicePlayStatus', 'ok', `Playing recording (${Math.round(blob.size / 1024)} KB). Not Live TTS.`);
+      } catch (e) {
+        stopElapsed();
+        const msg = e.message || String(e);
+        setStatus('voicePlayStatus', 'err', `Hear failed: <strong>${escapeHtml(msg)}</strong>`);
+        document.getElementById('globalPlayerHost').innerHTML = `<div class="wave-silent">${escapeHtml(msg)}</div>`;
+        alert('Hear sample failed: ' + msg);
+      } finally {
+        uiBusy = false;
       }
     };
-    updateVoiceScript();
 
-    const headers = () => {
-      const h = {};
-      const key = localStorage.getItem('catts_api_key');
-      if (key) h['X-API-Key'] = key;
-      return h;
+    window.evaluateVoice = async (id) => {
+      openVoices.add(id);
+      uiBusy = true;
+      setStatus('voicePlayStatus', 'busy', 'STT script match…');
+      try {
+        await api(`/voices/${id}/evaluate?wait=true`, { method: 'POST' });
+        setStatus('voicePlayStatus', 'ok', 'Script match updated.');
+        await refreshVoices();
+      } catch (e) {
+        setStatus('voicePlayStatus', 'err', 'Check failed: <strong>' + escapeHtml(e.message || e) + '</strong>');
+        alert('Script check failed: ' + (e.message || e));
+      } finally {
+        uiBusy = false;
+      }
     };
 
-    async function api(path, opts = {}) {
-      const r = await fetch(API + path, { ...opts, headers: { ...headers(), ...(opts.headers || {}) } });
-      if (!r.ok) {
-        const detail = (await r.json().catch(() => ({}))).detail || r.statusText;
-        throw new Error(`${detail} (${r.status})`);
+    window.openVoiceFolder = async (id) => {
+      const res = await api(`/voices/${id}/reveal`, { method: 'POST' });
+      alert('Opened: ' + (res.opened || 'voice folder'));
+    };
+
+    window.renameVoice = async (id, current) => {
+      const name = prompt('Voice name:', current.split(' (')[0]);
+      if (!name) return;
+      await api(`/voices/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+      });
+      await refreshVoices();
+    };
+
+    async function refreshVoices() {
+      const voices = await api('/voices');
+      lastVoicesCache = voices;
+      document.getElementById('voicesCount').textContent = voices.length ? `(${voices.length})` : '';
+      fillVoiceSelect('bookVoice', voices, t('opt_default_voice'), defaultVoiceId);
+      fillVoiceSelect('liveVoice', voices, t('opt_default_voice'), defaultVoiceId);
+      document.getElementById('voices').innerHTML = voices.map(v => {
+        const safeName = (v.display_name || v.name || '').replace(/'/g, "\\'");
+        const isOpen = openVoices.has(v.id) || v.quality_status === 'checking';
+        const sampleLabel = v.has_sample
+          ? `<b>${t('sample')}</b> ${fmtBytes(v.sample_bytes)}${v.sample_duration_sec != null ? ' · ' + v.sample_duration_sec + 's' : ''}`
+          : `<b>${t('sample')}</b> ${t('missing_sample')}`;
+        const matchLabel = v.script_match != null
+          ? `<b>${t('match')}</b> ${v.script_match}%`
+          : `<b>${t('match')}</b> ${v.quality_status === 'checking' ? t('checking') : (v.has_sample ? t('not_checked') : '—')}`;
+        const badge = !v.has_sample ? 'failed' : (v.ready ? 'ready' : v.status);
+        const badgeText = !v.has_sample ? t('no_sample') : (v.ready ? t('ready') : v.status);
+        return `<div class="item ${v.status} ${isOpen ? 'open' : ''}" data-id="${v.id}">
+          <button type="button" class="item-head" onclick="toggleVoiceItem(this)">
+            <span class="item-title">${escapeHtml(v.display_name || v.name)}</span>
+            <span class="badge ${badge}">${badgeText}</span>
+          </button>
+          <div class="item-body">
+            <div class="stats">
+              <span>${v.lang === 'es' ? 'ES' : 'EN'}</span>
+              <span>${sampleLabel}</span>
+              <span>${matchLabel}</span>
+            </div>
+            <div class="meter ${voiceMeterClass(v)}"><i style="width:${voiceMeterWidth(v)}%"></i></div>
+            <div class="subtle">${escapeHtml(v.message || '')}</div>
+            ${v.transcript_preview ? `<div class="subtle">Heard: “${escapeHtml(v.transcript_preview.slice(0, 120))}${v.transcript_preview.length > 120 ? '…' : ''}”</div>` : ''}
+            <div class="actions">
+              <button type="button" class="btn play" onclick="playVoiceSample('${v.id}', '${safeName}')">${t('btn_hear')}</button>
+              <button type="button" class="btn" onclick="evaluateVoice('${v.id}')">${t('btn_check_script')}</button>
+              <button type="button" class="btn" onclick="openVoiceFolder('${v.id}')">${t('btn_folder')}</button>
+              <button type="button" class="btn" onclick="renameVoice('${v.id}', '${safeName}')">${t('btn_rename')}</button>
+            </div>
+          </div>
+        </div>`;
+      }).join('') || '<p class="empty">' + t('voice_empty') + '</p>';
+    }
+
+    /* ---- health / engines ---- */
+    async function refreshTtsEngines() {
+      const sel = document.getElementById('ttsEngineSelect');
+      const note = document.getElementById('ttsEngineNote');
+      if (!sel) return;
+      try {
+        const data = await api('/tts/engines');
+        const prev = sel.value;
+        sel.innerHTML = '';
+        for (const e of (data.engines || [])) {
+          const opt = document.createElement('option');
+          opt.value = e.id;
+          const mark = e.active ? '• ' : '';
+          const ready = e.ready ? 'ready' : (e.configured ? 'not ready' : 'missing');
+          opt.textContent = `${mark}${e.label} (${ready})`;
+          if (e.active) opt.selected = true;
+          sel.appendChild(opt);
+        }
+        if (prev && [...sel.options].some(o => o.value === prev) && !data.engines?.find(e => e.active)?.id) {
+          sel.value = prev;
+        }
+        const active = (data.engines || []).find(e => e.id === (sel.value || data.active));
+        if (note) {
+          note.textContent = active
+            ? `${active.note || ''} · env: ${data.default_from_env || '?'}`
+            : `env: ${data.default_from_env || '?'}`;
+        }
+      } catch (err) {
+        if (note) note.textContent = `Engine list failed: ${err.message || err}`;
       }
-      const ct = r.headers.get('content-type') || '';
-      if (ct.includes('json')) return r.json();
-      return r;
     }
 
-    async function getJobFiles(id) {
-      if (!jobFilesCache[id]) jobFilesCache[id] = await api(`/jobs/${id}/files`);
-      return jobFilesCache[id];
+    async function applyTtsEngine() {
+      const sel = document.getElementById('ttsEngineSelect');
+      if (!sel || !sel.value) return;
+      setStatus('liveStatus', 'busy', `Switching to <strong>${escapeHtml(sel.value)}</strong>…`);
+      try {
+        const r = await api('/tts/engine', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ engine: sel.value }),
+        });
+        setStatus('liveStatus', 'ok', `<strong>${escapeHtml(r.active)}</strong> selected. ${escapeHtml(r.message || '')}`);
+        await refreshTtsEngines();
+        await refreshHealth();
+      } catch (err) {
+        setStatus('liveStatus', 'err', `Switch failed: ${escapeHtml(err.message || err)}`);
+      }
     }
 
-    function chapterOptions(chapters) {
-      if (!chapters.length) return '';
-      return chapters.map(c => `<option value="${c.index}">${c.title || ('Chapter ' + c.index)}</option>`).join('');
+    let liveStatusStickyUntil = 0; // don't let health poll wipe Speak errors
+
+    async function refreshHealth() {
+      const h = await api('/health');
+      lastHealth = h;
+      defaultVoiceId = h.default_voice_id || defaultVoiceId;
+      const usesPresetVoice = PRESET_TTS_ENGINES.has(h.tts_engine);
+      const liveVoiceSelect = document.getElementById('liveVoice');
+      if (liveVoiceSelect) {
+        liveVoiceSelect.disabled = usesPresetVoice;
+        liveVoiceSelect.title = usesPresetVoice
+          ? `${h.tts_engine} uses its preset voice; no recording is needed.`
+          : '';
+      }
+      const el = document.getElementById('health');
+      const xttsNeedsTerms = (h.xtts_message || '').includes('CATTS_ACCEPT_COQUI_CPML');
+      const ttsBit = h.tts_engine === 'xtts'
+        ? (h.xtts_ready ? 'XTTS hot' : (xttsNeedsTerms ? 'XTTS needs terms' : (h.xtts_installed ? 'XTTS loading' : 'XTTS off')))
+        : (h.tts_ready ? `${h.tts_engine} ready` : (h.tts_message || `${h.tts_engine} off`));
+      el.textContent = h.worker_reachable
+        ? 'GPU worker · ' + ttsBit
+        : `local · ${ttsBit} · STT:${h.stt_engine || 'none'}`;
+      el.title = [h.tts_engine === 'xtts' ? h.xtts_message : h.tts_message, h.ocr_engine === 'none' ? 'OCR not configured' : 'OCR ok'].filter(Boolean).join(' | ');
+      el.style.color = h.tts_engine === 'xtts'
+        ? (h.xtts_ready ? 'var(--ok)' : (h.xtts_installed ? 'var(--warn)' : 'var(--err)'))
+        : (h.tts_ready ? 'var(--ok)' : 'var(--warn)');
+
+      const sticky = uiBusy || Date.now() < liveStatusStickyUntil;
+      if (!sticky) {
+        if (h.tts_engine === 'kokoro') {
+          setStatus('liveStatus', h.tts_ready ? 'ok' : 'err',
+            h.tts_ready
+              ? '<strong>Kokoro ready.</strong> Local preset voice; no recording needed.'
+              : '<strong>Kokoro offline.</strong> Run <code>scripts\\start_kokoro.ps1</code>.');
+        } else if (h.tts_engine === 'melotts') {
+          setStatus('liveStatus', h.tts_ready ? 'ok' : 'err',
+            h.tts_ready
+              ? '<strong>MeloTTS ready.</strong> Local Spanish preset voice; no recording needed.'
+              : `<strong>MeloTTS unavailable.</strong> ${escapeHtml(h.tts_message || '')}`);
+        } else if (h.tts_engine === 'edge') {
+          setStatus('liveStatus', h.tts_ready ? 'ok' : 'busy',
+            h.tts_ready
+              ? '<strong>Edge ready.</strong> Cloud preset voice; Spanish uses es-AR Tomas.'
+              : `<strong>Edge unavailable.</strong> ${escapeHtml(h.tts_message || '')}`);
+        } else if (h.tts_engine === 'xtts') {
+          if (!h.xtts_installed) {
+            setStatus('liveStatus', 'err', '<strong>XTTS missing.</strong> Run setup_xtts.ps1.');
+          } else if (xttsNeedsTerms) {
+            setStatus('liveStatus', 'err', '<strong>Coqui terms.</strong> Set <code>CATTS_ACCEPT_COQUI_CPML=1</code> if accepted.');
+          } else if (!h.xtts_ready) {
+            setStatus('liveStatus', 'busy', '<strong>XTTS loading…</strong> First load ~1 min. Prefer Chatterbox in the dropdown.');
+          } else {
+            setStatus('liveStatus', 'ok', '<strong>Ready.</strong> Clone TTS — expect 5–30s/phrase on CPU.');
+          }
+        } else if (h.tts_engine === 'chatterbox') {
+          setStatus('liveStatus', h.tts_ready ? 'ok' : 'busy',
+            h.tts_ready
+              ? '<strong>Chatterbox ready.</strong> First Speak may take several minutes on CPU.'
+              : '<strong>Chatterbox not ready.</strong> pip install chatterbox-tts');
+        } else if (h.tts_ready) {
+          setStatus('liveStatus', 'ok', `<strong>${escapeHtml(h.tts_engine)} ready.</strong> ${escapeHtml(h.tts_message || '')}`);
+        } else {
+          setStatus('liveStatus', 'busy', escapeHtml(h.tts_message || `${h.tts_engine} not ready`));
+        }
+      }
+
+      const liveHint = document.getElementById('liveInstructions');
+      if (liveHint) {
+        const eng = h.tts_engine;
+        if (eng === 'kokoro') liveHint.textContent = 'Kokoro: ≤80 words. Local preset voice; no recording needed.';
+        else if (eng === 'melotts') liveHint.textContent = 'MeloTTS: ≤80 words. Local Spanish preset voice; no recording needed.';
+        else if (eng === 'chatterbox') liveHint.textContent = 'Chatterbox: ≤80 words. CPU ~30–90s/sentence; books OK if you wait.';
+        else if (eng === 'fish') liveHint.textContent = 'Fish: ≤80 words. First boot 30–90+ min ZLUDA compile — leave it running.';
+        else if (eng === 'edge') liveHint.textContent = 'Edge: ≤80 words. Cloud preset voice; Spanish uses es-AR Tomas.';
+        else if (eng === 'xtts') liveHint.textContent = 'XTTS: ≤12 words. Prefer Chatterbox.';
+        else liveHint.textContent = `${eng}: short phrase + your sample. Switch engine above.`;
+      }
+
+      const banner = document.getElementById('ttsBanner');
+      if (localStorage.getItem('catts_hide_tts_banner') === '1') {
+        banner.style.display = 'none';
+        return;
+      }
+      if (xttsNeedsTerms && h.tts_engine === 'xtts') {
+        banner.style.display = 'flex';
+        banner.innerHTML = `<span><strong>TTS blocked</strong> — Coqui terms. Set <code>CATTS_ACCEPT_COQUI_CPML=1</code> if accepted.</span><button type="button" class="btn" id="dismissTtsBanner">x</button>`;
+        document.getElementById('dismissTtsBanner').onclick = () => {
+          localStorage.setItem('catts_hide_tts_banner', '1');
+          banner.style.display = 'none';
+        };
+      } else if (h.tts_engine === 'stub' && !h.worker_reachable) {
+        banner.style.display = 'flex';
+        banner.innerHTML = `<span><strong>Preview mode</strong> — Edge TTS, not your clone.</span><button type="button" class="btn" id="dismissTtsBanner">x</button>`;
+        document.getElementById('dismissTtsBanner').onclick = () => {
+          localStorage.setItem('catts_hide_tts_banner', '1');
+          banner.style.display = 'none';
+        };
+      } else {
+        banner.style.display = 'none';
+      }
     }
 
+    /* ---- book upload / filename words ---- */
     function renderFilenameWords(words) {
       const box = document.getElementById('fnameWords');
-      if (!words.length) { box.textContent = 'Select a file to see filename words'; return; }
+      if (!words.length) { box.textContent = 'Filename words appear here after you pick a file.'; return; }
       box.innerHTML = words.map(w =>
-        `<span class="word-chip" onclick="addWordToField('${w.replace(/'/g, "\\'")}')">${w}</span>`
+        `<span class="word-chip" onclick="addWordToField('${w.replace(/'/g, "\\'")}')">${escapeHtml(w)}</span>`
       ).join('');
     }
 
@@ -1062,368 +1889,20 @@ Gracias. Esta muestra enseÃ±arÃ¡ a CATTS a sonar como yo.`
         document.getElementById('bookTitle').value = g.title || '';
         document.getElementById('bookAuthor').value = g.author || '';
         renderFilenameWords(g.words || []);
-      } catch (err) {
+      } catch (_) {
         renderFilenameWords(f.name.replace(/\.[^.]+$/, '').split(/[-_\s]+/).filter(Boolean));
       }
     };
 
-    function jobHtml(j) {
-      const cls = j.status;
-      const done = j.status === 'done';
-      const active = cls === 'running' || cls === 'queued';
-      const isOpen = active || openJobs.has(j.id);
-      const label = j.display_name || j.title || j.id;
-      const errorHtml = j.error
-        ? `<br><span style="color:var(--err)">${escapeHtml(j.error)}</span><br><span class="subtle"><strong>What to do:</strong> ${escapeHtml(userActionForError(j.error || j.message))}</span>`
-        : '';
-      const playBtns = done ? `
-          <div class="action-group">
-            <div class="action-group-label">Listen</div>
-            <div class="actions">
-              <button type="button" class="action-btn play" data-action="play" data-id="${j.id}">â–¶ Play</button>
-              <select data-action="chapter" data-id="${j.id}" id="ch-${j.id}">
-                <option value="">Pick chapterâ€¦</option>
-              </select>
-            </div>
-          </div>
-          <div class="action-group">
-            <div class="action-group-label">Files</div>
-            <div class="actions">
-              <button type="button" class="action-btn secondary" data-action="folder" data-id="${j.id}">Open folder</button>
-              <button type="button" class="action-btn secondary" data-action="md" data-id="${j.id}">Text (MD)</button>
-              <button type="button" class="action-btn secondary" data-action="txt" data-id="${j.id}">Text (TXT)</button>
-              <button type="button" class="action-btn secondary" data-action="download" data-id="${j.id}">Download audio</button>
-            </div>
-          </div>
-          <div class="action-group">
-            <div class="action-group-label">Redo</div>
-            <div class="actions">
-              <button type="button" class="action-btn secondary" data-action="rerecord" data-id="${j.id}">Re-record book</button>
-              <button type="button" class="action-btn secondary" data-action="delete" data-id="${j.id}">Remove book</button>
-            </div>
-          </div>` : `
-          <div class="actions">
-            <button type="button" class="action-btn secondary" data-action="delete" data-id="${j.id}">Remove book</button>
-          </div>`;
-      return `<div class="job-item ${cls} ${isOpen ? 'open' : ''}" data-id="${j.id}">
-        <div class="job-top">
-        <button type="button" class="job-head" data-toggle-job="${j.id}">
-          <span class="job-title">${label}</span>
-          <span class="status-badge ${cls}">${j.status}</span>
-          <span class="job-chevron">â€º</span>
-        </button>
-        ${done ? `<button type="button" class="job-quick-play" data-action="play" data-id="${j.id}" title="Play chapter 1">â–¶</button>` : ''}
-        </div>
-        <div class="job-body">
-          <div class="subtle">${j.author ? 'by ' + j.author + ' Â· ' : ''}${j.progress}% complete</div>
-          <div class="bar"><i style="width:${j.progress}%"></i></div>
-          <div class="status ${cls}">${escapeHtml(j.message || '')}${errorHtml}</div>
-          <div class="path subtle" id="path-${j.id}"></div>
-          ${playBtns}
-          <div class="player" id="player-${j.id}"></div>
-        </div>
-      </div>`;
-    }
-
-    async function hydrateJobExtras(jobs) {
-      for (const j of jobs.filter(x => x.status === 'done')) {
-        try {
-          const f = await getJobFiles(j.id);
-          const pathEl = document.getElementById(`path-${j.id}`);
-          if (pathEl) {
-            const title = j.display_name || j.title || 'this book';
-            pathEl.textContent = `Saved on disk â€” open folder for files named like "${title}" (not the random folder id).`;
-          }
-          const sel = document.getElementById(`ch-${j.id}`);
-          if (sel && f.chapters.length) {
-            sel.innerHTML = '<option value="">Chapterâ€¦</option>' + chapterOptions(f.chapters);
-          }
-        } catch (e) { console.error(e); }
-      }
-    }
-
-    async function refreshJobs() {
-      const jobs = await api('/jobs');
-      lastJobsCache = jobs;
-      const savedPlayer = activePlayerHostId ? document.getElementById(activePlayerHostId)?.innerHTML : null;
-      document.getElementById('booksCount').textContent = jobs.length;
-      document.getElementById('jobs').innerHTML = jobs.length
-        ? jobs.map(jobHtml).join('')
-        : '<p class="empty-state">No books yet â€” upload above, then watch progress here.</p>';
-      if (savedPlayer && activePlayerHostId) {
-        const el = document.getElementById(activePlayerHostId);
-        if (el) el.innerHTML = savedPlayer;
-      }
-      await hydrateJobExtras(jobs);
-      updateActivityBar(jobs, lastVoicesCache, lastHealth);
-    }
-
-    let defaultVoiceId = null;
-
-    function resolveVoiceId() {
-      return document.getElementById('liveVoice').value
-        || document.getElementById('bookVoice').value
-        || defaultVoiceId
-        || '';
-    }
-
-    function fillVoiceSelect(selectId, voices, placeholder, preferId) {
-      const sel = document.getElementById(selectId);
-      const prev = sel.value;
-      const opts = voices.filter(v => v.ready).map(v =>
-        `<option value="${v.id}" data-lang="${v.lang || 'en'}">${v.display_name || v.name}</option>`
-      ).join('');
-      sel.innerHTML = `<option value="">${placeholder}</option>` + opts;
-      const pick = prev || preferId || defaultVoiceId;
-      if (pick && [...sel.options].some(o => o.value === pick)) {
-        sel.value = pick;
-      }
-    }
-
-    function voiceMeterClass(v) {
-      if (!v.has_sample) return 'miss';
-      if (v.script_match == null) return '';
-      if (v.script_match >= 70) return 'good';
-      if (v.script_match >= 40) return 'mid';
-      return 'bad';
-    }
-
-    function voiceMeterWidth(v) {
-      if (!v.has_sample) return 100;
-      if (v.script_match == null) return v.quality_status === 'checking' ? 40 : 8;
-      return Math.max(4, Math.min(100, v.script_match));
-    }
-
-    function fmtBytes(n) {
-      if (n == null) return 'â€”';
-      if (n < 1024) return n + ' B';
-      if (n < 1e6) return Math.round(n / 1024) + ' KB';
-      return (n / 1e6).toFixed(1) + ' MB';
-    }
-
-    function updateActivityBar(jobs, voices, health) {
-      const pillTts = document.getElementById('pillTts');
-      const pillStt = document.getElementById('pillStt');
-      const pillJobs = document.getElementById('pillJobs');
-      const pillVoices = document.getElementById('pillVoices');
-      if (!pillTts) return;
-      if (health?.tts_engine === 'xtts') {
-        if (health?.xtts_ready) {
-          pillTts.className = 'pill ok';
-          pillTts.textContent = 'TTS ready';
-        } else if (health?.xtts_installed) {
-          pillTts.className = 'pill busy';
-          pillTts.textContent = health?.xtts_message?.includes('CATTS_ACCEPT_COQUI_CPML') ? 'TTS needs terms' : 'TTS loading...';
-        } else {
-          pillTts.className = 'pill err';
-          pillTts.textContent = 'TTS off';
-        }
-      } else {
-        const msg = health?.tts_message || '';
-        if (health?.tts_ready) {
-          pillTts.className = 'pill ok';
-          pillTts.textContent = msg || 'TTS ready';
-        } else if (String(msg).toLowerCase().includes('loading') || String(msg).toLowerCase().includes('first use')) {
-          pillTts.className = 'pill busy';
-          pillTts.textContent = msg || 'TTS loading...';
-        } else {
-          pillTts.className = 'pill err';
-          pillTts.textContent = msg || 'TTS off';
-        }
-      }
-      if (health?.stt_engine === 'whisper') {
-        pillStt.className = 'pill ok';
-        pillStt.textContent = 'STT ready';
-      } else {
-        pillStt.className = 'pill err';
-        pillStt.textContent = 'STT off';
-      }
-      const active = (jobs || []).filter(j => j.status === 'running' || j.status === 'queued');
-      if (active.length) {
-        pillJobs.className = 'pill busy';
-        pillJobs.textContent = `Books: ${active.length} in progress`;
-      } else {
-        pillJobs.className = 'pill ok';
-        pillJobs.textContent = `Books: ${(jobs || []).length} total`;
-      }
-      const checking = (voices || []).filter(v => v.quality_status === 'checking' || v.status === 'training' || v.status === 'queued');
-      const withSample = (voices || []).filter(v => v.has_sample).length;
-      if (checking.length) {
-        pillVoices.className = 'pill busy';
-        pillVoices.textContent = `Voices: checking ${checking.length}â€¦`;
-      } else {
-        pillVoices.className = withSample ? 'pill ok' : 'pill';
-        pillVoices.textContent = `Voices: ${withSample}/${(voices || []).length} with sample`;
-      }
-    }
-
-    let lastVoicesCache = [];
-    let lastJobsCache = [];
-
-    async function refreshVoices() {
-      const voices = await api('/voices');
-      lastVoicesCache = voices;
-      document.getElementById('voicesCount').textContent = voices.length;
-      fillVoiceSelect('bookVoice', voices, 'Your voice (default)', defaultVoiceId);
-      fillVoiceSelect('liveVoice', voices, 'Your voice (default)', defaultVoiceId);
-      updateActivityBar(lastJobsCache, voices, lastHealth);
-      document.getElementById('voices').innerHTML = voices.map(v => {
-        const files = [v.labeled_sample, v.labeled_reference].filter(Boolean).join(', ');
-        const safeName = (v.display_name || v.name || '').replace(/'/g, "\\'");
-        const isOpen = openVoices.has(v.id) || v.quality_status === 'checking';
-        const meterCls = voiceMeterClass(v);
-        const sampleLabel = v.has_sample
-          ? `<b>Sample</b> ${fmtBytes(v.sample_bytes)}${v.sample_duration_sec != null ? ' Â· ' + v.sample_duration_sec + 's' : ''}`
-          : '<b>Sample</b> missing';
-        const matchLabel = v.script_match != null
-          ? `<b>Script match</b> ${v.script_match}% (${v.script_match_label})`
-          : `<b>Script match</b> ${v.quality_status === 'checking' ? 'checkingâ€¦' : (v.has_sample ? 'not checked' : 'â€”')}`;
-        const badge = !v.has_sample ? 'failed' : (v.ready ? 'ready' : v.status);
-        const badgeText = !v.has_sample ? 'no sample' : (v.ready ? 'ready' : v.status);
-        return `<div class="voice-item job-item ${v.status} ${isOpen ? 'open' : ''}" data-id="${v.id}">
-          <button type="button" class="job-head" onclick="toggleVoiceItem(this)">
-            <span class="job-title">${v.display_name || v.name}</span>
-            <span class="status-badge ${badge}">${badgeText}</span>
-            <span class="job-chevron">â€º</span>
-          </button>
-          <div class="job-body">
-            <div class="voice-stats">
-              <span>${v.lang === 'es' ? 'EspaÃ±ol' : 'English'}</span>
-              <span>${sampleLabel}</span>
-              <span>${matchLabel}</span>
-            </div>
-            <div class="voice-meter ${meterCls}" title="Script match"><i style="width:${voiceMeterWidth(v)}%"></i></div>
-            <span class="status ${v.status}">${v.message || ''}</span>
-            ${v.transcript_preview ? `<div class="subtle" style="margin-top:.35rem">Heard: â€œ${v.transcript_preview.slice(0, 120)}${v.transcript_preview.length > 120 ? 'â€¦' : ''}â€</div>` : ''}
-            ${files ? `<div class="file-tag">ðŸ“„ ${files}</div>` : ''}
-            <div class="player" id="voice-player-${v.id}"></div>
-            <div class="actions">
-              <button type="button" class="action-btn play" onclick="playVoiceSample('${v.id}', '${safeName}')">â–¶ Hear sample</button>
-              <button type="button" class="action-btn secondary" onclick="evaluateVoice('${v.id}')">Check script</button>
-              <button type="button" class="action-btn secondary" onclick="openVoiceFolder('${v.id}')">Folder</button>
-              <button type="button" class="action-btn secondary" onclick="renameVoice('${v.id}', '${safeName}')">Rename</button>
-            </div>
-          </div>
-        </div>`;
-      }).join('') || '<p class="empty-state">No voices yet â€” record or upload above.</p>';
-    }
-
-    window.evaluateVoice = async (id) => {
-      openVoices.add(id);
-      uiBusy = true;
-      setStatus('voicePlayStatus', 'busy', 'Running STT script match in backgroundâ€¦');
-      try {
-        await api(`/voices/${id}/evaluate?wait=true`, { method: 'POST' });
-        setStatus('voicePlayStatus', 'ok', 'Script match updated â€” see bar on the voice card.');
-        await refreshVoices();
-      } catch (e) {
-        setStatus('voicePlayStatus', 'err', 'Script check failed: <strong>' + (e.message || e) + '</strong>');
-        alert('Script check failed: ' + (e.message || e));
-      } finally {
-        uiBusy = false;
-      }
-    };
-
-    window.openVoiceFolder = async (id) => {
-      const res = await api(`/voices/${id}/reveal`, { method: 'POST' });
-      alert('Opened: ' + (res.opened || 'voice folder'));
-    };
-
-    window.renameVoice = async (id, current) => {
-      const name = prompt('Voice name:', current.split(' (')[0]);
-      if (!name) return;
-      await api(`/voices/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) });
-      await refreshVoices();
-    };
-
-    async function refreshHealth() {
-      const h = await api('/health');
-      lastHealth = h;
-      defaultVoiceId = h.default_voice_id || defaultVoiceId;
-      const el = document.getElementById('health');
-      const xttsNeedsTerms = (h.xtts_message || '').includes('CATTS_ACCEPT_COQUI_CPML');
-      const ttsBit = h.tts_engine === 'xtts'
-        ? (h.xtts_ready ? 'XTTS hot' : (xttsNeedsTerms ? 'XTTS needs terms' : (h.xtts_installed ? 'XTTS not ready' : 'XTTS off')))
-        : (h.tts_ready ? `${h.tts_engine} ready` : (h.tts_message || `${h.tts_engine} off`));
-      el.textContent = h.worker_reachable
-        ? 'GPU worker connected'
-        : `local Â· ${ttsBit} Â· STT:${h.stt_engine || 'none'}`;
-      el.title = [
-        h.tts_engine === 'xtts' ? h.xtts_message : h.tts_message,
-        h.ocr_engine === 'none' ? 'OCR worker not configured' : 'OCR configured'
-      ].filter(Boolean).join(' | ');
-      el.style.color = h.tts_engine === 'xtts'
-        ? (h.xtts_ready ? 'var(--ok)' : (h.xtts_installed ? 'var(--warn)' : 'var(--err)'))
-        : (h.tts_ready ? 'var(--ok)' : 'var(--warn)');
-      updateActivityBar(lastJobsCache, lastVoicesCache, h);
-
-      if (!uiBusy) {
-        if (h.tts_engine === 'kokoro') {
-          if (h.tts_ready) {
-            setStatus('liveStatus', 'ok', '<strong>Kokoro ready.</strong> Fast local TTS — preset voice, no sample needed.');
-          } else {
-            setStatus('liveStatus', 'err', '<strong>Kokoro offline.</strong> Run <code>scripts\\start_kokoro.ps1</code> in another terminal.');
-          }
-        } else if (h.tts_engine === 'xtts') {
-          if (!h.xtts_installed) {
-            setStatus('liveStatus', 'err', '<strong>Live interpreting unavailable.</strong> XTTS not installed — run <code>scripts/setup_xtts.ps1</code> and restart the server.');
-          } else if (xttsNeedsTerms) {
-            setStatus('liveStatus', 'err', '<strong>Action needed.</strong> XTTS is installed, but blocked by Coqui terms. If you accept them, set <code>CATTS_ACCEPT_COQUI_CPML=1</code> and restart.');
-          } else if (!h.xtts_ready) {
-            setStatus('liveStatus', 'busy', '<strong>XTTS not ready.</strong> First load can take ~1 min. If it stays here, run Diagnostics and check server logs.');
-          } else {
-            setStatus('liveStatus', 'ok', '<strong>Ready.</strong> Speak uses your voice clone (XTTS). Expect ~5–30s per phrase on CPU.');
-          }
-        } else if (h.tts_ready) {
-          setStatus('liveStatus', 'ok', `<strong>${h.tts_engine} ready.</strong> ${h.tts_message || ''}`);
-        } else {
-          setStatus('liveStatus', 'warn', h.tts_message || `${h.tts_engine} not ready`);
-        }
-      }
-      const liveHint = document.getElementById('liveInstructions');
-      if (liveHint) {
-        liveHint.textContent = h.tts_engine === 'kokoro'
-          ? 'Kokoro mode: type a phrase (up to 80 words). No voice sample required.'
-          : 'XTTS mode: short phrase (max 12 words), uses your saved voice sample.';
-      }
-      const banner = document.getElementById('ttsBanner');
-      if (localStorage.getItem('catts_hide_tts_banner') === '1') {
-        banner.style.display = 'none';
-        return;
-      }
-      if (xttsNeedsTerms && h.tts_engine === 'xtts') {
-        banner.style.display = 'flex';
-        banner.innerHTML = `<span><strong>TTS blocked.</strong> Voice cloning needs your explicit Coqui license choice. If accepted, set <code>CATTS_ACCEPT_COQUI_CPML=1</code> and restart.</span><button type="button" class="banner-dismiss" id="dismissTtsBanner" title="Dismiss">x</button>`;
-        document.getElementById('dismissTtsBanner').onclick = () => {
-          localStorage.setItem('catts_hide_tts_banner', '1');
-          banner.style.display = 'none';
-        };
-      } else if (h.tts_engine === 'stub' && !h.worker_reachable) {
-        banner.style.display = 'flex';
-        banner.innerHTML = `<span><strong>Local preview mode.</strong> Audiobooks use Microsoft Edge TTS (a generic voice), not your trained clone. Voice training saves your sample but cloning needs a GPU worker. Old books from before this fix may be silent â€” use <em>Clean</em> or <em>Retry</em> on those jobs.</span><button type="button" class="banner-dismiss" id="dismissTtsBanner" title="Dismiss">âœ•</button>`;
-        document.getElementById('dismissTtsBanner').onclick = () => {
-          localStorage.setItem('catts_hide_tts_banner', '1');
-          banner.style.display = 'none';
-        };
-      } else {
-        banner.style.display = 'none';
-      }
-    }
-
-    function setPlayer(jobId, blob, label) {
-      const box = document.getElementById(`player-${jobId}`);
-      mountWavePlayer(box, blob, label, { autoplay: true, lookaheadSec: 8 });
-    }
-
     document.getElementById('uploadBtn').onclick = async () => {
       const f = document.getElementById('bookFile').files[0];
       if (!f) {
-        setStatus('bookStatus', 'err', '<strong>No file.</strong> Choose a PDF, EPUB, or DOCX.');
+        setStatus('bookStatus', 'err', '<strong>No file.</strong>');
         return alert('Choose a file');
       }
       const btn = document.getElementById('uploadBtn');
       btn.disabled = true;
-      setStatus('bookStatus', 'busy', '<strong>Uploadingâ€¦</strong> Job will process in the background.');
+      setStatus('bookStatus', 'busy', '<strong>Uploading…</strong>');
       try {
         const fd = new FormData();
         fd.append('file', f);
@@ -1437,13 +1916,12 @@ Gracias. Esta muestra enseÃ±arÃ¡ a CATTS a sonar como yo.`
         fd.append('generate_audio', document.getElementById('genAudio').checked ? 'true' : 'false');
         const res = await api('/jobs/audiobook', { method: 'POST', body: fd });
         openJobs.clear();
-        document.querySelector('[data-panel="books"]')?.classList.add('open');
-        setStatus('bookStatus', 'ok', `<strong>Queued.</strong> Watch Library below (job ${res.job_id || ''}). Processing runs in the background.`);
+        setStatus('bookStatus', 'ok', `<strong>Queued</strong> ${escapeHtml(res.job_id || '')} — watch Library.`);
         await refreshJobs();
       } catch (e) {
         const msg = e.message || e;
-        setStatus('bookStatus', 'err', '<strong>Upload failed:</strong> ' + escapeHtml(msg) + '<br><strong>What to do:</strong> ' + escapeHtml(userActionForError(msg)));
-        alert('Upload failed: ' + (e.message || e));
+        setStatus('bookStatus', 'err', '<strong>Failed:</strong> ' + escapeHtml(msg) + '<br><strong>Fix:</strong> ' + escapeHtml(userActionForError(msg)));
+        alert('Upload failed: ' + msg);
       } finally {
         btn.disabled = false;
       }
@@ -1453,44 +1931,38 @@ Gracias. Esta muestra enseÃ±arÃ¡ a CATTS a sonar como yo.`
       const fileInput = document.getElementById('voiceFile');
       const f = fileInput.files[0];
       const blob = recordedBlob || f;
-      if (!blob) return alert('Record with the microphone or upload an audio file first.');
-      if (recordedBlob && recordSeconds < 20 && !f) {
-        return alert('Please record at least 20 seconds (1â€“3 minutes is better).');
-      }
+      if (!blob) return alert('Record or upload first.');
+      if (recordedBlob && recordSeconds < 20 && !f) return alert('Record at least 20 seconds.');
       const fd = new FormData();
-      const ext = recordedBlob ? 'recording.webm' : f.name;
-      fd.append('sample', blob, ext);
+      fd.append('sample', blob, recordedBlob ? 'recording.webm' : f.name);
       const lang = document.getElementById('voiceLang').value;
-      const defaultName = lang === 'es' ? 'Mi voz principal' : 'My main voice';
-      fd.append('name', document.getElementById('voiceName').value || defaultName);
-      fd.append('lang', document.getElementById('voiceLang').value);
-      setStatus('voicePlayStatus', 'busy', '<strong>Saving sampleâ€¦</strong> STT script match runs in the background.');
+      fd.append('name', document.getElementById('voiceName').value || (lang === 'es' ? 'Mi voz' : 'My voice'));
+      fd.append('lang', lang);
+      setStatus('voicePlayStatus', 'busy', '<strong>Saving…</strong>');
       try {
         await api('/voices', { method: 'POST', body: fd });
         recordedBlob = null;
         recordSeconds = 0;
         document.getElementById('voicePreview').innerHTML = '';
-        document.getElementById('recStatus').textContent = 'Sample saved â€” script match runningâ€¦';
+        document.getElementById('recStatus').textContent = 'Saved — script match running…';
         fileInput.value = '';
         syncVoiceFileName();
-        document.querySelector('[data-panel="voice"]')?.classList.add('open');
-        setStatus('voicePlayStatus', 'ok', '<strong>Saved.</strong> Watch the voice card status bar for sample + script match.');
+        setStatus('voicePlayStatus', 'ok', '<strong>Saved.</strong> See list below.');
         await refreshVoices();
       } catch (e) {
         const msg = e.message || e;
-        setStatus('voicePlayStatus', 'err', '<strong>Save failed:</strong> ' + escapeHtml(msg) + '<br><strong>What to do:</strong> ' + escapeHtml(userActionForError(msg)));
-        alert('Save failed: ' + (e.message || e));
+        setStatus('voicePlayStatus', 'err', '<strong>Failed:</strong> ' + escapeHtml(msg));
+        alert('Save failed: ' + msg);
       }
     };
 
     document.getElementById('sttBtn').onclick = async () => {
-      const input = document.getElementById('sttFile');
-      const file = input.files[0];
-      if (!file) return alert('Choose an audio file first.');
+      const file = document.getElementById('sttFile').files[0];
+      if (!file) return alert('Choose audio first.');
       const btn = document.getElementById('sttBtn');
       btn.disabled = true;
-      btn.textContent = 'Transcribingâ€¦';
-      document.getElementById('sttOut').value = 'Workingâ€¦ (first run loads Whisper model ~30s)';
+      btn.textContent = '…';
+      document.getElementById('sttOut').value = 'Working…';
       try {
         const fd = new FormData();
         fd.append('file', file);
@@ -1519,7 +1991,7 @@ Gracias. Esta muestra enseÃ±arÃ¡ a CATTS a sonar como yo.`
 
     document.getElementById('translateBtn').onclick = async () => {
       const text = document.getElementById('translateIn').value.trim();
-      if (!text) return alert('Enter text to translate.');
+      if (!text) return alert('Enter text.');
       const btn = document.getElementById('translateBtn');
       btn.disabled = true;
       try {
@@ -1543,46 +2015,47 @@ Gracias. Esta muestra enseÃ±arÃ¡ a CATTS a sonar como yo.`
     document.getElementById('liveBtn').onclick = async () => {
       const btn = document.getElementById('liveBtn');
       if (uiBusy) {
-        setStatus('liveStatus', 'busy', 'Already working — wait for the current request to finish.');
+        setStatus('liveStatus', 'busy', 'Already working…');
         return;
       }
       const engine = lastHealth?.tts_engine || 'xtts';
-      const isKokoro = engine === 'kokoro';
-      const maxWords = isKokoro ? 80 : 12;
-      const voice_id = resolveVoiceId();
-      if (!isKokoro && !voice_id) {
-        setStatus('liveStatus', 'err', '<strong>No voice selected.</strong> Save a sample under Train voice, or pick a voice in the dropdown.');
-        return alert('No voice selected — save a voice sample first.');
+      const usesPresetVoice = PRESET_TTS_ENGINES.has(engine);
+      const engineName = engine === 'kokoro' ? 'Kokoro' : (engine === 'melotts' ? 'MeloTTS' : engine);
+      // Live caps: XTTS stays short (slow/unstable); others allow a paragraph chunk.
+      const maxWords = (engine === 'xtts' || engine === 'pocket') ? 12 : 80;
+      const voice_id = usesPresetVoice ? '' : resolveVoiceId();
+      if (!usesPresetVoice && !voice_id) {
+        setStatus('liveStatus', 'err', '<strong>No voice.</strong> Save a sample first.');
+        return alert('No voice selected.');
       }
-      const liveSel = document.getElementById('liveVoice');
       const text = document.getElementById('liveText').value.trim();
       if (!text) {
-        setStatus('liveStatus', 'err', `<strong>No text.</strong> Type a phrase (max ${maxWords} words).`);
-        return alert(`Type a phrase first (max ${maxWords} words).`);
+        setStatus('liveStatus', 'err', `<strong>No text.</strong> Max ${maxWords} words.`);
+        return alert(`Type a phrase (max ${maxWords} words).`);
       }
       const words = text.split(/\s+/).filter(Boolean);
       if (words.length > maxWords) {
-        setStatus('liveStatus', 'err', `<strong>Too long.</strong> Live TTS is limited to ${maxWords} words.`);
-        return alert(`Live TTS limited to ${maxWords} words.`);
+        setStatus('liveStatus', 'err', `<strong>Too long.</strong> Max ${maxWords} words.`);
+        return alert(`Max ${maxWords} words.`);
       }
-      const lang = (liveSel.selectedOptions[0]?.dataset?.lang)
+      const liveSel = document.getElementById('liveVoice');
+      const selectedLang = (liveSel.selectedOptions[0]?.dataset?.lang)
         || (document.getElementById('bookVoice').selectedOptions[0]?.dataset?.lang)
         || 'en';
+      const lang = engine === 'melotts' ? 'es' : selectedLang;
 
-      document.querySelector('[data-panel="live"]')?.classList.add('open');
       uiBusy = true;
       const prevLabel = btn.textContent;
       btn.disabled = true;
-      btn.textContent = 'Working…';
+      btn.textContent = '…';
       const stopElapsed = startElapsed(
         'liveStatus',
-        isKokoro
-          ? '<strong>Synthesizing with Kokoro</strong> — usually a few seconds.'
-          : `<strong>Synthesizing with XTTS</strong> (voice ${(voice_id || '').slice(0, 8)}…) — CPU, can take 5–60s.`,
+        usesPresetVoice
+          ? `<strong>${escapeHtml(engineName)}…</strong>`
+          : `<strong>Synthesizing…</strong> (${(voice_id || '').slice(0, 8)})`,
       );
       openGlobalDock();
-      document.getElementById('globalPlayerHost').innerHTML =
-        '<div class="wave-player"><div class="wave-label">Live TTS</div><div class="wave-status subtle">Request sent — waiting for audio…</div></div>';
+      document.getElementById('globalPlayerHost').innerHTML = '<div class="wave-player"><div class="subtle">Waiting…</div></div>';
 
       try {
         const payload = { text, lang };
@@ -1594,40 +2067,31 @@ Gracias. Esta muestra enseÃ±arÃ¡ a CATTS a sonar como yo.`
         });
         if (!r.ok) {
           let detail = r.statusText;
-          try {
-            const j = await r.json();
-            detail = j.detail || JSON.stringify(j);
-          } catch (_) {
-            detail = await r.text().catch(() => detail);
-          }
+          try { detail = (await r.json()).detail || detail; } catch (_) { detail = await r.text().catch(() => detail); }
           throw new Error(detail || `HTTP ${r.status}`);
         }
         const engineUsed = r.headers.get('X-TTS-Engine') || 'unknown';
         const latency = r.headers.get('X-TTS-Latency-Ms');
         const blob = await r.blob();
-        if (!blob || blob.size < 1000) throw new Error('TTS returned empty audio');
-        if (!isKokoro && engineUsed === 'edge') {
-          throw new Error('Server used generic Edge voice instead of your clone — restart API and wait for XTTS hot');
+        if (!blob || blob.size < 1000) throw new Error('Empty audio');
+        if (usesPresetVoice && engineUsed !== engine) {
+          throw new Error(`Expected ${engineName}, got ${engineUsed}`);
+        }
+        if (!usesPresetVoice && engineUsed === 'edge') {
+          throw new Error('Got Edge voice instead of clone — wait for TTS hot');
         }
         stopElapsed();
-        setStatus('liveStatus', 'busy', 'Decoding waveform…');
-        const label = `Live TTS · ${engineUsed}${latency ? ' · ' + latency + 'ms' : ''}`;
-        await playInGlobalDock(blob, label, `live:${voice_id || 'kokoro'}:${text.slice(0, 48)}`);
-        setStatus(
-          'liveStatus',
-          'ok',
-          `<strong>Playing</strong> · engine <code>${engineUsed}</code>${latency ? ' · ' + latency + 'ms' : ''} · ${Math.round(blob.size / 1024)} KB. Bottom player.`,
-        );
-        document.getElementById('livePlayer').innerHTML =
-          `<p class="subtle">OK — ${engineUsed}${latency ? ' in ' + latency + 'ms' : ''}. Use bottom player.</p>`;
+        setStatus('liveStatus', 'busy', 'Decoding…');
+        await playInGlobalDock(blob, `Live · ${engineUsed}${latency ? ' · ' + latency + 'ms' : ''}`, `live:${engine}:${lang}:${voice_id || 'preset'}:${text.slice(0, 40)}`);
+        setStatus('liveStatus', 'ok', `<strong>Playing</strong> · <code>${escapeHtml(engineUsed)}</code>${latency ? ' · ' + latency + 'ms' : ''} · ${Math.round(blob.size / 1024)} KB`);
+        document.getElementById('livePlayer').innerHTML = '';
       } catch (e) {
         stopElapsed();
         const msg = e.message || String(e);
-        setStatus('liveStatus', 'err', `<strong>Live TTS failed:</strong> ${escapeHtml(msg)}<br><strong>What to do:</strong> ${escapeHtml(userActionForError(msg))}`);
-        document.getElementById('globalPlayerHost').innerHTML =
-          `<div class="wave-silent">âš  ${msg}</div>`;
-        document.getElementById('livePlayer').innerHTML = '';
-        alert('Live TTS failed: ' + msg);
+        liveStatusStickyUntil = Date.now() + 20000; // keep error visible ~20s
+        setStatus('liveStatus', 'err', `<strong>Failed:</strong> ${escapeHtml(msg)}<br><strong>Fix:</strong> ${escapeHtml(userActionForError(msg))}`);
+        document.getElementById('globalPlayerHost').innerHTML = `<div class="wave-silent">${escapeHtml(msg)}</div>`;
+        // no alert — sticky status is enough
       } finally {
         uiBusy = false;
         btn.disabled = false;
@@ -1642,102 +2106,36 @@ Gracias. Esta muestra enseÃ±arÃ¡ a CATTS a sonar como yo.`
         box.innerHTML = 'No steps yet.';
         return;
       }
-      const rows = run.steps.map(s => {
-        const cls = s.status === 'ok' ? 'ok' : (s.status === 'running' ? 'busy' : (s.status === 'failed' ? 'err' : 'idle'));
-        const detail = (s.detail ? String(s.detail).replace(/</g, '&lt;').replace(/>/g, '&gt;') : '');
-        return `
-          <div style="margin-bottom:.55rem; padding:.55rem .65rem; border-radius:8px; border:1px solid rgba(58,65,80,.9); background:#0f1115;">
-            <div style="display:flex; gap:.6rem; align-items:center; justify-content:space-between; margin-bottom:.25rem;">
-              <div style="font-weight:700;">${s.name}</div>
-              <div class="subtle" style="white-space:nowrap;">
-                <span style="padding:.2rem .45rem; border-radius:6px; border:1px solid rgba(58,65,80,.9); color:var(--muted);">
-                  ${s.status}${s.elapsed_ms != null ? ' Â· ' + s.elapsed_ms + 'ms' : ''}
-                </span>
-              </div>
-            </div>
-            ${detail ? `<div class="subtle" style="line-height:1.4;">${detail}</div>` : ''}
-          </div>
-        `;
+      box.innerHTML = run.steps.map(s => {
+        const detail = s.detail ? escapeHtml(String(s.detail)) : '';
+        return `<div style="margin-bottom:.4rem"><strong>${escapeHtml(s.name)}</strong> — ${escapeHtml(s.status)}${s.elapsed_ms != null ? ' · ' + s.elapsed_ms + 'ms' : ''}${detail ? '<br><span class="subtle">' + detail + '</span>' : ''}</div>`;
       }).join('');
-      box.innerHTML = rows;
     }
-
-    window.regenerateJob = async (id) => {
-      const voice = document.getElementById('bookVoice').value || document.getElementById('liveVoice').value;
-      if (!voice && !confirm('No voice selected â€” regenerate with default preview voice anyway?')) return;
-      const fd = new FormData();
-      if (voice) fd.append('voice_id', voice);
-      try {
-        await api(`/jobs/${id}/regenerate`, { method: 'POST', body: fd });
-        delete jobFilesCache[id];
-        openJobs.add(id);
-        document.querySelector('[data-panel="books"]')?.classList.add('open');
-        alert('Regenerating audio â€” watch progress below. Named files appear in the job folder when done.');
-        await refreshJobs();
-      } catch (e) {
-        alert(e.message || String(e));
-      }
-    };
-
-    window.openFolder = async (id) => {
-      const res = await api(`/jobs/${id}/reveal`, { method: 'POST' });
-      const f = await getJobFiles(id);
-      const pathEl = document.getElementById(`path-${id}`);
-      if (pathEl) pathEl.textContent = res.opened || f.folder;
-    };
-
-    window.dlManuscript = async (id, fmt) => {
-      const r = await fetch(API + `/jobs/${id}/manuscript?format=${fmt}`, { headers: headers() });
-      const blob = await r.blob();
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = `book.${fmt}`;
-      a.click();
-    };
-    window.dlResult = async (id) => {
-      const r = await fetch(API + `/jobs/${id}/result`, { headers: headers() });
-      if (!r.ok) return alert('Not ready');
-      const blob = await r.blob();
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = 'audiobook';
-      a.click();
-    };
-    window.cleanupJob = async (id) => {
-      const r = await api(`/jobs/${id}/cleanup`, { method: 'POST' });
-      alert(`Removed ${r.removed || 0} junk files (${Math.round((r.freed_bytes||0)/1e6)} MB)`);
-      delete jobFilesCache[id];
-    };
-    window.retryJob = async (id) => { delete jobFilesCache[id]; await api(`/jobs/${id}/retry`, { method: 'POST' }); await refreshJobs(); };
 
     async function refreshLinks() {
       const box = document.getElementById('linksBox');
       const list = document.getElementById('linksList');
       if (!box || !list) return;
-
-      box.className = 'status-box busy';
-      box.textContent = 'Loading links…';
+      box.className = 'status busy';
+      box.textContent = 'Loading…';
       list.innerHTML = '';
-
       try {
         const data = await api('/links');
         const links = data?.links || [];
-        if (!Array.isArray(links) || !links.length) {
-          box.className = 'status-box idle';
-          box.textContent = 'No external links configured.';
+        if (!links.length) {
+          box.className = 'status idle';
+          box.textContent = 'None configured.';
           return;
         }
-        box.className = 'status-box ok';
+        box.className = 'status ok';
+        box.textContent = `${links.length} link(s)`;
         list.innerHTML = links.map(l => {
-          const label = escapeHtml(l?.label || '');
-          const url = escapeHtml(l?.url || '');
-          const note = l?.note ? `<div class="subtle" style="margin-top:.15rem;white-space:pre-wrap;">${escapeHtml(l.note)}</div>` : '';
-          return `<div style="margin:.35rem 0;"><a href="${url}" target="_blank" rel="noopener noreferrer">${label}</a>${note}</div>`;
+          const note = l?.note ? `<div class="subtle">${escapeHtml(l.note)}</div>` : '';
+          return `<div style="margin:.35rem 0"><a href="${escapeHtml(l?.url || '')}" target="_blank" rel="noopener">${escapeHtml(l?.label || '')}</a>${note}</div>`;
         }).join('');
       } catch (e) {
-        box.className = 'status-box err';
-        const msg = (e && e.message) ? e.message : String(e);
-        box.innerHTML = `Failed: <strong>${escapeHtml(msg)}</strong>`;
+        box.className = 'status err';
+        box.textContent = 'Failed: ' + (e.message || e);
       }
     }
 
@@ -1747,133 +2145,138 @@ Gracias. Esta muestra enseÃ±arÃ¡ a CATTS a sonar como yo.`
       const openBtn = document.getElementById('liteuiOpenBtn');
       const startBtn = document.getElementById('liteuiStartBtn');
       if (!box || !errEl || !openBtn || !startBtn) return;
-
       errEl.textContent = '';
-      box.className = 'status-box busy';
-      box.textContent = 'Checking LiteUI…';
-      openBtn.disabled = true;
-      startBtn.disabled = true;
-
+      box.className = 'status busy';
+      box.textContent = 'Checking…';
       try {
         const st = await api('/liteui/status');
-        const state = st?.state || 'stopped';
-
         if (st?.running) {
-          box.className = 'status-box ok';
-          box.textContent = `LiteUI running (${st.backend_port_open ? 'backend ok' : 'backend ?'}).`;
+          box.className = 'status ok';
+          box.textContent = 'Running.';
           openBtn.disabled = false;
           startBtn.disabled = false;
-        } else if (state === 'starting') {
-          box.className = 'status-box busy';
-          box.textContent = 'LiteUI starting… waiting for ports.';
+        } else if (st?.state === 'starting') {
+          box.className = 'status busy';
+          box.textContent = 'Starting…';
           openBtn.disabled = true;
           startBtn.disabled = false;
         } else {
-          box.className = 'status-box err';
-          const msg = st?.error ? String(st.error) : 'LiteUI stopped.';
-          box.textContent = 'LiteUI not ready.';
-          errEl.textContent = msg;
+          box.className = 'status idle';
+          box.textContent = 'Stopped.';
+          errEl.textContent = st?.error ? String(st.error) : '';
           openBtn.disabled = !st?.ui_port_open;
           startBtn.disabled = !st?.start_script_ok || !st?.embedded_python_ok;
         }
-
-        // If UI is open but we just updated state, allow open.
         if (st?.ui_port_open) openBtn.disabled = false;
       } catch (e) {
-        box.className = 'status-box err';
-        box.textContent = 'LiteUI status failed.';
-        errEl.textContent = (e && e.message) ? e.message : String(e);
-      } finally {
-        // If buttons exist, keep them enabled/disabled based on last status refresh.
+        box.className = 'status err';
+        box.textContent = 'Status failed.';
+        errEl.textContent = e.message || String(e);
       }
     }
 
     async function tick() {
       try {
         await refreshHealth();
-        // Do not wipe voice/job lists while audio is loading (was killing Hear sample UI)
+        await refreshTtsEngines();
         if (!refreshPaused && !uiBusy) await refreshJobs();
         if (!refreshPaused && !uiBusy) await refreshVoices();
       } catch (e) {
         console.error(e);
-        if (!uiBusy) {
-          setStatus('liveStatus', 'err', `<strong>Status check failed:</strong> ${e.message || e}. Is the server running on :59200?`);
-        }
+        if (!uiBusy) setStatus('liveStatus', 'err', `<strong>API down?</strong> ${escapeHtml(e.message || e)}`);
       }
     }
-    initPanels();
-    refreshLinks();
-    refreshLiteUI();
-    bindJobActions();
-    document.getElementById('globalPlayerClose').onclick = closeGlobalDock;
-    syncBookFileName = wireFilePicker('bookFile', 'bookFileBtn', 'bookFileName', 'No file selected');
-    syncVoiceFileName = wireFilePicker('voiceFile', 'voiceFileBtn', 'voiceFileName', 'WAV / MP3, 1â€“5 min');
-    wireFilePicker('sttFile', 'sttFileBtn', 'sttFileName', 'WAV / MP3 / M4A');
+
+    /* ---- wire ---- */
+    document.getElementById('micBtn').onclick = toggleRecording;
+    document.getElementById('voiceFile').onchange = async (e) => {
+      const f = e.target.files[0];
+      syncVoiceFileName();
+      if (!f) return;
+      recordedBlob = null;
+      await mountWavePlayer(document.getElementById('voicePreview'), f, f.name, { autoplay: false });
+    };
+    document.getElementById('voiceLang').onchange = updateVoiceScript;
+    if (!document.getElementById('voiceLang').value) document.getElementById('voiceLang').value = 'es';
+    updateVoiceScript();
+
+    document.getElementById('apiKeyInput').value = localStorage.getItem('catts_api_key') || '';
+    document.getElementById('apiKeySave').onclick = () => {
+      const v = document.getElementById('apiKeyInput').value.trim();
+      if (v) localStorage.setItem('catts_api_key', v);
+      else localStorage.removeItem('catts_api_key');
+      alert(v ? 'Key saved.' : 'Key cleared.');
+    };
+    document.getElementById('apiKeyClear').onclick = () => {
+      localStorage.removeItem('catts_api_key');
+      document.getElementById('apiKeyInput').value = '';
+    };
 
     document.getElementById('smokeClearBtn').onclick = () => {
       setStatus('smokeSummary', 'idle', 'Idle.');
-      const box = document.getElementById('smokeSteps');
-      if (box) box.innerHTML = '';
+      document.getElementById('smokeSteps').innerHTML = '';
     };
     document.getElementById('smokeBtn').onclick = async () => {
       if (uiBusy) return;
       uiBusy = true;
       try {
-        setStatus('smokeSummary', 'busy', 'Running smoke checkâ€¦');
+        setStatus('smokeSummary', 'busy', 'Running…');
         const run = await api('/diagnostics/smoke', { method: 'POST' });
         const diagnosticId = run.diagnostic_id;
-        setStatus('smokeSummary', 'busy', `Runningâ€¦ <span class="subtle">id=${diagnosticId.slice(0, 8)}â€¦</span>`);
-        renderSmokeSteps({ steps: [] });
-        // Poll until done.
-        for (let i = 0; i < 240; i++) { // ~4 minutes worst-case
+        for (let i = 0; i < 240; i++) {
           const r = await api(`/diagnostics/${diagnosticId}`);
           renderSmokeSteps(r);
           if (r.status === 'done') {
-            const err = r.error_stage ? `<br><span style="color:var(--err); font-weight:700;">${r.error_stage}</span>` : '';
-            setStatus('smokeSummary', r.error_stage ? 'err' : 'ok', `Finished.${err}`);
-            uiBusy = false;
+            setStatus('smokeSummary', r.error_stage ? 'err' : 'ok', r.error_stage ? `Failed: ${escapeHtml(r.error_stage)}` : 'OK.');
             return;
           }
           await new Promise(res => setTimeout(res, 1000));
         }
-        setStatus('smokeSummary', 'err', 'Smoke timed out (UI polling limit).');
+        setStatus('smokeSummary', 'err', 'Timed out.');
       } catch (e) {
-        const msg = (e && e.message) ? e.message : String(e);
-        setStatus('smokeSummary', 'err', `<strong>Smoke failed:</strong> ${msg}`);
-        alert('Smoke failed: ' + msg);
+        setStatus('smokeSummary', 'err', 'Failed: ' + escapeHtml(e.message || e));
+        alert('Smoke failed: ' + (e.message || e));
       } finally {
         uiBusy = false;
       }
     };
 
-    tick();
-    setInterval(tick, 3000);
-
-    // Light polling for LiteUI panel only.
-    setInterval(refreshLiteUI, 8000);
-
     document.getElementById('liteuiStartBtn').onclick = async () => {
       try {
         const r = await api('/liteui/start', { method: 'POST' });
         await refreshLiteUI();
-        alert(r?.message || 'LiteUI start requested.');
+        alert(r?.message || 'Start requested.');
       } catch (e) {
-        const msg = (e && e.message) ? e.message : String(e);
-        alert('LiteUI start failed: ' + msg);
+        alert('Start failed: ' + (e.message || e));
         await refreshLiteUI();
       }
     };
-
     document.getElementById('liteuiOpenBtn').onclick = async () => {
       try {
         const st = await api('/liteui/status');
         if (!st?.ui_url) throw new Error('Missing ui_url');
         window.open(st.ui_url, '_blank', 'noopener,noreferrer');
       } catch (e) {
-        const msg = (e && e.message) ? e.message : String(e);
-        alert('Open UI failed: ' + msg);
+        alert('Open failed: ' + (e.message || e));
       }
     };
+
+    document.getElementById('ttsEngineApply').addEventListener('click', applyTtsEngine);
+    document.getElementById('ttsSampleButtons').addEventListener('click', (e) => {
+      const button = e.target.closest('button[data-sample]');
+      if (button) playTtsSample(button.dataset.sample, button.dataset.label);
+    });
+    document.getElementById('globalPlayerClose').onclick = closeGlobalDock;
+    syncBookFileName = wireFilePicker('bookFile', 'bookFileBtn', 'bookFileName', 'No file');
+    syncVoiceFileName = wireFilePicker('voiceFile', 'voiceFileBtn', 'voiceFileName', 'WAV / MP3');
+    wireFilePicker('sttFile', 'sttFileBtn', 'sttFileName', 'WAV / MP3 / M4A');
+    bindJobActions();
+    applyUiLang();
+    refreshLinks();
+    refreshLiteUI();
+    tick();
+    setInterval(tick, 3000);
+    setInterval(refreshLiteUI, 8000);
   </script>
 </body>
 </html>

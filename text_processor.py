@@ -7,6 +7,29 @@ except ImportError:
     LangDetectException = Exception
 
 
+_EMOJI_RE = re.compile(
+    "["
+    "\U0001F1E6-\U0001F1FF"
+    "\U0001F300-\U0001F5FF"
+    "\U0001F600-\U0001F64F"
+    "\U0001F680-\U0001F6FF"
+    "\U0001F700-\U0001F77F"
+    "\U0001F780-\U0001F7FF"
+    "\U0001F800-\U0001F8FF"
+    "\U0001F900-\U0001F9FF"
+    "\U0001FA00-\U0001FA6F"
+    "\U0001FA70-\U0001FAFF"
+    "\U00002600-\U000027BF"
+    "\U000024C2-\U0001F251"
+    "]+",
+    flags=re.UNICODE,
+)
+
+
+def _strip_emojis(text: str) -> str:
+    return _EMOJI_RE.sub("", text)
+
+
 def strip_ocr_noise(text):
     """Remove common PDF OCR artifacts: page numbers, headers/footers, hyphenation."""
     lines = text.split("\n")
@@ -85,7 +108,259 @@ def chunk_for_tts(text, min_chars=200, max_chars=400):
     return chunks
 
 
-def polish_for_tts(text: str) -> str:
+# Common Spanish words that lose accents in OCR / ASCII paste.
+# Keys are lowercase unaccented; values are the correct form.
+_ES_ACCENT_MAP: dict[str, str] = {
+    "facil": "fácil",
+    "mas": "más",
+    "debil": "débil",
+    "tambien": "también",
+    "asi": "así",
+    "aqui": "aquí",
+    "alli": "allí",
+    "despues": "después",
+    "rapido": "rápido",
+    "rapida": "rápida",
+    "rapidas": "rápidas",
+    "rapidos": "rápidos",
+    "unico": "único",
+    "unica": "única",
+    "ultimos": "últimos",
+    "ultimo": "último",
+    "ultima": "última",
+    "ultimas": "últimas",
+    "numero": "número",
+    "numeros": "números",
+    "musica": "música",
+    "pagina": "página",
+    "paginas": "páginas",
+    "capitulo": "capítulo",
+    "capitulos": "capítulos",
+    "informacion": "información",
+    "atencion": "atención",
+    "accion": "acción",
+    "acciones": "acciones",
+    "relacion": "relación",
+    "relaciones": "relaciones",
+    "situacion": "situación",
+    "situaciones": "situaciones",
+    "emocion": "emoción",
+    "emociones": "emociones",
+    "respiracion": "respiración",
+    "explicacion": "explicación",
+    "explicaciones": "explicaciones",
+    "justificacion": "justificación",
+    "justificaciones": "justificaciones",
+    "estrategia": "estrategia",
+    "inefectiva": "inefectiva",
+    "manipulable": "manipulable",
+    "inestables": "inestables",
+    "camino": "camino",
+    "elegido": "elegido",
+    "crees": "crees",
+    "cree": "cree",
+    "fuiste": "fuiste",
+    "infiel": "infiel",
+    "deshaces": "deshacés",
+    "deshace": "deshace",
+    "conejito": "conejito",
+    "dientes": "dientes",
+    "lobo": "lobo",
+    "derroche": "derroche",
+    "emocional": "emocional",
+    "emocionalmente": "emocionalmente",
+    "volatil": "volátil",
+    "volátil": "volátil",
+    "culpable": "culpable",
+    "sos": "sos",
+    "gratos": "gratos",
+    "futuros": "futuros",
+    "posibles": "posibles",
+    "metas": "metas",
+    "distrae": "distrae",
+    "dirigiendo": "dirigiendo",
+    "nuestra": "nuestra",
+    "nuestro": "nuestro",
+    "nuestros": "nuestros",
+    "nuestras": "nuestras",
+    "realidad": "realidad",
+    "identidad": "identidad",
+    "demas": "demás",
+    "piensan": "piensan",
+    "dicen": "dicen",
+    "hacen": "hacen",
+    "creer": "creer",
+    "afectar": "afectar",
+    "dejarnos": "dejarnos",
+    "mujer": "mujer",
+    "mujeres": "mujeres",
+    "celosa": "celosa",
+    "terriblemente": "terriblemente",
+    "nervios": "nervios",
+    "parecer": "parecer",
+    "sentir": "sentir",
+    "ocurre": "ocurre",
+    "gusta": "gusta",
+    "reconocer": "reconocer",
+    "cuando": "cuando",
+    "como": "cómo",  # often "cómo" in questions; see note below
+    "que": "qué",  # often "qué" in questions — applied carefully
+    "si": "sí",  # affirmation; "si" conditional kept via context heuristic
+    "esta": "está",
+    "estas": "estás",
+    "estan": "están",
+    "tu": "tú",
+    "el": "él",  # pronoun; article "el" restored via heuristic
+    "mio": "mío",
+    "mia": "mía",
+    "mios": "míos",
+    "mias": "mías",
+    "dia": "día",
+    "dias": "días",
+    "ano": "año",
+    "anos": "años",
+    "senor": "señor",
+    "senora": "señora",
+    "nino": "niño",
+    "nina": "niña",
+    "ninos": "niños",
+    "ninas": "niñas",
+    "espanol": "español",
+    "espanola": "española",
+    "corazon": "corazón",
+    "razon": "razón",
+    "razones": "razones",
+    "opinion": "opinión",
+    "opiniones": "opiniones",
+    "decision": "decisión",
+    "decisiones": "decisiones",
+    "solucion": "solución",
+    "soluciones": "soluciones",
+    "direccion": "dirección",
+    "direcciones": "direcciones",
+    "educacion": "educación",
+    "comunicacion": "comunicación",
+    "organizacion": "organización",
+    "produccion": "producción",
+    "construccion": "construcción",
+    "introduccion": "introducción",
+    "conclusion": "conclusión",
+    "version": "versión",
+    "versiones": "versiones",
+    "region": "región",
+    "regiones": "regiones",
+    "nation": "nación",
+    "nacion": "nación",
+    "naciones": "naciones",
+    "publico": "público",
+    "publica": "pública",
+    "politica": "política",
+    "politico": "político",
+    "economico": "económico",
+    "economica": "económica",
+    "historico": "histórico",
+    "historica": "histórica",
+    "basico": "básico",
+    "basica": "básica",
+    "practico": "práctico",
+    "practica": "práctica",
+    "tecnico": "técnico",
+    "tecnica": "técnica",
+    "medico": "médico",
+    "medica": "médica",
+    "fisico": "físico",
+    "fisica": "física",
+    "logico": "lógico",
+    "logica": "lógica",
+    "tipico": "típico",
+    "tipica": "típica",
+    "automatico": "automático",
+    "automatica": "automática",
+    "electronico": "electrónico",
+    "electronica": "electrónica",
+    "telefonico": "telefónico",
+    "telefonica": "telefónica",
+    "gramatica": "gramática",
+    "matematica": "matemática",
+    "matematicas": "matemáticas",
+    "geografia": "geografía",
+    "filosofia": "filosofía",
+    "psicologia": "psicología",
+    "biologia": "biología",
+    "tecnologia": "tecnología",
+    "energia": "energía",
+    "memoria": "memoria",
+    "historia": "historia",
+    "victoria": "victoria",
+    "gloria": "gloria",
+    "categoria": "categoría",
+    "categorias": "categorías",
+    "teoria": "teoría",
+    "teorias": "teorías",
+    "experiencia": "experiencia",
+    "existencia": "existencia",
+    "conciencia": "conciencia",
+    "paciencia": "paciencia",
+    "ciencia": "ciencia",
+    "ciencias": "ciencias",
+    "diferencia": "diferencia",
+    "diferencias": "diferencias",
+    "preferencia": "preferencia",
+    "referencia": "referencia",
+    "referencias": "referencias",
+    "presencia": "presencia",
+    "ausencia": "ausencia",
+    "urgencia": "urgencia",
+    "emergencia": "emergencia",
+    "agencia": "agencia",
+    "tendencia": "tendencia",
+    "dependencia": "dependencia",
+    "independencia": "independencia",
+    "correspondencia": "correspondencia",
+    "correspondencias": "correspondencias",
+}
+
+
+# Ambiguous forms: only restore accents in safe contexts.
+_ES_AMBIGUOUS = frozenset({"como", "que", "si", "el", "tu", "esta", "estas", "estan"})
+
+
+def restore_spanish_accents(text: str) -> str:
+    """Restore common missing Spanish accents (OCR / ASCII paste).
+
+    Safe unambiguous words always; ambiguous ones (el/él, si/sí, que/qué, como/cómo)
+    only when punctuation/context strongly suggests the accented form.
+    """
+
+    def _replace(match: re.Match[str]) -> str:
+        word = match.group(0)
+        key = word.lower()
+        if key not in _ES_ACCENT_MAP:
+            return word
+        if key in _ES_AMBIGUOUS:
+            return word  # handled in a second pass
+        repl = _ES_ACCENT_MAP[key]
+        if word.isupper():
+            return repl.upper()
+        if word[0].isupper():
+            return repl[0].upper() + repl[1:]
+        return repl
+
+    text = re.sub(r"\b[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+\b", _replace, text)
+
+    # cómo / qué after ¿ or at start of question-like clauses
+    text = re.sub(r"(¿\s*)como\b", r"\1cómo", text, flags=re.IGNORECASE)
+    text = re.sub(r"(¿\s*)que\b", r"\1qué", text, flags=re.IGNORECASE)
+    # sí as short affirmation: ", si." / "¡si!" / " si,"
+    text = re.sub(r"(?<=[,:;¡¿\s])si(?=[!?.…,;:])", "sí", text, flags=re.IGNORECASE)
+    # está / estás / están (verb) — common after pronouns / subjects
+    text = re.sub(r"\b(esta)\b(?=\s+(terriblemente|muy|en|de|con|por|aquí|alli|allí))", "está", text, flags=re.IGNORECASE)
+    text = re.sub(r"\b(estas)\b(?=\s+(en|de|con|por|aquí|alli|allí|seguro|segura))", "estás", text, flags=re.IGNORECASE)
+    text = re.sub(r"\b(estan)\b(?=\s+(en|de|con|por|aquí|alli|allí))", "están", text, flags=re.IGNORECASE)
+    return text
+
+
+def polish_for_tts(text: str, lang: str | None = None) -> str:
     """Normalize text so TTS reads it naturally."""
     text = text.replace("\r\n", "\n").replace("\r", "\n")
     text = re.sub(r"[ \t]+", " ", text)
@@ -94,6 +369,10 @@ def polish_for_tts(text: str) -> str:
     text = text.replace(""", '"').replace(""", '"').replace("'", "'").replace("'", "'")
     # Ellipsis variants
     text = text.replace("…", "...")
+    # Common trademark/brand glyphs -> remove so TTS doesn't spell them out.
+    text = text.replace("™", "").replace("®", "").replace("©", "").replace("℠", "")
+    # Emoji glyphs (OCR can insert them; these make engines mispronounce or skip text).
+    text = _strip_emojis(text)
     # Common OCR / ebook glitches
     text = re.sub(r"\b(\w)\s+\.\s*$", r"\1.", text, flags=re.MULTILINE)
     text = re.sub(r"([a-z]),([A-Z])", r"\1, \2", text)
@@ -113,6 +392,10 @@ def polish_for_tts(text: str) -> str:
     # Remove markdown link syntax [text](url) → text
     text = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", text)
     text = re.sub(r"\n{3,}", "\n\n", text)
+    # Spanish accent restore (OCR / ASCII paste → TTS pronunciation)
+    lang_code = (lang or detect_language(text) or "en")[:2].lower()
+    if lang_code == "es":
+        text = restore_spanish_accents(text)
     return text.strip()
 
 

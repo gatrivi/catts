@@ -24,6 +24,8 @@ class HealthResponse(BaseModel):
     worker_reachable: bool
     worker_url: str
     ocr_engine: str
+    ocr_fast: str = "tesseract"
+    ocr_batch: str = "omniroute"
     tts_engine: str  # xtts | kokoro | pocket | edge | chatterbox | gptsovits
     tts_ready: bool = False
     tts_message: str = ""
@@ -122,6 +124,14 @@ class LiveTTSResponse(BaseModel):
     lang: str
     duration_ms: int | None = None
     engine: str
+
+
+class SpeakTTSRequest(BaseModel):
+    """Longer readings for external apps (not live chunk limit)."""
+
+    text: str = Field(..., min_length=1, max_length=12000)
+    lang: str = Field(default="es", pattern="^(en|es)$")
+    voice_id: str | None = None
 
 
 class AgentPromptRequest(BaseModel):

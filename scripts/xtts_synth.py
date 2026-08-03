@@ -10,23 +10,25 @@ def main() -> int:
     configure_project_cache()
     p = argparse.ArgumentParser()
     p.add_argument("--text", required=True)
-    p.add_argument("--ref", required=True, help="Reference speaker wav")
+    p.add_argument("--ref", required=True, help="Primary reference speaker wav")
+    p.add_argument("--ref-extra", action="append", default=[], help="Extra ref clips")
     p.add_argument("--out", required=True)
     p.add_argument("--lang", default="en")
+    p.add_argument("--speed", type=float, default=1.15)
     args = p.parse_args()
 
-    ref = Path(args.ref)
+    refs = [Path(args.ref), *[Path(x) for x in args.ref_extra]]
     out = Path(args.out)
-    if not ref.is_file():
-        print(f"reference missing: {ref}", file=sys.stderr)
-        return 1
+    for ref in refs:
+        if not ref.is_file():
+            print(f"reference missing: {ref}", file=sys.stderr)
+            return 1
 
     text = args.text.strip()
     if not text:
         print("empty text", file=sys.stderr)
         return 1
-    # XTTS is happiest with shorter utterances; job_runner already chunks.
-    text = text[:480]
+    text = text[:4000]
 
     from TTS.api import TTS
 
@@ -36,7 +38,19 @@ def main() -> int:
 
     tts = TTS("tts_models/multilingual/multi-dataset/xtts_v2")
     out.parent.mkdir(parents=True, exist_ok=True)
-    tts.tts_to_file(text=text, speaker_wav=str(ref), language=lang, file_path=str(out))
+    speaker = [str(r) for r in refs]
+    tts.tts_to_file(
+        text=text,
+        speaker_wav=speaker if len(speaker) > 1 else speaker[0],
+        language=lang,
+        file_path=str(out),
+        split_sentences=True,
+        speed=float(args.speed),
+        temperature=0.75,
+        repetition_penalty=5.0,
+        top_p=0.85,
+        top_k=50,
+    )
     return 0
 
 

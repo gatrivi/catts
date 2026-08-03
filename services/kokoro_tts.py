@@ -1,10 +1,10 @@
-"""Kokoro-FastAPI client using its OpenAI-compatible speech API."""
+"""Kokoro ONNX (fastkokoro) client — OpenAI-compatible speech API."""
 
 from pathlib import Path
 
 import httpx
 
-from config import KOKORO_URL, KOKORO_VOICE
+from config import KOKORO_URL, KOKORO_VOICE, KOKORO_VOICE_ES
 
 
 def configured() -> bool:
@@ -15,9 +15,8 @@ async def ready() -> bool:
     if not configured():
         return False
     try:
-        # Some first-run/container/CPU contention cases can exceed a very small timeout
-        # even when the service is reachable (e.g. model warmup, slow response).
-        async with httpx.AsyncClient(timeout=10.0) as client:
+        # This is polled by the UI; keep an offline server from stalling the page.
+        async with httpx.AsyncClient(timeout=2.0) as client:
             response = await client.get(f"{KOKORO_URL}/v1/audio/voices")
         return response.status_code < 500
     except Exception:
@@ -27,16 +26,20 @@ async def ready() -> bool:
 def status_message(is_ready: bool) -> str:
     if is_ready:
         return f"Kokoro ready at {KOKORO_URL}"
-    return f"Kokoro not reachable at {KOKORO_URL} — start Kokoro-FastAPI first"
+    return f"Kokoro not reachable at {KOKORO_URL} — start scripts/start_kokoro.ps1"
 
 
 async def synthesize(text: str, output_path: Path, lang: str = "en") -> Path:
+    # FastKokoro is language-aware for G2P (phoneme conversion).
+    language = "es" if str(lang).startswith("es") else "en-us"
+    voice_id = KOKORO_VOICE_ES if str(lang).startswith("es") else KOKORO_VOICE
     payload = {
         "model": "kokoro",
         "input": text,
-        "voice": KOKORO_VOICE,
+        "voice": voice_id,
         "response_format": "wav",
         "speed": 1.0,
+        "lang": language,
     }
     async with httpx.AsyncClient(timeout=120.0) as client:
         response = await client.post(f"{KOKORO_URL}/v1/audio/speech", json=payload)
@@ -47,12 +50,15 @@ async def synthesize(text: str, output_path: Path, lang: str = "en") -> Path:
 
 
 async def live_tts(text: str, lang: str = "en") -> tuple[bytes, str]:
+    language = "es" if str(lang).startswith("es") else "en-us"
+    voice_id = KOKORO_VOICE_ES if str(lang).startswith("es") else KOKORO_VOICE
     payload = {
         "model": "kokoro",
         "input": text,
-        "voice": KOKORO_VOICE,
+        "voice": voice_id,
         "response_format": "wav",
         "speed": 1.0,
+        "lang": language,
     }
     async with httpx.AsyncClient(timeout=60.0) as client:
         response = await client.post(f"{KOKORO_URL}/v1/audio/speech", json=payload)

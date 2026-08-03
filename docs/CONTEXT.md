@@ -50,3 +50,5 @@ Open http://127.0.0.1:59200/ — activity bar shows TTS/STT/jobs/voices.
 - Use `.\.venv\Scripts\python.exe scripts\check_env.py` to verify the local Python environment before deeper testing.
 
 See [CHANGELOG.md](../CHANGELOG.md) and [NIGHT_REPORT.md](NIGHT_REPORT.md).
+
+**Token-lean session state:** [SESSION_CONTEXT.md](SESSION_CONTEXT.md) · **RAM/workers:** [HEAVY_PROCESSES.md](HEAVY_PROCESSES.md) · **Agent rules:** [AGENTS.md](AGENTS.md)
