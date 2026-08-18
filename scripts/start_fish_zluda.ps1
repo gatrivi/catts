@@ -1,4 +1,4 @@
-# Start Fish Speech (ZLUDA) for CATTS - RX 6600 / HIP 5.7
+﻿# Start Fish Speech (ZLUDA) for CATTS - RX 6600 / HIP 5.7
 # Requires: Python 3.11 fish venv, torch cu118 + ZLUDA patch, Brknsoul gfx1032 in HIP rocblas library
 $ErrorActionPreference = "Stop"
 $Root = Split-Path $PSScriptRoot -Parent
@@ -33,6 +33,9 @@ $env:HIP_VISIBLE_DEVICES = "1"
 $env:PYTHONUTF8 = "1"
 $env:ZLUDA_COMGR_LOG_LEVEL = "1"
 $env:FISH_SKIP_WARMUP = "1"  # bind :8080 fast; first real synth still compiles on ZLUDA
+# Ensure Torch DLL dependencies are discoverable under ZLUDA.
+$torchLib = Join-Path $Fish 'venv\Lib\site-packages\torch\lib'
+if (Test-Path $torchLib) { $env:PATH = "$torchLib;$env:PATH" }
 
 Write-Host "Fish root: $Fish"
 Write-Host "HIP_PATH: $($env:HIP_PATH)"
