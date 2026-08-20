@@ -7,7 +7,7 @@ if (-not (Test-Path .venv)) { python -m venv .venv }
 $py = ".\.venv\Scripts\python.exe"
 & $py -m pip install --upgrade pip
 & $py -m pip install torch==2.6.0 torchaudio==2.6.0 --index-url https://download.pytorch.org/whl/cpu
-& $py -m pip install numpy coqui-tts "transformers==4.48.2"
+& $py -m pip install "numpy>=2,<2.5" coqui-tts "transformers==4.48.2"
 
 Write-Host "Testing import..."
 & $py -c "from TTS.api import TTS; print('XTTS OK')"

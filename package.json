@@ -1,0 +1,20 @@
+﻿{
+    "name":  "catts",
+    "private":  true,
+    "description":  "CATTS local API + TTS",
+    "scripts":  {
+                    "start":  "node scripts/npm-start.cjs",
+                    "start:api":  "node scripts/npm-start.cjs",
+                    "stop":  "node scripts/npm-stop.cjs",
+                    "stop:heavy":  "node scripts/npm-stop.cjs --heavy",
+                    "health":  "node scripts/npm-health.cjs",
+                    "watch:slack":  "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/watch_api_slack.ps1",
+                    "bonsai":  "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start_bonsai.ps1",
+                    "bonsai:omp":  "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/setup-bonsai-omp.ps1 -AsDefault",
+                    "bonsai:agent":  "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/bonsai-agent.ps1",
+                    "tts:status":  "python scripts/tts_status.py",
+                    "catts":  "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/restart_catts.ps1",
+                    "queue:folder":  ".\\\\.venv\\\\Scripts\\\\python.exe scripts\\\\queue_folder.py",
+                    "queue:status":  ".\\\\.venv\\\\Scripts\\\\python.exe scripts\\\\tts_status.py"
+                }
+}

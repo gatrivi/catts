@@ -10,7 +10,7 @@ import threading
 from pathlib import Path
 
 from config import BASE_DIR
-from services.voice_ref import prepare_xtts_reference
+from services.voice_ref import prepare_xtts_reference_clips
 
 logger = logging.getLogger(__name__)
 
@@ -111,11 +111,23 @@ def warmup_worker() -> None:
 
 
 def _synth_via_worker(text: str, ref_audio: Path, output_path: Path, lang: str) -> None:
-    ref = prepare_xtts_reference(ref_audio)
+    refs = [str(p) for p in prepare_xtts_reference_clips(ref_audio)]
     with _worker_lock:
+        # Restart worker if an older process is still running with stale code.
+        global _worker_proc
+        if _worker_proc is not None and _worker_proc.poll() is None:
+            # Keep hot worker; new kwargs are per-request.
+            pass
         proc = _start_worker()
         req = json.dumps(
-            {"text": text, "ref": str(ref), "out": str(output_path), "lang": lang},
+            {
+                "text": text,
+                "ref": refs[0],
+                "refs": refs,
+                "out": str(output_path),
+                "lang": lang,
+                "speed": 1.15,
+            },
         )
         proc.stdin.write(req + "\n")
         proc.stdin.flush()
@@ -128,11 +140,14 @@ def _synth_via_worker(text: str, ref_audio: Path, output_path: Path, lang: str) 
 
 
 def _synth_via_subprocess(text: str, ref_audio: Path, output_path: Path, lang: str) -> None:
-    ref = prepare_xtts_reference(ref_audio)
+    refs = prepare_xtts_reference_clips(ref_audio)
     cmd = [
         str(VENV_PY), str(SCRIPT),
-        "--text", text, "--ref", str(ref), "--out", str(output_path), "--lang", lang,
+        "--text", text, "--ref", str(refs[0]), "--out", str(output_path), "--lang", lang,
+        "--speed", "1.15",
     ]
+    for r in refs[1:]:
+        cmd.extend(["--ref-extra", str(r)])
     proc = subprocess.run(cmd, capture_output=True, text=True, timeout=900)
     if proc.returncode != 0:
         err = (proc.stderr or proc.stdout or "xtts failed").strip()[-800:]

@@ -7,7 +7,6 @@ import wave
 from collections import OrderedDict
 from pathlib import Path
 
-from config import TTS_ENGINE
 from services.ffmpeg_util import ffmpeg_path
 
 logger = logging.getLogger(__name__)
@@ -18,7 +17,8 @@ except Exception:  # pragma: no cover
     TTSModel = None  # type: ignore
 
 _model_lock = threading.Lock()
-_model = None
+# lang_key -> loaded TTSModel (en / es need different weights)
+_models: dict[str, object] = {}
 
 _voice_state_cache_lock = threading.Lock()
 _voice_state_cache: "OrderedDict[str, object]" = OrderedDict()
@@ -29,53 +29,73 @@ _DEFAULT_VOICE_BY_LANG = {
     "es": "lola",
 }
 
+# pocket-tts language ids (see TTSModel.load_model docstring)
+_POCKET_LANG = {
+    "en": "english",
+    "es": "spanish_24l",
+}
+
 
 def available() -> bool:
-    return TTS_ENGINE == "pocket" and TTSModel is not None
+    return TTSModel is not None
 
 
 def ready() -> bool:
-    # "ready" means: the model is loaded (we keep it in-process).
-    return _model is not None
+    return bool(_models)
 
 
 def status_message() -> str:
-    if TTS_ENGINE != "pocket":
-        return ""
     if TTSModel is None:
         return "pocket-tts not installed"
-    if _model is None:
+    if not _models:
         return "pocket-tts loading (first use)"
-    return "pocket-tts ready"
+    return f"pocket-tts ready ({','.join(sorted(_models))})"
 
 
-def _load_model():
-    global _model
-    if _model is not None:
-        return _model
+def _lang_key(lang: str) -> str:
+    lang = (lang or "en").lower()
+    if lang.startswith("es"):
+        return "es"
+    return "en"
+
+
+def _pocket_language(lang: str) -> str:
+    return _POCKET_LANG[_lang_key(lang)]
+
+
+def _load_model(lang: str = "en"):
+    key = _lang_key(lang)
+    if key in _models:
+        return _models[key]
     if TTSModel is None:
         raise RuntimeError("pocket-tts not installed")
-    logger.info("Loading pocket-tts model (first use downloads weights)")
-    _model = TTSModel.load_model()
-    return _model
+    # Keep HF/torch caches on E:
+    try:
+        from scripts._local_cache import configure_project_cache
+
+        configure_project_cache()
+    except Exception:
+        pass
+    pocket_lang = _pocket_language(key)
+    # ponytail: int8 helps ES a lot on Ryzen; still not live-realtime here (see TTS_RX6600_RESEARCH).
+    logger.info("Loading pocket-tts language=%s quantize=True", pocket_lang)
+    _models[key] = TTSModel.load_model(language=pocket_lang, quantize=True)
+    return _models[key]
 
 
-def warmup_model() -> None:
+def warmup_model(lang: str = "en") -> None:
     """Best-effort preload; safe to call during startup."""
     if not available():
         return
     try:
         with _model_lock:
-            _load_model()
+            _load_model(lang)
     except Exception as exc:  # pragma: no cover
         logger.warning("Pocket TTS warmup failed: %s", exc)
 
 
 def _pick_voice(lang: str) -> str:
-    lang = (lang or "en").lower()
-    if lang.startswith("es"):
-        return _DEFAULT_VOICE_BY_LANG["es"]
-    return _DEFAULT_VOICE_BY_LANG["en"]
+    return _DEFAULT_VOICE_BY_LANG[_lang_key(lang)]
 
 
 def _voice_state_cache_get(key: str):
@@ -95,22 +115,21 @@ def _voice_state_cache_put(key: str, value: object):
 
 
 def _voice_state_key(ref_audio: Path | None, lang: str) -> str:
+    lk = _lang_key(lang)
     if ref_audio and ref_audio.exists():
         st = ref_audio.stat()
-        return f"file:{ref_audio.resolve()}:{st.st_mtime_ns}:{st.st_size}:{lang}"
-    return f"voice:{_pick_voice(lang)}:{lang}"
+        return f"file:{ref_audio.resolve()}:{st.st_mtime_ns}:{st.st_size}:{lk}"
+    return f"voice:{_pick_voice(lang)}:{lk}"
 
 
 def _get_voice_state(ref_audio: Path | None, lang: str):
-    model = _model if _model is not None else None
-    if model is None:
-        with _model_lock:
-            model = _load_model()
+    with _model_lock:
+        model = _load_model(lang)
 
     key = _voice_state_key(ref_audio, lang)
     cached = _voice_state_cache_get(key)
     if cached is not None:
-        return cached
+        return model, cached
 
     if ref_audio and ref_audio.exists():
         prompt = str(ref_audio)
@@ -119,37 +138,33 @@ def _get_voice_state(ref_audio: Path | None, lang: str):
 
     voice_state = model.get_state_for_audio_prompt(prompt)
     _voice_state_cache_put(key, voice_state)
-    return voice_state
+    return model, voice_state
 
 
-def _to_int16_mono_pcm(audio) -> "tuple[int, bytes]":
-    # pocket-tts returns a 1D PCM tensor for PCM values (dtype may vary).
+def _to_int16_mono_pcm(audio, sample_rate: int) -> "tuple[int, bytes]":
     import numpy as np
 
-    sr = int(getattr(_model, "sample_rate", 44100) if _model is not None else 44100)
-    audio_np = audio.detach().cpu().numpy()
+    audio_np = audio.detach().cpu().numpy() if hasattr(audio, "detach") else np.asarray(audio)
     if audio_np.ndim > 1:
-        # Mixdown if needed; keep deterministic order.
         audio_np = audio_np[0]
 
     if audio_np.dtype == np.int16:
         pcm = audio_np
     else:
-        # Assume float PCM in [-1, 1] (common case). Clamp for safety.
         if np.issubdtype(audio_np.dtype, np.floating):
             audio_np = np.clip(audio_np, -1.0, 1.0)
             pcm = (audio_np * 32767.0).astype(np.int16)
         else:
             pcm = audio_np.astype(np.int16, copy=False)
 
-    return sr, pcm.tobytes()
+    return sample_rate, pcm.tobytes()
 
 
 def _write_wav_pcm16(out_path: Path, sample_rate: int, pcm16_bytes: bytes) -> None:
     out_path.parent.mkdir(parents=True, exist_ok=True)
     with wave.open(str(out_path), "wb") as wf:
         wf.setnchannels(1)
-        wf.setsampwidth(2)  # int16
+        wf.setsampwidth(2)
         wf.setframerate(sample_rate)
         wf.writeframes(pcm16_bytes)
 
@@ -176,27 +191,20 @@ async def synthesize(
     lang: str = "en",
 ) -> Path:
     if not available():
-        raise RuntimeError("pocket-tts engine not available — set CATTS_TTS_ENGINE=pocket and install pocket-tts")
+        raise RuntimeError("pocket-tts not installed — pip install pocket-tts")
 
     import asyncio
 
     def _run_sync():
-        model = _model if _model is not None else None
-        if model is None:
-            with _model_lock:
-                model = _load_model()
-
-        voice_state = _get_voice_state(ref_audio, lang)
+        model, voice_state = _get_voice_state(ref_audio, lang)
         audio = model.generate_audio(voice_state, text)
-
-        sr, pcm16_bytes = _to_int16_mono_pcm(audio)
+        sr = int(getattr(model, "sample_rate", 24000))
+        sr, pcm16_bytes = _to_int16_mono_pcm(audio, sr)
 
         tmp_wav = output_path.with_suffix(".pocket_tmp.wav")
         _write_wav_pcm16(tmp_wav, sr, pcm16_bytes)
-
         _maybe_resample_to_44100(tmp_wav, output_path, sample_rate=sr)
         return output_path
 
     loop = asyncio.get_event_loop()
     return await loop.run_in_executor(None, _run_sync)
-

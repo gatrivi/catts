@@ -69,7 +69,7 @@ def pdf_to_text(pdf_path: Path) -> str:
     if len(text) < 50:
         raise ValueError(
             "PDF has little or no embedded text (likely a scan). "
-            "Set CATTS_OCR_ENGINE=unlimited and a GPU worker for OCR."
+            "Set CATTS_OCR_BATCH=tesseract|omniroute|unlimited for OCR."
         )
     return text
 

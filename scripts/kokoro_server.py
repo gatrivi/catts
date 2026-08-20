@@ -35,33 +35,39 @@ VOICES = [
     "af_nicole", "af_nova", "af_river", "af_sarah", "af_sky",
     "am_adam", "am_echo", "am_eric", "am_fenrir", "am_liam", "am_michael",
     "am_onyx", "am_puck", "am_santa",
+    # Spanish voices (lang_code='e')
+    "ef_dora",
+    "em_alex", "em_santa",
     "bf_alice", "bf_emma", "bf_isabella", "bf_lily",
     "bm_daniel", "bm_fable", "bm_george", "bm_lewis",
 ]
 
-_pipeline = None
-_pipeline_lock = threading.Lock()
+_pipelines: dict[str, object] = {}
+_pipelines_lock = threading.Lock()
 
 
-def _get_pipeline():
-    global _pipeline
-    if _pipeline is not None:
-        return _pipeline
-    with _pipeline_lock:
-        if _pipeline is not None:
-            return _pipeline
-        logger.info("Loading Kokoro pipeline (first run may download ~300MB model)")
+def _get_pipeline(lang_code: str):
+    # Kokoro pipeline is language-aware (G2P); keep one pipeline per language.
+    lang_code = (lang_code or "en-us").lower()
+    with _pipelines_lock:
+        if lang_code in _pipelines:
+            return _pipelines[lang_code]
+
+        # Local import keeps startup lighter until first request.
+        logger.info("Loading Kokoro pipeline lang_code=%s (first run may download ~300MB model)", lang_code)
         from kokoro import KPipeline
 
-        _pipeline = KPipeline(lang_code="a")
-        logger.info("Kokoro ready")
-        return _pipeline
+        pipeline = KPipeline(lang_code=lang_code)
+        _pipelines[lang_code] = pipeline
+        logger.info("Kokoro ready for lang_code=%s", lang_code)
+        return pipeline
 
 
 class SpeechRequest(BaseModel):
     model: str = "kokoro"
     input: str = Field(..., min_length=1)
     voice: str = "af_bella"
+    lang_code: str = "en-us"
     response_format: str = "wav"
     speed: float = 1.0
 
@@ -86,8 +92,9 @@ def create_speech(req: SpeechRequest):
         raise HTTPException(400, "empty input")
 
     voice = (req.voice or "af_bella").strip()
+    lang_code = (req.lang_code or "en-us").strip()
     try:
-        pipeline = _get_pipeline()
+        pipeline = _get_pipeline(lang_code)
         chunks: list[np.ndarray] = []
         for _i, (_gs, _ps, audio) in enumerate(
             pipeline(text, voice=voice, speed=max(0.5, min(req.speed, 2.0)))
