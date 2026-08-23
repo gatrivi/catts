@@ -74,6 +74,10 @@ def _silent_wav(path: Path, duration_sec: float = 0.4, sample_rate: int = 22050)
         wf.writeframes(struct.pack("<h", 0) * n_frames)
 
 
+# Alias: worker/main.py stub mode imports _stub_wav from this module.
+_stub_wav = _silent_wav
+
+
 def _mp3_to_wav(mp3: Path, wav: Path) -> bool:
     ffmpeg = ffmpeg_path()
     if not ffmpeg:
@@ -109,10 +113,16 @@ async def synthesize(
         return await _synthesize_gptsovits(text, output_path, voice_id, lang, ref_audio)
 
     if TTS_ENGINE == "kokoro" and kokoro_tts.configured():
-        return await kokoro_tts.synthesize(text, output_path, lang)
+        try:
+            return await kokoro_tts.synthesize(text, output_path, lang)
+        except Exception as exc:
+            logger.warning("kokoro failed (%s) — trying next engine", exc)
 
     if TTS_ENGINE == "pocket" and pocket_tts.available():
-        return await pocket_tts.synthesize(text, output_path, ref_audio=ref_audio, lang=lang)
+        try:
+            return await pocket_tts.synthesize(text, output_path, ref_audio=ref_audio, lang=lang)
+        except Exception as exc:
+            logger.warning("pocket failed (%s) — trying next engine", exc)
 
     if ref_audio and _clone_engines():
         try:
@@ -166,7 +176,10 @@ async def live_tts(text: str, voice_id: str, lang: str = "en", ref_audio: Path |
             return r.content, "gptsovits"
 
     if TTS_ENGINE == "kokoro" and kokoro_tts.configured():
-        return await kokoro_tts.live_tts(text, lang)
+        try:
+            return await kokoro_tts.live_tts(text, lang)
+        except Exception as exc:
+            logger.warning("kokoro live failed (%s) — trying next engine", exc)
 
     with tempfile.TemporaryDirectory() as tmp:
         out = Path(tmp) / "live.wav"
