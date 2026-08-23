@@ -1,9 +1,10 @@
-"""Stage-exact CATTS smoke test (API + STT + Translate + Voice + Audio decode)."""
+"""Stage-exact CATTS smoke test (API + STT + Translate + Voice + Audio decode + agent stack)."""
 
 from __future__ import annotations
 
 import math
 import os
+import shutil
 import struct
 import sys
 import tempfile
@@ -12,6 +13,10 @@ import wave
 from pathlib import Path
 
 import httpx
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 from services.audio_silence import is_not_silent, to_wav_if_needed
 
@@ -23,6 +28,17 @@ SILENCE_PEAK_THRESHOLD = float(os.getenv("CATTS_SILENCE_PEAK_THRESHOLD", "0.008"
 def _headers() -> dict[str, str]:
     key = os.getenv("CATTS_API_KEY", "").strip()
     return {"X-API-Key": key} if key else {}
+
+
+def _read_secret(env_keys: tuple[str, ...], filename: str) -> str:
+    for key in env_keys:
+        value = os.getenv(key, "").strip().lstrip("\ufeff")
+        if value:
+            return value
+    path = Path.home() / ".secrets" / filename
+    if path.exists():
+        return path.read_text(encoding="utf-8-sig").strip()
+    return ""
 
 
 def _write_sine_wav(out_path: Path, *, duration_sec: float, sr: int = 16000, freq: float = 220.0, amp: float = 0.25) -> None:
@@ -47,6 +63,10 @@ def _fail(stage: str, detail: str) -> "None":
 
 def _skip(stage: str, reason: str) -> "None":
     print(f"SKIP stage={stage} — {reason}")
+
+
+def _warn(stage: str, detail: str) -> "None":
+    print(f"WARN stage={stage} — {detail}")
 
 
 def _ok(stage: str, detail: str = "") -> "None":
@@ -213,6 +233,79 @@ def main() -> int:
             _fail("tts_live", f"live audio silent (peak={peak:.4f})")
         _ok("tts_live", f"engine={r.headers.get('X-TTS-Engine','?')} peak={peak:.4f} bytes={len(r.content)}")
 
+    def lm_studio() -> None:
+        """Goal 1: local coding brain. Local component — configured but broken = FAIL."""
+        token = _read_secret(("LM_STUDIO_API_KEY", "LM_API_KEY"), "lm-api-token")
+        base = (
+            os.getenv("LM_BASE_URL")
+            or os.getenv("LM_STUDIO_BASE_URL")
+            or "http://127.0.0.1:42/v1"
+        ).rstrip("/")
+        if not token:
+            _skip("lm_studio", "not configured — run scripts\\setup-lmstudio.ps1 (WORKHORSE.md, Goal 1)")
+            return
+        try:
+            r = httpx.get(f"{base}/models", headers={"Authorization": f"Bearer {token}"}, timeout=10.0)
+        except Exception as e:
+            _fail("lm_studio", f"unreachable at {base}: {e}")
+        if r.status_code != 200:
+            _fail("lm_studio", f"HTTP {r.status_code} from {base}/models — is the LM Studio server started?")
+        models = [str(m.get("id")) for m in r.json().get("data", []) if isinstance(m, dict)]
+        _ok("lm_studio", f"{base} · models: {', '.join(models[:6]) or '?'}")
+
+    def omp_agent() -> None:
+        """Goal 1: omp binary resolvable."""
+        omp = shutil.which("omp")
+        if not omp:
+            bun = Path.home() / ".bun" / "bin" / "omp.exe"
+            omp = str(bun) if bun.is_file() else None
+        if not omp:
+            _skip("omp_agent", "omp binary not found — install Oh My Pi (WORKHORSE.md, Goal 1)")
+            return
+        _ok("omp_agent", omp)
+
+    def omnirouter() -> None:
+        """Goal 2: outside service — configured but broken = WARN only, never fails the rig."""
+        token = _read_secret(("OMNIROUTER_API_KEY",), "omnirouter-token")
+        base = os.getenv("OMNIROUTER_BASE_URL", "").strip()
+        if not base:
+            base_file = Path.home() / ".secrets" / "omnirouter-base-url"
+            if base_file.exists():
+                base = base_file.read_text(encoding="utf-8-sig").strip()
+        if not token or not base:
+            _skip("omnirouter", "not configured — run scripts\\setup-omnirouter.ps1 (WORKHORSE.md, Goal 2)")
+            return
+        base = base.rstrip("/")
+        model = os.getenv("OMNIROUTER_MODEL", "ox-alpha")
+        auth = {"Authorization": f"Bearer {token}"}
+        try:
+            r = httpx.get(f"{base}/models", headers=auth, timeout=15.0)
+            if r.status_code != 200:
+                _warn("omnirouter", f"HTTP {r.status_code} from {base}/models (401 = bad token)")
+                return
+            ids = [str(m.get("id")) for m in r.json().get("data", []) if isinstance(m, dict)]
+            c = httpx.post(
+                f"{base}/chat/completions",
+                headers=auth,
+                json={
+                    "model": model,
+                    "messages": [{"role": "user", "content": "Reply with the single word: pong"}],
+                    "max_tokens": 8,
+                },
+                timeout=90.0,
+            )
+            if c.status_code != 200:
+                _warn(
+                    "omnirouter",
+                    f"models OK but completion HTTP {c.status_code} for '{model}' "
+                    f"(404 = wrong model id) — visible: {', '.join(ids[:8])}",
+                )
+                return
+            reply = ((c.json().get("choices") or [{}])[0].get("message") or {}).get("content", "")
+            _ok("omnirouter", f"{model} replied: {(reply or '').strip()[:40]!r}")
+        except Exception as e:
+            _warn("omnirouter", f"outside service unreachable ({e}) — rig stays fully local")
+
     # ---- Run stages ----
     print(f"=== CATTS smoke @ {BASE} ===")
     tmp_root = tempfile.mkdtemp(prefix="catts_smoke_")
@@ -253,6 +346,11 @@ def main() -> int:
         tts_live(h2, voice_id, tmp)
     except Exception as e:
         _fail("tts_live", str(e))
+
+    # agent stack — Goal 1 (local coding) & Goal 2 (Omnirouter)
+    lm_studio()
+    omp_agent()
+    omnirouter()
 
     print("=== SMOKE OK ===")
     return 0

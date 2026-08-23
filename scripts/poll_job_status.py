@@ -1,4 +1,5 @@
 import os
+import sys
 import time
 from typing import Any
 
@@ -8,18 +9,21 @@ import httpx
 CATTS_API_BASE = os.getenv("CATTS_API_BASE", "http://127.0.0.1:59200").rstrip("/")
 
 
-def main() -> int:
-    import sys
+def _headers() -> dict[str, str]:
+    key = os.getenv("CATTS_API_KEY", "").strip()
+    return {"X-API-Key": key} if key else {}
 
+
+def main() -> int:
     if len(sys.argv) < 2:
-        raise SystemExit("Usage: python poll_job_status.py <job_id>")
+        raise SystemExit("Usage: python scripts\\poll_job_status.py <job_id>")
 
     job_id = sys.argv[1].strip()
     job_url = f"{CATTS_API_BASE}/jobs/{job_id}"
     deadline_s = int(os.getenv("CATTS_POLL_DEADLINE_S", "1800"))  # 30 min default
     t0 = time.time()
 
-    with httpx.Client(timeout=30) as client:
+    with httpx.Client(timeout=30, headers=_headers()) as client:
         while True:
             if time.time() - t0 > deadline_s:
                 print("TIMEOUT")
@@ -37,7 +41,9 @@ def main() -> int:
             status = job.get("status")
             stage = job.get("stage")
             progress = job.get("progress")
-            print(f"POLL status={status} stage={stage} progress={progress}")
+            name = job.get("display_name") or job.get("title") or ""
+            label = f" ({name})" if name else ""
+            print(f"POLL{label} status={status} stage={stage} progress={progress}")
 
             if status in ("done", "failed", "cancelled"):
                 if status != "done":
@@ -49,4 +55,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
