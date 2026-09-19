@@ -200,9 +200,48 @@ def find_prior():
    continue
   known = i['exe'] and Path(i['exe']).resolve() == Path('Z:/ai/llama.cpp/llama-server.exe').resolve()
   if prior or not known or '8123' not in cmd or not any('qwen2.5-coder-7b-instruct-q4_k_m.gguf' in a for a in cmd):
-   raise RuntimeError('Otro servidor de modelos esta activo. Cerralo antes de abrir Smol.')
+   port = cmd[cmd.index('--port') + 1] if '--port' in cmd and cmd.index('--port') + 1 < len(cmd) else '?'
+   raise RuntimeError(f'Otro servidor de modelos aparecio: puerto {port} (PID {i["pid"]}). Cerralo antes de abrir Smol.')
   prior = i
  return prior
+
+def find_foreign():
+ """Servidores ajenos a Smol: todo menos el prior Qwen-8123 que run() adopta y pausa."""
+ try:
+  from hub import find_servers
+  servers = find_servers()
+ except Exception:
+  return []
+ out = []
+ for s in servers:
+  cmd = s.get('cmdline') or []
+  if not cmd: continue  # residuo inalcanzable: mismo criterio que find_prior
+  if '8123' in cmd and any('qwen2.5-coder-7b-instruct-q4_k_m.gguf' in a for a in cmd): continue
+  out.append(s)
+ return out
+
+def handle_foreign():
+ """Puerta temprana: avisa antes del menu y ofrece detener el servidor ajeno (antes: error tras configurar)."""
+ foreign = find_foreign()
+ if not foreign: return
+ try:
+  from hub import SPECS
+  labels = [SPECS[s['key']]['label'] if s.get('key') else
+   (Path(s['model']).stem if s.get('model') else 'desconocido') for s in foreign]
+ except Exception:
+  labels = [Path(s['model']).stem if s.get('model') else 'desconocido' for s in foreign]
+ print('Otro servidor de modelos esta activo: ' +
+  ' | '.join(f"{label} en puerto {s.get('port') or '?'} (PID {s['pid']})" for label, s in zip(labels, foreign)),
+  flush=True)
+ if input('1. Detenerlo y continuar  2. Salir [1]: ').strip() == '2':
+  raise SystemExit(0)
+ from hub import stop_pid
+ for s in foreign:
+  result = stop_pid(s['pid'], expect_model=True)
+  print(f"puerto {s.get('port') or '?'} -> {result}", flush=True)
+  with (DATA / 'stopped-foreign.log').open('a', encoding='utf-8') as log:
+   log.write(time.strftime('%Y-%m-%d %H:%M:%S') +
+    f" pid={s['pid']} port={s.get('port')} model={s.get('model')} -> {result}\n")
 
 preset_ctx = reg.preset_ctx
 
@@ -316,6 +355,7 @@ def main():
  except OSError:
   lock.close(); raise RuntimeError('Smol ya esta abierto en otra ventana.')
  try:
+  handle_foreign()
   settings_path = DATA / 'last.json'
   settings = json.loads(settings_path.read_text(encoding='utf-8')) if settings_path.exists() else {}
   while True:

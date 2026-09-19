@@ -346,3 +346,11 @@ npm test 35/35 OK, catts root tests/test_agent_cli.py 9/9 (run with E:/zengatriv
 default py3.10 lacks pytest/pydantic). local-coding/ committed. Pendiente: hub LIVE model start/switch cycle
 (only apps + adoption exercised so far); free-RAM check + auto-context bake-off; overnight-runner fixes
 (max_tokens 2500+, ctx cap 6000, response_format off, delete stale C:/catintassist/work/repo before retry).
+
+## Smol foreign-server gate (2026-09-19 evening): prompt instead of late error
+User hit "Otro servidor de modelos esta activo" AFTER configuring model 8 (NeoHorse): the guard only adopted
+the Qwen-8123 prior and hard-failed on anything else, and the check ran post-configuration. smol.py now gates
+at main() entry via hub-style find_servers (Qwen-8123/residue still excluded): shows model/port/PID and offers
+"1. Detenerlo y continuar 2. Salir [1]"; stops via hub.stop_pid, logs to data/smol/stopped-foreign.log.
+Stale Bonsai-2 :9103 (PID 10092, from the morning hand-try) stopped by hand; proxy :9106 already gone.
+Qwen-8123 (PID 2136) left for the normal pause/restore path. Tests: 39/39.
