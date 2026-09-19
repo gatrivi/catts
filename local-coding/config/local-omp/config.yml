@@ -1,0 +1,6 @@
+setupVersion: 1
+modelRoles:
+  default: taller/qwen35-local
+  smol: taller/qwen35-local
+  slow: taller/qwen35-local
+  plan: taller/qwen35-local

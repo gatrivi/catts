@@ -1,0 +1,79 @@
+Workspace: Z:\catts\local-coding. Experiments paused; commands below run only when explicitly invoked.
+
+TALLER LOCAL - SIN SUSCRIPCION DE IA
+
+LO MAS FACIL: doble clic en "Taller local" en el Escritorio.
+Elegi el numero del proyecto. Rosario y TMM aparecen primero, luego CatTS
+y las carpetas de C:\zengatrivi\REACTJS (incluye catresumaker y gatrivi).
+La lista se descubre al abrir el taller. Espera la carga y escribi tu pedido.
+Despues del proyecto elegis modo:
+  3: Tarea experimental: plan 27B, pasos Bonsai 4B, pruebas y revision 27B.
+  1 / Enter: Editor 9B, rapido, lee y edita.
+  2: Consultor 27B, mas lento, diagnostica y propone un plan; no edita.
+En modo 3 escribi el objetivo: descubre archivos y pruebas automaticamente.
+Guarda estado, cambios y resultados en data/local-tasks. Una reparacion maximo.
+Si se pausa, muestra el comando para reanudar. No usa notas viejas del consultor.
+Alcance inicial: pocos archivos existentes; necesita pruebas locales instaladas.
+Detalles y limites: docs/LOCAL_TASK_RUNNER.md.
+En el consultor escribi una pregunta concreta y, opcionalmente, hasta dos
+rutas relativas separadas por ; (ejemplo: src/components/Card.jsx).
+Usa archivos pequenos. Si excede el contexto, pide un extracto mas corto.
+La respuesta se guarda automaticamente; al volver al editor para ese mismo
+proyecto, recibe la ultima nota breve. Revisala: puede equivocarse.
+Para pasar del consultor al editor: /exit, mismo proyecto, modo 1.
+Nunca hace falta cargar los dos modelos juntos.
+Para cambiar de proyecto: /exit en el asistente; volves al menu.
+O abre el selector de carpetas de Windows: tambien podes elegir una en Z:.
+A apaga el modelo, H muestra ayuda, 0 cierra el taller.
+Podes tener Zed abierto en la misma carpeta y revisar los cambios ahi.
+El menu tambien permite apagar el modelo y leer esta ayuda.
+Al salir del asistente, se apaga el modelo si el menu lo arranco.
+Si cerras la ventana, el vigilante del modelo detecta el cierre y lo apaga.
+Alternativa sin acceso directo: doble clic en TALLER.cmd en esta carpeta.
+
+COMANDOS MANUALES (solo si preferis usarlos):
+
+1. Abri una terminal y ejecuta:
+   cd /d Z:\catts\local-coding
+   npm.cmd run qwen35
+   Espera READY (aproximadamente 80 segundos). Deja esa ventana abierta.
+   En PowerShell, usa cd Z:\catts\local-coding sin /d.
+
+2. Abri otra terminal, entra a la misma carpeta y ejecuta:
+   .\LOCAL_WORK.cmd "C:\zengatrivi\REACTJS\rosario-cards-v1"
+   o:
+   .\LOCAL_WORK.cmd "C:\zengatrivi\REACTJS\trufi-tmm"
+
+3. Escribi un pedido pequeno con el archivo concreto. Ejemplo:
+   Lee las instrucciones del proyecto y src/components/MiBoton.jsx.
+   Conserva props y comportamiento. Centra el contenido, agrega bordes
+   redondeados y transicion de color. Edita solo ese componente.
+   (Reemplaza MiBoton.jsx por un archivo que exista.)
+
+4. Revisa el cambio en tu editor y con git diff. Ejecuta vos las pruebas
+   del proyecto. Pega el error completo si falla; pedi una correccion.
+   El asistente no ejecuta terminal ni despliega. Tiene lectura y edicion.
+
+5. Antes de terminar: pedi un TASK.md corto con objetivo, archivos,
+   decisiones, pruebas pendientes y siguiente paso. En la siguiente sesion:
+   "Lee TASK.md y los archivos mencionados antes de continuar".
+
+6. Cerra OMP y detene el modelo con Ctrl+C en la primera ventana.
+   Alternativa desde CATTS: npm.cmd run qwen35:stop
+
+NO uses omp a secas para garantizar este circuito: tu perfil habitual puede
+elegir proveedores de internet. LOCAL_WORK usa un perfil separado, modelo
+local en 127.0.0.1:9102 y sin herramientas web ni subagentes.
+
+FUNCIONA: dos ediciones de un componente React mediante OMP + Qwen local,
+compilacion JSX y render React 19 comprobados. No es una garantia para
+refactors grandes. Una tarea, pocos archivos, verificar, repetir.
+No requiere descargar modelos ni pagar tokens. El editor manual no necesita 27B.
+
+Si dice contexto lleno: guarda TASK.md, sali y abri una sesion nueva.
+Si dice falta RAM: cerra navegador/proyectos innecesarios o elegi el editor 9B.
+Si dice servidor no listo: volve al paso 1 y espera READY.
+
+Detalles: docs\LOCAL_CODING_WORKFLOW.md
+Configuracion recuperable: config\local-omp\
+Historial local: data\local-omp\ (no se sube al repositorio).

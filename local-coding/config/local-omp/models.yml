@@ -1,0 +1,11 @@
+providers:
+  taller:
+    baseUrl: http://127.0.0.1:9102/v1
+    api: openai-completions
+    apiKey: local
+    auth: none
+    models:
+      - id: qwen35-local
+        name: Taller local Qwen3.5 9B
+        contextWindow: 16384
+        maxTokens: 4096

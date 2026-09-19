@@ -1,0 +1,33 @@
+{
+  "name": "local-coding",
+  "private": true,
+  "scripts": {
+    "qwen35": "E:\\zengatrivi-drive-e\\catts\\.venv\\Scripts\\python.exe scripts/qwen35_local.py",
+    "qwen35:stop": "E:\\zengatrivi-drive-e\\catts\\.venv\\Scripts\\python.exe scripts/qwen35_local.py --stop",
+    "qwen35:download": "E:\\zengatrivi-drive-e\\catts\\.venv\\Scripts\\python.exe scripts/download_qwen35.py",
+    "qwen35:test": "E:\\zengatrivi-drive-e\\catts\\.venv\\Scripts\\python.exe scripts/local_coder_exercise.py",
+    "bonsai": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start_bonsai.ps1",
+    "bonsai:omp": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/setup-bonsai-omp.ps1 -AsDefault",
+    "bonsai:agent": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/bonsai-agent.ps1",
+    "local": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start-local-coding.ps1",
+    "local:status": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/local-coding-status.ps1",
+    "qwen27": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start-qwen27bxs.ps1",
+    "qwen27:download": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/download-qwen27bxs.ps1",
+    "qwen27:bench": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/benchmark-qwen27bxs.ps1",
+    "qwen": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/qwen.ps1",
+    "taller": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/taller.ps1",
+    "check": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/taller.ps1 -CheckOnly",
+    "test": "E:\\zengatrivi-drive-e\\catts\\.venv\\Scripts\\python.exe -m unittest discover -s tests -v",
+    "e4b": "E:\\zengatrivi-drive-e\\catts\\.venv\\Scripts\\python.exe scripts/e4b_session.py",
+    "e4b:check": "E:\\zengatrivi-drive-e\\catts\\.venv\\Scripts\\python.exe scripts/e4b_session.py --check",
+    "hub": "E:\\zengatrivi-drive-e\\catts\\.venv\\Scripts\\python.exe scripts/hub.py",
+    "hub:status": "E:\\zengatrivi-drive-e\\catts\\.venv\\Scripts\\python.exe scripts/hub.py status",
+    "hub:check": "E:\\zengatrivi-drive-e\\catts\\.venv\\Scripts\\python.exe scripts/hub.py check",
+    "smol": "E:\\zengatrivi-drive-e\\catts\\.venv\\Scripts\\python.exe scripts/smol.py",
+    "smol:check": "E:\\zengatrivi-drive-e\\catts\\.venv\\Scripts\\python.exe scripts/smol.py --check",
+    "wangp": "E:\\zengatrivi-drive-e\\catts\\.venv\\Scripts\\python.exe scripts/wangp_local.py --launch",
+    "wangp:check": "E:\\zengatrivi-drive-e\\catts\\.venv\\Scripts\\python.exe scripts/wangp_local.py --check",
+    "chores": "E:\\zengatrivi-drive-e\\catts\\.venv\\Scripts\\python.exe scripts/chores_api.py",
+    "chores:check": "E:\\zengatrivi-drive-e\\catts\\.venv\\Scripts\\python.exe scripts/chores_api.py --check"
+  }
+}

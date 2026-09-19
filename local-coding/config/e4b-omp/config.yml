@@ -1,0 +1,6 @@
+﻿setupVersion: 1
+modelRoles:
+  default: e4b/gemma-e4b-local
+  smol: e4b/gemma-e4b-local
+  slow: e4b/gemma-e4b-local
+  plan: e4b/gemma-e4b-local

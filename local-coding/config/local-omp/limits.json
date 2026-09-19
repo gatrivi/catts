@@ -1,0 +1,6 @@
+{
+  "tools": {"artifactSpillThreshold": 8, "artifactHeadBytes": 2, "artifactTailBytes": 4, "artifactTailLines": 60},
+  "read": {"defaultLimit": 250},
+  "shellMinimizer": {"maxCaptureBytes": 65536},
+  "compaction": {"keepRecentTokens": 3000}
+}

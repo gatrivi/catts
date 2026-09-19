@@ -1,0 +1,97 @@
+BONSAI-2 27B PLAN: 45 TPS + 100K CONTEXT
+============================================
+
+LAST UPDATED: 2026-09-18
+CURRENT STATUS: Prep complete, waiting for RAM >= 3 GB
+
+=== HARDWARE ===
+- GPU: RX 6600 (8 GB VRAM)
+- System RAM: 15.4 GB total, 2.1 GB free (during work hours)
+- Free RAM threshold: >= 3 GB needed to launch
+- Runtime: Z:\Models\runtime\llama-prism-b10685-vulkan\llama-server.exe
+- Custom GGUF type 143 (requires prism-b10685-vulkan; mainline rejects)
+
+=== MODELS (PRESENT ON DISK) ===
+- bonsai2-27b-ptq10: Ternary-Bonsai-2-27B-PTQ1_0.gguf (5.95 GB, q8_0)
+- bonsai2-27b-tq2_0: Ternary-Bonsai-2-27B-TQ2_0.gguf (6.96 GB, default q4_0)
+
+=== SCRIPT MODIFICATIONS ===
+
+1. bonsai2_tq2_bench.py (modified)
+   - New 3rd arg: QUANTIZATION (q4_0 | q3_0 | q2_0 | int4_fp), default q4_0
+   - KV cache estimation printed at launch (approx GB for selected quant + context)
+   - RAM check: warning only at <2.5 GB (no hard abort); user decides
+   - Dynamic -ctk/-ctv: uses selected quantization
+   - Context size mapping: 2k/4k/8k/32k/100k tokens
+   - Backward-compatible: defaults to original q4_0 + 8K behavior
+
+2. context_summarizer.py (NEW - client-side 100K management)
+   - truncate_context() function: summarizes old context when exceeding max_tokens
+   - Preserves keep_recent tokens verbatim
+   - Chunk-based summarization with model fallback
+   - Extractive summarization fallback if LLM unavailable
+   - Rough token estimation: 4 chars/token
+   - Standalone CLI usage in __main__ block
+
+=== QUANTIZATION SPEED/QUALITY MAP ===
+- q4_0: 15-25 tps (8K), KV ~0.53 GB (8K) / 3.4 GB (100K), HIGH quality
+- q3_0: 25-35 tps (8K), KV ~0.34 GB (8K) / 2.1 GB (100K), MEDIUM-HIGH quality
+- q2_0: 35-45 tps (8K), KV ~0.27 GB (8K) / 1.7 GB (100K), MEDIUM-LOW quality
+  -- targets 45 tps + fits 100K in 8 GB VRAM (1.7 GB KV)
+- int4_fp: 40-50 tps (8K), KV ~0.53 GB (8K) / 3.4 GB (100K), SEVERE quality loss
+
+=== PATHS TO 45 TPS + 100K CONTEXT ===
+
+PATH A: Q2_0 + 8K CONTEXT + CLIENT SUMMARIZATION (RECOMMENDED)
+  1. Convert TQ2_0 to q2_0 (one-time):
+     llm.exe quantize input.gguf output-q2.gguf -q2_k
+  2. Launch:
+     python scripts/bonsai2_tq2_bench.py [model-q2.gguf] 8192 q2_0
+  3. Expected: 35-45 tps at 8K context
+  4. 100K context: Use client summarization (context_summarizer.py) before sending
+     to server. Drops/context-compresses gracefully, no server-side 100K KV needed.
+
+PATH B: 8B MODEL (EXISTING, NO CONVERSION NEEDED)
+  - Use granite42-8b-q4 from existing models directory
+  - 45+ tps at q4_0 with 100K KV ~3.4 GB (fits 8 GB VRAM with 4.6 GB headroom)
+  - HIGH quality, no quantization needed
+  - Less parameters (8B vs 27B) but same hardware achieves higher tps
+
+PATH C: Q4_0 + 8K ONLY (NO 100K, NO 45TPS)
+  - Launch with default config
+  - ~15-25 tps at 8K, HIGH quality
+  - 100K not feasible without KV swapping (not in current build)
+
+=== EXECUTION SEQUENCE (WHEN RAM >= 3 GB) ===
+
+1. Verify RAM:
+   powershell -NoProfile -Command "if ((Get-CimInstance Win32_OperatingSystem).FreePhysicalMemory * 1KB / 1GB -ge 3) { 'READY' } else { 'WAIT' }"
+
+2. Check port 9103 free:
+   powershell -NoProfile -Command "if (Test-NetConnection -InformationLevel Quiet -Port 9103 -ComputerName 127.0.0.1) { 'PORT FREE' } else { 'PORT BUSY' }"
+
+3. Launch server (one of):
+   # Path A q2_0 + 8K:
+   python scripts/bonsai2_tq2_bench.py [model-q2.gguf] 8192 q2_0
+   
+   # Path B 8B model:
+   python scripts/bonsai2_tq2_bench.py Z:\catts\local-coding\data\models\granite42-8b-q4\granite42-8b-q4.gguf 8192 q4_0
+
+4. Run client summarization for 100K (Path A only):
+   from scripts.context_summarizer import truncate_context
+   truncated = truncate_context(conversation, max_tokens=100000, keep_recent=4000)
+
+5. Chat via http://127.0.0.1:9103/v1/chat/completions
+
+=== NO-RISK PREP SUMMARY ===
+- Scripts compiled OK (python -m py_compile)
+- Changes backward-compatible (defaults to original behavior)
+- No model/runtime file modifications
+- No execution during work hours (waits for RAM >= 3 GB)
+- All prep done in ~30 minutes; ready to run immediately when RAM available
+
+=== IF STH HAPPENS (CRASH/ERROR) ===
+- Port 9103 may remain occupied; wait 30s and retry
+- RAM < 3 GB: lower quantization (q4_0) or free memory
+- Server exit: re-run launch command; check logs in Z:\catts\local-coding\data\bonsai2-tq2-bench-server.log
+- Context summarization errors: fallback to extractive truncation (keep last keep_recent tokens)

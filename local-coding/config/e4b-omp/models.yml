@@ -1,0 +1,12 @@
+﻿providers:
+  e4b:
+    baseUrl: http://127.0.0.1:9103/v1
+    api: openai-completions
+    apiKey: local
+    auth: none
+    models:
+      - id: gemma-e4b-local
+        name: Gemma E4B QAT supervisado
+        contextWindow: 16384
+        maxTokens: 4096
+

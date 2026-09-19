@@ -1,0 +1,193 @@
+{
+  "source": "E:\\zengatrivi-drive-e\\catts",
+  "destination": "Z:\\catts\\local-coding",
+  "backup": "E:\\zengatrivi-drive-e\\catts\\data\\local-coding-migration-20260906\\originals",
+  "files": [
+    {
+      "path": "scripts/local_task.py",
+      "original_sha256": "d491440fa5865b3d881337651feb623dd52c5298e73e5d995dceac87b714faee",
+      "migrated_sha256": "6f0d2a7d7b3875f5217996b4f2816d99ffef250579de2dee3c20bd16be0a173a"
+    },
+    {
+      "path": "scripts/local_small_worker.py",
+      "original_sha256": "6a0c71a95b7dc0ee2ad43194c22df662c7ddc63dba16f87a804a5dc45e9bc74d",
+      "migrated_sha256": "9ad341e0dc3ac9a80ecc2ce83ffb58280700c7bf292b0e5900403b40be0e9bb4"
+    },
+    {
+      "path": "scripts/local_advisor.py",
+      "original_sha256": "860d50cae27b1c48e42d04ff552d03871564ef840d73dda9316ccf3535f130b3",
+      "migrated_sha256": "860d50cae27b1c48e42d04ff552d03871564ef840d73dda9316ccf3535f130b3"
+    },
+    {
+      "path": "scripts/qwen35_local.py",
+      "original_sha256": "fba57fa96c19371aba7552a9b239c2194da7e89b717be601a3a6a214e63b0387",
+      "migrated_sha256": "fba57fa96c19371aba7552a9b239c2194da7e89b717be601a3a6a214e63b0387"
+    },
+    {
+      "path": "scripts/local_coder_exercise.py",
+      "original_sha256": "f3cce45c47aafa49d318b656b8b05e589901dbe261ef43a3098f029eb61b21bc",
+      "migrated_sha256": "f3cce45c47aafa49d318b656b8b05e589901dbe261ef43a3098f029eb61b21bc"
+    },
+    {
+      "path": "scripts/local_coder_probe.py",
+      "original_sha256": "6b9720647d0728755aaca113af970a99e30c537e456833a3420b1714e9f301b7",
+      "migrated_sha256": "6b9720647d0728755aaca113af970a99e30c537e456833a3420b1714e9f301b7"
+    },
+    {
+      "path": "scripts/probe_qwen27.py",
+      "original_sha256": "2271f242fdb5e05ee326265619f465e3cdabca75590b7d27b9a219a991a59d71",
+      "migrated_sha256": "2271f242fdb5e05ee326265619f465e3cdabca75590b7d27b9a219a991a59d71"
+    },
+    {
+      "path": "scripts/download_qwen35.py",
+      "original_sha256": "e02f80191194d998ccb01be21e3a628fc0c3bc2d5658d17fcce4cded5783686e",
+      "migrated_sha256": "e02f80191194d998ccb01be21e3a628fc0c3bc2d5658d17fcce4cded5783686e"
+    },
+    {
+      "path": "scripts/download_ista_qwen38.py",
+      "original_sha256": "255a064d825ded616cdc8957cd9ab354a6f35adc2b1aa38f3bcb1de2280f8f73",
+      "migrated_sha256": "255a064d825ded616cdc8957cd9ab354a6f35adc2b1aa38f3bcb1de2280f8f73"
+    },
+    {
+      "path": "scripts/taller.ps1",
+      "original_sha256": "5a4b60eecfd09b885db38d6d223682afe25abf5cc61009b66c262b64953119a1",
+      "migrated_sha256": "cb9bc1a901267ee87ca2f0568a1d075321607e53e3614dcd90c19382f8224307"
+    },
+    {
+      "path": "scripts/local-work.ps1",
+      "original_sha256": "05224f208001d36f025cf40a6bf5b5abca79ff36bce2768402b7693b556af2c1",
+      "migrated_sha256": "2e4c2f1872236e62822c036ac8b2152bd3cf765eae9a47f110279d16978d6038"
+    },
+    {
+      "path": "scripts/start_bonsai.ps1",
+      "original_sha256": "ddb216f51785bc764f7667a736ef13c3e1ab1748cb97e30a6613a17a3041059e",
+      "migrated_sha256": "96ccd13e2934978b0ee30e0c248f2653f9701e30f83f8923a2f642a282468445"
+    },
+    {
+      "path": "scripts/bonsai-agent.ps1",
+      "original_sha256": "1a4433930452f07ab19af60f18b87bbf209018b161564838c887994466dcb36a",
+      "migrated_sha256": "1a4433930452f07ab19af60f18b87bbf209018b161564838c887994466dcb36a"
+    },
+    {
+      "path": "scripts/bonsai_chat.ps1",
+      "original_sha256": "907b89bb16a54a3d76b1ef092a3b661f160bbf844509bad8b94dd9f8d1136b8f",
+      "migrated_sha256": "907b89bb16a54a3d76b1ef092a3b661f160bbf844509bad8b94dd9f8d1136b8f"
+    },
+    {
+      "path": "scripts/setup-bonsai-omp.ps1",
+      "original_sha256": "ed05011b60f5803b22b7ef4a16047aac1dff84f23a701557b94c748ed7653799",
+      "migrated_sha256": "ed05011b60f5803b22b7ef4a16047aac1dff84f23a701557b94c748ed7653799"
+    },
+    {
+      "path": "scripts/start-local-coding.ps1",
+      "original_sha256": "a78fd3dd74b3b3c11e614fb62cd4c7300841e65a07af7dd89fb60fde24f1a6cf",
+      "migrated_sha256": "a78fd3dd74b3b3c11e614fb62cd4c7300841e65a07af7dd89fb60fde24f1a6cf"
+    },
+    {
+      "path": "scripts/local-coding-status.ps1",
+      "original_sha256": "71109f1cc56e1049582c8c1908cebcf6d2af4378957b6d4b067b61c567734991",
+      "migrated_sha256": "fdf76a41cc801c01fa4c89967e62a8cbc43c8feb01acf4b9823e656f10676a60"
+    },
+    {
+      "path": "scripts/qwen.ps1",
+      "original_sha256": "8ff00e8e5bbf585d44bc06ab802320dd215bf1144ca2caa6bbd4dc53ed67b88a",
+      "migrated_sha256": "8ff00e8e5bbf585d44bc06ab802320dd215bf1144ca2caa6bbd4dc53ed67b88a"
+    },
+    {
+      "path": "scripts/start-qwen-coder.ps1",
+      "original_sha256": "3895f3af5d2ba773e0464c28663d4a6426664c5940ad2b21919806cf9cb90f69",
+      "migrated_sha256": "3895f3af5d2ba773e0464c28663d4a6426664c5940ad2b21919806cf9cb90f69"
+    },
+    {
+      "path": "scripts/start-qwen27bxs.ps1",
+      "original_sha256": "e7f06f42cbd2c8a576c969ce73c1f1fb60215cb4eb309878b6a8256d9e149ac7",
+      "migrated_sha256": "e7f06f42cbd2c8a576c969ce73c1f1fb60215cb4eb309878b6a8256d9e149ac7"
+    },
+    {
+      "path": "scripts/download-qwen27bxs.ps1",
+      "original_sha256": "5c349646be61069fedfb5aea72adf02d7052318b8550fa515d0b9e8276625de5",
+      "migrated_sha256": "5c349646be61069fedfb5aea72adf02d7052318b8550fa515d0b9e8276625de5"
+    },
+    {
+      "path": "scripts/benchmark-qwen27bxs.ps1",
+      "original_sha256": "f0c81ea5a69e74ddf1d537e5c93945aab8da5d77209105d60dec2f547aed63c1",
+      "migrated_sha256": "7bc5d8f2edea156de1d4fc5ac17919175169b75b885ac32b076f21a9905f72bc"
+    },
+    {
+      "path": "scripts/install-taller-shortcut.ps1",
+      "original_sha256": "6603639bd3e5b8a9a165fff6c2e1aa2640a123c3d0993ad0cc6beaad9c7af2c4",
+      "migrated_sha256": "6603639bd3e5b8a9a165fff6c2e1aa2640a123c3d0993ad0cc6beaad9c7af2c4"
+    },
+    {
+      "path": "tests/test_local_task.py",
+      "original_sha256": "7c211105dd6a4d8c372bad6f3f3025648944c477f40c5ddc0b3b7bb6b3091205",
+      "migrated_sha256": "7c211105dd6a4d8c372bad6f3f3025648944c477f40c5ddc0b3b7bb6b3091205"
+    },
+    {
+      "path": "tests/test_local_advisor.py",
+      "original_sha256": "a85c4979af9d1c9b18e48dca4c15122ecc94865718924f933f40dab40ee3fed3",
+      "migrated_sha256": "a85c4979af9d1c9b18e48dca4c15122ecc94865718924f933f40dab40ee3fed3"
+    },
+    {
+      "path": "tests/test_local_coder_exercise.py",
+      "original_sha256": "0f932c8017b20933783bfe4a8f1a12acc6e47eda302e09d03cb1c905e328ed20",
+      "migrated_sha256": "0f932c8017b20933783bfe4a8f1a12acc6e47eda302e09d03cb1c905e328ed20"
+    },
+    {
+      "path": "config/local-worker-edits.schema.json",
+      "original_sha256": "e9e5579b2d44f43dface12c90a9a2903ecaa1d61b690e6a26dbbf2cc63f5940c",
+      "migrated_sha256": "e9e5579b2d44f43dface12c90a9a2903ecaa1d61b690e6a26dbbf2cc63f5940c"
+    },
+    {
+      "path": "config/local-omp/config.yml",
+      "original_sha256": "e504a2533e1744a84e2aa85247bd258fa4b61fb9d5778e6ad0d9e6de60437741",
+      "migrated_sha256": "e504a2533e1744a84e2aa85247bd258fa4b61fb9d5778e6ad0d9e6de60437741"
+    },
+    {
+      "path": "config/local-omp/models.yml",
+      "original_sha256": "9a30b2881c3e2b999820fd381bc9b4d101fef0ae7a539824175c527204c7a3e6",
+      "migrated_sha256": "9a30b2881c3e2b999820fd381bc9b4d101fef0ae7a539824175c527204c7a3e6"
+    },
+    {
+      "path": "fixtures/local-coder/fixture.json",
+      "original_sha256": "331e537481cfe80ddfb984bbec5b2c8899f7d49dd27432754a94e0fdfb987373",
+      "migrated_sha256": "331e537481cfe80ddfb984bbec5b2c8899f7d49dd27432754a94e0fdfb987373"
+    },
+    {
+      "path": "TALLER.cmd",
+      "original_sha256": "09934b09c853eaf41f70127d7dff3d85900ccb7ec6f56ba4bcad089ab7cf2ffe",
+      "migrated_sha256": "76705a73f23e96f7095b5fb1970ec9174d8bbe8973b603a13aaace0beff0bfb7"
+    },
+    {
+      "path": "LOCAL_WORK.cmd",
+      "original_sha256": "569cc5f25d487503529b3af9a9e4f28e066a1513384cb58c457c1d3d66a09dec",
+      "migrated_sha256": "569cc5f25d487503529b3af9a9e4f28e066a1513384cb58c457c1d3d66a09dec"
+    },
+    {
+      "path": "TRABAJAR_SIN_PLAN.txt",
+      "original_sha256": "0a8339f7253c5e0087893378dd0e559e5ad57a7da1ae4fcd2bd20c5a26aa78a9",
+      "migrated_sha256": "eb38f0a17b7fcae3622b010ccde52b692b458df5529865251b9e144620e2c23d"
+    },
+    {
+      "path": "BONSAI_CRIB_SHEET.txt",
+      "original_sha256": "c5902122444af796b53e9514651f249f59cc88fb24bbc7b39a44ddd93d014442",
+      "migrated_sha256": "c60cf9ac52995e83927452a9ef0b44ab3a109e52a3f24d8716c5732c0bec6051"
+    }
+  ],
+  "shared_python": "E:\\zengatrivi-drive-e\\catts\\.venv\\Scripts\\python.exe",
+  "shared_omp_profile": "E:\\zengatrivi-drive-e\\catts\\data\\local-omp",
+  "validation": {
+    "host_tests_z": 19,
+    "host_tests_e_shims": 19,
+    "taller_check_both": true,
+    "editor_check": true,
+    "powershell_syntax": true,
+    "models_started": false,
+    "ports_listening_at_finish": {
+      "9099": false,
+      "9100": false,
+      "9101": false,
+      "9102": false
+    }
+  }
+}

@@ -1,0 +1,29 @@
+Workspace: Z:\catts\local-coding. Experiments paused; commands below run only when explicitly invoked.
+
+BONSAI LOCAL AGENT CRIB (v0.2 · 2026-08-06)
+===========================================
+
+40 words
+--------
+npm run bonsai (leave open). Once: npm run bonsai:omp. Then cd any project → omp (or npm run bonsai:agent). Port :9099. Chat/light help only — full tools need LM Studio.
+
+80 words
+--------
+Server: npm run bonsai → http://127.0.0.1:9099 (−c 8192 −np 1 Vulkan). omp default: bonsai/Bonsai-4B-Q1_0.gguf (~/.omp/agent/). Setup: scripts/setup-bonsai-omp.ps1 -AsDefault. Agent wrapper uses --no-tools (tool schemas ~18k > 8k ctx). Full edit/tools: omp + LM Studio :42 (ornith). Fish owns :8080 — do not collide. Kill llama-server when idle.
+
+120 words
+---------
+Cursor's `agent` bills the $20 plan. Local twin: omp + Bonsai 4B on RX 6600 (~110 tok/s, ~$0 API). From catts:
+
+  npm run bonsai          # window 1
+  npm run bonsai:omp      # once
+  cd your\project && omp  # or: npm run bonsai:agent
+
+Phone: Termius SSH → same omp line (docs/OMP_MOVIL.md). Bonsai = free chat/bulk; Cursor Agents = hard architecture. Overnight Bonsai costs electricity only (~$0.10), not Cursor tokens.
+
+RESULTS
+-------
+- Model: Bonsai-4B-Q1_0.gguf ~546 MB · tree ~2 GB on E:
+- API: :9099 · Health GET /health · omp provider id: bonsai
+- Stock -c 0 / 4 slots → VRAM OOM on 8 GB RX 6600
+- omp full tools fail on 4B (prompt ~18k); use --no-tools or LM Studio
