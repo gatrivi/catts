@@ -175,3 +175,33 @@ otherwise identical flags to the GPU capture, `:9103` and the GPU untouched.
 
 **Verdict: Path B lives.** A requant from F16 (+ imatrix if affordable) is the correct fix;
 do NOT spend shader effort on tq2_0 for fidelity. Gate cost ~30 min wall clock, zero quota.
+## Discord recon addendum — ROCm on gfx1032, as of 2026-09 (AMD Developer server)
+
+Scraped 2026-09-22. Revises section C (HIP ladder, L2):
+
+- **Official line (ROCm AI Assistant, citing the compatibility matrix):** gfx1032 (RX 6600,
+  Navi 23) still NOT in the official support matrix; `HSA_OVERRIDE_GFX_VERSION=10.3.0`
+  remains the path. gfx1030 (6800/6900) is natively supported on Linux.
+- **NEW — TheRock PR #5719 (2026-06):** gfx103X-dgpu **Linux nightly wheel builds
+  re-enabled**, gfx1032 marked **"Sanity Tested" on Linux** (83/87 ctest; 4 failures are a
+  missing RDC artifact, not GPU). Windows stays disabled. → prebuilt ROCm/PyTorch gfx1032
+  wheels exist as nightlies; L2 build risk is lower than when L2 was shelved.
+- **Community confirmations:** TheRock PR #1629 thread — works on RX 6800 / **6600** /
+  6750 XT (2026-02); soulafein83 (2026-07): "RX 6600 … performing very well on CachyOS
+  with ROCm 7.13".
+- **WSL2 correction to the original L2 note:** AMD's own blog (2026-03) documents RX 6600
+  on WSL2 (Adrenalin ≥25.6.1, `amdgpu-install --usecase=wsl,rocm`, Ubuntu 22.04/24.04) —
+  so WSL2 is *documented*, not merely rumored. Still second choice here: the VHDX lands on
+  C: (99% full — relocatable but friction), and native external-SSD install avoids both the
+  disk problem and the translation layer. WSL2 is now a legitimate **cheap probe** (hours,
+  no repartition) before committing the external SSD.
+- **AMD staff (Guo Hongwei, 2026-08):** ROCm vs Vulkan has no universal winner — test both
+  on the same device/model; cites an RX 6600 lemonade issue where ROCm OOM'd on 8 GB while
+  Vulkan ran. Our 8 GB budget is the standing risk for PTQ1_0 (7.5 GB file + KV) — favors
+  TQ2_0 (6.6 GB) for the first HIP probe.
+
+**Net:** L2 upgraded from "untested, risky" to "community-verified, nightlies available".
+Recommended probe order: (1) WSL2 quick test if C: can be freed or VHDX relocated,
+else (2) Ubuntu/CachyOS on external USB3 SSD, ROCm 7.x + override, build prism fork
+`-DGGML_HIP=ON`, PTQ1_0 vs golden_check. The CUDA ternary kernels (proven 11.9–17 t/s on
+T4) carry to HIP via hipify, so PTQ1_0 ≈ 8–12 t/s faithful is a plausible outcome.
