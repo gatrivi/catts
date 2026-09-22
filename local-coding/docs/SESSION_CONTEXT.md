@@ -610,3 +610,24 @@ STANDING RULE (user, 2026-09-22): C: esta CRONICAMENTE lleno (99%, era 96% antes
   device resuelto; tests del proyecto (hub/smol) sin roturas.
 - Siguiente (del assessment, sin empezar): profilear el piso no-matmul con el build de
   C:/src (task 3), PR upstream (task 4), gpu_sweep real (task 5), HIP L2 (task 6).
+
+## CPU decision gate del drift de TQ2_0: ES LA CUANTIZACION, no el kernel (2026-09-22 noche-2)
+- Gate corrido tal cual: runtime shipped b10685, `-ngl 0` (CPU), flags identicos al capture
+  GPU, :9103 y la GPU sin tocar. Dump data/tmp/tq2-cpu-20260922.json (spec 25005c6c match,
+  8/8 prompts, top-logprobs).
+- golden_check vs golden CUDA: 4/8 DIVERGENTES (exit 1) = code_summary(t18), toolcall(t1),
+  es_mar(t6), fox_cont(t1). MISMOS prompts, MISMOS pasos y MISMOS tokens de reemplazo que la
+  corrida Vulkan ('.' / ' can' / ' la' / ' scene').
+- CPU vs Vulkan: byte-identicos en 7/8 prompts; fox_cont coincide hasta el token 7 y ahi se
+  abre. Dos implementaciones de kernel independientes coinciden entre si y discrepan del
+  golden PTQ1_0 CUDA => el drift esta en los PESOS TQ2_0 (doble cuantizacion), no en el
+  shader tq2_0. Queda descartada la hipotesis kernel-level.
+- Costo del run: 0.54-0.74 t/s decode, ~1.15 t/s prompt eval, count300 (320 tok) 462 s,
+  capture completa ~16 min + ~2 min de carga. RAM: 6.48 GB residentes, libre bajo a ~0.7 GB
+  (la iGPU UMA se come ~5 GB de 15.4). Lento pero estable, sin thrash-kill. Servidor CPU
+  apagado al terminar; libre volvio a 7.7 GB.
+- VEREDICTO: Path B (requant desde F16, idealmente +imatrix) ES el fix correcto y esta
+  justificado; no gastar esfuerzo de shader en tq2_0 por fidelidad. Constraint real del
+  requant = disco del host (~61 GB), no RAM. Costo del gate: ~30 min de reloj, cero cuota.
+- Artefactos: data/tmp/tq2-cpu-20260922.json, data/golden/bonsai2-tq2_0-goldencheck-20260922.json,
+  log del server CPU data/tmp/tq2-cpu-server.err.log.

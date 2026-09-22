@@ -122,5 +122,56 @@ The shader track closed at the right place; the next wins are elsewhere.
 | Bonsai-2 TQ2_0, 32K, q4 KV, 16K fill | 10.9 t/s | ✅ adopted as `high` preset 9/22 |
 | Bonsai-2 PTQ1_0, new LUT build (C:/src only) | 6.4–6.7 t/s | golden-verified 7/8; not in house runtime |
 | Bonsai-2 PTQ1_0, shipped b10685 runtime | 3.3 t/s | obsolete but still what's installed |
-| Bonsai-2 PTQ1_0, Kaggle T4 CUDA | 11.9–17 t/s | reference point |
+| Bonsai-2 PTQ1_0, Kaggle T4 CUDA | 11.9–17 t/s | reference point; measured at 16K-ctx config, ≤320-token greedy prompts — long-ctx T4 numbers are extrapolated |
 
+## Peer-review addendum (2026-09-22 evening)
+
+Corrections from evidence-checking after items 1–2 landed:
+
+- **Double-quant confirmed by construction**: the quantize log shows TQ2_0 was made with
+  `llama-quantize --allow-requantize --output-tensor-type TQ2_0` **from PTQ1_0, no
+  imatrix**. The drift signature (0.13–1.34 nat top-2 gaps) matches.
+- **But an alternative cause is untested: the Vulkan `tq2_0` kernel itself.** HF ships only
+  F16 / PTQ1_0 / PQ2_0 — TQ2_0 is ours, so PTQ1_0 and TQ2_0 run different shader paths and
+  only the PTQ1_0 one was golden-verified. **Decision gate (free, ~40 min CPU, no GPU/quota):
+  golden-capture TQ2_0 with `-ngl 0`.** CPU clean → kernel-level bug → B won't fix it
+  (becomes kernel/PR work in the C:/src build). CPU drifts 4/8 → B is the right fix.
+  Run this BEFORE any cloud requant spend.
+- **B cost correction**: source is `Ternary-Bonsai-2-27B-F16.gguf` = 53.8 GB; local free
+  space (C 12.5 / E 4.0 / Z 18.3 GB) can't hold it → cloud quantize is mandatory, and the
+  binding constraint is host DISK (~61 GB with output), not RAM (`llama-quantize` streams;
+  the PTQ1_0→TQ2_0 run took 6 min). Kaggle working+tmp ≈40 GB is too small → **Colab is the
+  realistic host**; imatrix is an extra calibration job on top.
+- **PQ2_0 is a dead shortcut**: author-made PQ2_0 (7.2 GB) has no Vulkan kernel
+  (`ggml-vulkan.dll` exposes dequant_ptq1_0/tq2_0 only; pq2_0 traits exist CPU-side only)
+  → CPU-only ≈ unusable. Don't spend the transfer.
+- **Item 3 reframed**: bounded (247 µs vs 94.6 µs matvec ⇒ best case ≈ TQ2_0's ~12 t/s —
+  an inference, not a measurement) but NOT worthless: it's the only route to faithful+fast
+  without a cloud requant, and it feeds the upstream PR. Priority depends on the CPU
+  control above.
+- **Path B is fully specified**: the Colab requant job — verified toolchain (Linux CPU
+  tarball ships `llama-quantize` + `llama-imatrix`), exact positional-type command with
+  both `--*-type TQ2_0` overrides, real sizes (TQ2_0 = 2.06 bpw, 6622 MiB, peak disk
+  67.7 GB), the HF repo, and private-HF persistence — is in
+  `docs/COLAB_TQ2_REQUANT_JOB.md`.
+
+
+## CPU decision gate — RESULT: the drift is the QUANT, not the kernel (2026-09-22, late)
+
+Ran the gate exactly as specced: shipped `llama-prism-b10685-vulkan` runtime, `-ngl 0` (CPU),
+otherwise identical flags to the GPU capture, `:9103` and the GPU untouched.
+
+- Dump: `data/tmp/tq2-cpu-20260922.json` (spec 25005c6c match, 8/8 prompts, top-logprobs).
+- `golden_check` vs the CUDA golden: **4/8 divergent, exit 1** — code_summary (t18),
+  toolcall (t1), es_mar (t6), fox_cont (t1). Same four prompts, same steps and the same
+  replacement tokens as the Vulkan run (`.` / ` can` / ` la` / ` scene`).
+- **CPU and Vulkan are byte-identical on 7/8 prompts**; fox_cont agrees through token 7 and
+  only then continues differently. Two independent kernel implementations agree with each
+  other and disagree with the PTQ1_0 CUDA golden ⇒ **the divergence lives in the TQ2_0
+  weights** (double-stack), not in the tq2_0 shader.
+- Cost for the record: 0.54–0.74 t/s decode, ~1.15 t/s prompt eval, count300 (320 tok) took
+  462 s, whole capture ~16 min. RAM: 6.48 GB resident, free RAM fell to ~0.7 GB (the iGPU
+  UMA carves ~5 GB out of the 15.4 GB total) — slow but stable, no thrash-kill.
+
+**Verdict: Path B lives.** A requant from F16 (+ imatrix if affordable) is the correct fix;
+do NOT spend shader effort on tq2_0 for fidelity. Gate cost ~30 min wall clock, zero quota.
