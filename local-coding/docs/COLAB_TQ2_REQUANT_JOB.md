@@ -85,3 +85,60 @@ the fidelity config and shift effort to item 3 / upstream PR.
 - Don't run two outputs if disk is <72 GB — plain requant first, imatrix in a second session.
 - Do NOT download PQ2_0 hoping to skip this: no Vulkan kernel (CPU-only ≈ unusable).
 - Keep the old TQ2_0 file until the new one passes the gate.
+
+## Appendix: one-paste Colab cell (plain requant variant)
+
+Imatrix variant stays manual (second session if disk is short). Before pasting: Colab
+secret `HF_TOKEN` (write access), and set `TARGET_REPO` to a private repo you own.
+
+```python
+# Bonsai-2 TQ2_0 requant from F16 — spec: docs/COLAB_TQ2_REQUANT_JOB.md
+TARGET_REPO = "YOUR_USER/bonsai2-tq2-f16src"   # <-- fill in
+import os, shutil, subprocess
+
+def run(c):
+    print("$", c, flush=True)
+    subprocess.run(c, shell=True, check=True, executable="/bin/bash")
+
+# 1) disk gate: source 53.8 GB + output 6.9 GB
+free = shutil.disk_usage("/content").free / 2**30
+print(f"free: {free:.1f} GiB")
+assert free >= 67, "need >=67 GiB for the plain requant; restart for a fresh instance"
+
+# 2) toolchain: verified Linux CPU prism asset (llama-quantize, no GPU drivers)
+run("curl -L -o /content/prism.tar.gz https://github.com/PrismML-Eng/llama.cpp/releases/download/prism-b10709-9a9394a/llama-prism-b10709-9a9394a-bin-ubuntu-x64.tar.gz")
+run("mkdir -p /content/prism && tar xzf /content/prism.tar.gz -C /content/prism && rm /content/prism.tar.gz")
+QUANT = subprocess.run("find /content/prism -name llama-quantize | head -1",
+                       shell=True, capture_output=True, text=True).stdout.strip()
+assert QUANT, "llama-quantize not found in tarball"
+run(f"chmod +x {QUANT}")
+os.environ["LD_LIBRARY_PATH"] = os.path.dirname(QUANT) + ":" + os.environ.get("LD_LIBRARY_PATH", "")
+
+# 3) HF auth + resumable download of the 53.8 GB F16 source
+from google.colab import userdata
+os.environ["HF_TOKEN"] = userdata.get("HF_TOKEN")
+os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "1"
+os.environ["HF_HOME"] = "/content/hf"
+run("pip install -q huggingface_hub hf_transfer")
+SRC = "/content/src/Ternary-Bonsai-2-27B-F16.gguf"
+run("hf download prism-ml/Ternary-Bonsai-2-27B-gguf Ternary-Bonsai-2-27B-F16.gguf --local-dir /content/src")
+
+# 4) preflight: prints the plan + final size, writes nothing
+run(f"{QUANT} --dry-run {SRC} TQ2_0 --token-embedding-type TQ2_0 --output-tensor-type TQ2_0 | tail -5")
+
+# 5) requant (F16 source -> NO --allow-requantize)
+OUT = "/content/Bonsai2-TQ2_0-f16src.gguf"
+run(f"{QUANT} {SRC} {OUT} TQ2_0 --token-embedding-type TQ2_0 --output-tensor-type TQ2_0")
+
+# 6) size gate: 6622 MiB expected; ~7.5 GB means the --*-type overrides were dropped
+gib = os.path.getsize(OUT) / 2**30
+print(f"output: {gib:.2f} GiB")
+assert 6.0 < gib < 7.2, f"unexpected size {gib:.1f} GiB"
+
+# 7) persist immediately (sessions die)
+try: run(f"hf repo create {TARGET_REPO} --private")
+except Exception: pass  # repo already exists
+run(f"hf upload {TARGET_REPO} {OUT}")
+print("DONE. Local gate next: golden_check vs data/kaggle_runs/gold-20260921/golden.json, bar <=1/8.")
+```
+
