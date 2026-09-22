@@ -1,0 +1,118 @@
+#version 450
+#extension GL_EXT_shader_explicit_arithmetic_types_int32 : require
+
+#include "mul_mat_vec_base.glsl"
+
+layout(local_size_x_id = 0, local_size_y = 1, local_size_z = 1) in;
+
+// Specialized PTQ1_0 matvec, modeled on mul_mat_vec_tq2_0.comp (16 threads per
+// 128-element block). Layout (see ptq1_0.glsl): qs byte j (j<16) carries
+// elements j + 16*n (n=0..4); qs[16+u] carries 80 + u + 8*n (n=0..4); qh[u]
+// (u=0,1) carries 120 + u + 2*m (m=0..3). Trit n of byte b: base-3 recurrence
+// applied n times, unrolled here for all 5 positions, then selected.
+//
+// Thread mapping: thread itid owns the 8 CONTIGUOUS elements [itid*8, itid*8+8).
+// For itid<10 that is qs bytes (itid&1)*8..+8 at trit n = itid>>1; itid 10..14
+// read all of qs[16..24) at trit n = itid-10; itid 15 reads qh[0..2) with trit
+// m = l>>1. Only itid 15 mixes trit positions; elsewhere the select is uniform.
+
+FLOAT_TYPE temp[NUM_COLS][NUM_ROWS];
+shared float lut[5u * 256u];
+
+void calc_superblock(const uint a_offset, const uint b_offset, const uint i, const uint num_blocks_per_row, const uint first_row, const uint num_rows, const uint itid) {
+    const uint y_idx = i * QUANT_K + itid * 8u;
+
+    [[unroll]] for (uint n = 0; n < num_rows; ++n) {
+        const uint ib0 = a_offset + (first_row+n)*num_blocks_per_row;
+        if (i >= num_blocks_per_row) {
+            continue;
+        }
+
+        const uint b256 = itid < 10u ? ((itid & 1u) * 8u) : (itid < 15u ? 16u : 0u);
+        const uint n_tri = itid < 10u ? (itid >> 1u) : (itid < 15u ? (itid - 10u) : 0u);
+
+        float w[8];
+        const uint lbase = n_tri * 256u;
+        if (itid < 15u) {
+            [[unroll]] for (uint l = 0; l < 8; ++l) {
+                w[l] = lut[lbase + uint(data_a[ib0 + i].qs[b256 + l])];
+            }
+        } else {
+            [[unroll]] for (uint l = 0; l < 8; ++l) {
+                w[l] = lut[(l >> 1u) * 256u + uint(data_a[ib0 + i].qh[l & 1u])];
+            }
+        }
+
+        const FLOAT_TYPE d = FLOAT_TYPE(data_a[ib0 + i].d);
+
+        [[unroll]] for (uint j = 0; j < NUM_COLS; ++j) {
+            const uint bidx = (j*p.batch_stride_b + b_offset + y_idx) / 2u;
+            vec2 y0 = vec2(data_b_v2[bidx + 0u]);
+            vec2 y1 = vec2(data_b_v2[bidx + 1u]);
+            vec2 y2 = vec2(data_b_v2[bidx + 2u]);
+            vec2 y3 = vec2(data_b_v2[bidx + 3u]);
+
+            FLOAT_TYPE s = fma(FLOAT_TYPE(y0.x), w[0],
+                          fma(FLOAT_TYPE(y0.y), w[1],
+                          fma(FLOAT_TYPE(y1.x), w[2],
+                          fma(FLOAT_TYPE(y1.y), w[3],
+                          fma(FLOAT_TYPE(y2.x), w[4],
+                          fma(FLOAT_TYPE(y2.y), w[5],
+                          fma(FLOAT_TYPE(y3.x), w[6],
+                          fma(FLOAT_TYPE(y3.y), w[7], FLOAT_TYPE(0.0)))))))));
+            temp[j][n] = fma(d, s, temp[j][n]);
+        }
+    }
+}
+
+void compute_outputs(const uint32_t first_row, const uint32_t num_rows) {
+    uint a_offset, b_offset, d_offset;
+    get_offsets(a_offset, b_offset, d_offset);
+
+    const uint num_blocks_per_row = p.ncols / QUANT_K;
+
+    // 16 threads are used to process each block
+    const uint it_size = gl_WorkGroupSize.x/16;
+    const uint tid = gl_LocalInvocationID.x;
+    const uint itid = tid%16;  // 0...15
+    const uint ix = tid/16;
+
+    [[unroll]] for (uint j = 0; j < NUM_COLS; ++j) {
+        [[unroll]] for (uint i = 0; i < NUM_ROWS; ++i) {
+            temp[j][i] = FLOAT_TYPE(0);
+        }
+    }
+
+    // LUT 5x256: trit j del byte b, una vez por workgroup (hundreads de bloques despues)
+    for (uint idx = tid; idx < 5u * 256u; idx += gl_WorkGroupSize.x) {
+        const uint b = idx & 255u;
+        uint v = b;
+        int t = int((v * 3u) >> 8u) - 1;
+        v = (v * 3u) & 0xFFu; int t1 = int((v * 3u) >> 8u) - 1;
+        v = (v * 3u) & 0xFFu; int t2 = int((v * 3u) >> 8u) - 1;
+        v = (v * 3u) & 0xFFu; int t3 = int((v * 3u) >> 8u) - 1;
+        v = (v * 3u) & 0xFFu; int t4 = int((v * 3u) >> 8u) - 1;
+        const uint j5 = idx >> 8u;
+        lut[idx] = j5 == 0u ? float(t) : j5 == 1u ? float(t1) : j5 == 2u ? float(t2) : j5 == 3u ? float(t3) : float(t4);
+    }
+    barrier();
+
+    for (uint i0 = 0; i0 < num_blocks_per_row; i0 += it_size)
+        calc_superblock(a_offset, b_offset, i0 + ix, num_blocks_per_row, first_row, num_rows, itid);
+
+    reduce_result(temp, d_offset, first_row, num_rows, tid);
+}
+
+void main() {
+    const uint first_row = NUM_ROWS * (gl_WorkGroupID.x + gl_NumWorkGroups.x * gl_WorkGroupID.z);
+
+    // do NUM_ROWS at a time, unless there aren't enough remaining rows
+    if (first_row + NUM_ROWS <= p.stride_d) {
+        compute_outputs(first_row, NUM_ROWS);
+    } else {
+        if (first_row >= p.stride_d) {
+            return;
+        }
+        compute_outputs(first_row, p.stride_d - first_row);
+    }
+}

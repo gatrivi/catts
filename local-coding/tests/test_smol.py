@@ -42,10 +42,18 @@ class SmolTests(unittest.TestCase):
   self.assertIn('--no-tools',args)
   self.assertNotIn('--max-time',args)
   self.assertNotIn('--auto-approve',args)
+ def test_bonsai2_server_args_drops_reasoning_format_and_its_value(self):
+  import local_models
+  with patch.object(local_models,'detect_device',return_value='Vulkan1'):
+   args=local_models.smol_server_args('bonsai2',True)
+  self.assertNotIn('--reasoning-format',args)
+  self.assertNotIn('deepseek',args)
+  self.assertNotIn('--no-context-shift',args)
 
- def test_project_tools_require_write_approval(self):
+
+ def test_project_tools_autoapprove_all(self):
   args=smol.agent_args('mini',Path('C:/project with spaces'),'project',False,True)
-  self.assertEqual(args[args.index('--approval-mode')+1],'always-ask')
+  self.assertEqual(args[args.index('--approval-mode')+1],'yolo')
   self.assertIn('bash',args[args.index('--tools')+1].split(','))
   self.assertIn('--continue',args)
   self.assertIn('C:\\project with spaces',args)
@@ -118,5 +126,21 @@ class SmolTests(unittest.TestCase):
    self.assertIsNotNone(child.returncode)
   finally:
    smol.stop(child);job.close()
+
+class SmolMemoryTests(unittest.TestCase):
+ def test_memory_block_empty_when_down(self):
+  with patch('scripts.memory_ctx.get',return_value='',create=True), \
+       patch('memory_ctx.get',return_value='',create=True):
+   self.assertEqual(smol.memory_block(Path('Z:/tmp/proj')), '')
+
+ def test_agent_args_appends_memory_when_enabled(self):
+  block='- stored fact one'
+  with patch('scripts.memory_ctx.get',return_value=block,create=True), \
+       patch('memory_ctx.get',return_value=block,create=True):
+   argv=smol.agent_args('mini',Path('Z:/tmp/proj'),'chat',False,memory=True)
+  prompt=argv[argv.index('--system-prompt')+1]
+  self.assertIn('stored fact one',prompt)
+  argv_off=smol.agent_args('mini',Path('Z:/tmp/proj'),'chat',False)
+  self.assertNotIn('stored fact one',argv_off[argv_off.index('--system-prompt')+1])
 
 if __name__=='__main__':unittest.main()

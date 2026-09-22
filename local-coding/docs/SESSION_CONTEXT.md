@@ -354,3 +354,259 @@ at main() entry via hub-style find_servers (Qwen-8123/residue still excluded): s
 "1. Detenerlo y continuar 2. Salir [1]"; stops via hub.stop_pid, logs to data/smol/stopped-foreign.log.
 Stale Bonsai-2 :9103 (PID 10092, from the morning hand-try) stopped by hand; proxy :9106 already gone.
 Qwen-8123 (PID 2136) left for the normal pause/restore path. Tests: 39/39.
+
+## supermemory self-host eval (2026-09-19 evening): WORKS, opt-in adoption recommended
+User asked quick eval of github.com/supermemoryai/supermemory for local-model use. Hands-on
+(plan-approved; binary download authorized by the task). Pinned server-v0.0.8 win64 (291 MB
+Bun-compiled, sha256-verified) in local-coding/vendor/supermemory/, wired env-only to
+NeoHorse-4B :9107 (llama b10964, stopped after) + local ONNX bge-base-en-v1.5 768d embeddings.
+Results: boot 5 s, RAM ~0.73 GB, search 40-80 ms 4/4 correct on distilled atomic facts,
+/v4/profile returns dated paste-ready fact list (killer feature), encrypted store persists
+across restart (same key/IDs). Ingest is async + LLM-heavy: 5 short docs = ~6.5 min on the 4B
+(~1.3 min/doc). Caveats: "lite" binary enforces 10k-doc cap; v0.0.7->0.0.8 had upstream
+data-loss migration (pin version, snapshot data/); embeddings weights auto-downloaded from
+HF on first use despite "bundled" (pre-seed data/models for offline). Verdict + integration
+options (local-work.ps1 --append-system-prompt first) in docs/SUPERMEMORY_EVAL.md. Sandbox +
+doc left in place; no existing files changed; Qwen-8123 untouched.
+
+## Memory layer implemented in Taller flow (2026-09-20): DONE, TESTED 43/43
+User follow-up: implement supermemory in the way it helps (clarified: no t/s gain, hardware-bound;
+gain = effective context, short prompts + retrieved facts, cross-session). Built scripts/memory_ctx.py
+(ensure/get/add/stop/status, stdlib, graceful no-op when down; --get works embedding-only with no
+model up; --add auto-targets first healthy slot for extraction) + MEMORY.cmd (user start/stop/status,
+stop frees ~0.7 GB RAM) + additive block in local-work.ps1 after the consultant-note block: retrieves
+project facts capped 3000 chars into --append-system-prompt with "verify against source" header.
+Gotcha: without OPENAI_BASE_URL the server omits /health (404) but search/console work — _health
+falls back to /. Dedup strips profile [date] prefixes. Unit tests test_memory_ctx.py 4/4, suite
+43 passed + 3 subtests. Live-verified: DOWN no-op, ensure boot, get returns seeded facts, status,
+CheckOnly intact. Memory left UP (:6767); container localstack has 5 rig facts; MEMORY.cmd stop
+reclaims RAM. smol.py/MCP wiring deferred until user asks.
+
+## Memory x3 integrations (2026-09-20 evening): DONE, 51 passed, 1 env-sensitive fail
+User approved all three stages, one at a time. Stage 1: bonsai2_proxy inject_memory() prepends
+"Persistent local memory" system msg (query = latest user turn, capped to remaining 6K budget,
+marker skip, only when memory UP; no auto-start from proxy). Stage 2: local_task ask() prefixes
+PLAN/EXECUTE/REVIEW systems via memory_prefix(goal) (saved_answer cache consistent); new
+remember_handoff() stores run outcome at complete/pause (best-effort, never fatal) so runs learn
+from prior runs. Stage 3: smol.py --memory flag appends memory block to argv system prompt
+(default off). Gotcha: local_task must import scripts.memory_ctx (fallback top-level) or memory
+silently disables under `python -m scripts.local_task`. Tests: test_bonsai2_proxy 4, test_local_task_memory 3,
+SmolMemoryTests 2, live-verified all three paths. Full suite 51 passed + 3 subtests; ONLY
+test_turn_without_model_is_502 failed = ENVIRONMENTAL (user-launched llama-server live on :9104
+during run; premise "no model" false; left untouched, not a regression — passed earlier today when
+slot free). Not yet measured: real with/without-memory Bonsai-2 bake-off (needs user-authorized trial).
+
+## GPU speed-up track started; RX 6600 vanished from system (2026-09-20 night): TOOLS READY, HW ISSUE BLOCKING
+User approved plan (Vulkan sweep -> HIP test -> review -> Kaggle shortlist -> PTQ1_0 shader fix -> ROCm doc).
+Built scripts/gpu_sweep.py (-b/-ub x KV q8/q4 x runtime matrix over mini/qwen35/bonsai2; own server on
+:9151, always stops; gpu_busy abort, RAM floor, timings from /v1/chat/completions; JSON to data/sweeps/)+
+test_gpu_sweep.py 14. First sweep run: ALL load_failed, error tail `invalid device: Vulkan1`. Root cause:
+**RX 6600 dropped off the machine entirely** — `llama-server --list-devices` (both runtimes) and
+Win32_VideoController show ONLY the Vega iGPU ("AMD Radeon(TM) Graphics", Vulkan0, 8 GiB UMA). House
+launchers hardcode Vulkan1 -> they would all fail right now; mini server running since ~13:53 is on the
+iGPU (slow). Fix attempted in tooling: gpu_sweep auto-detects device via --list-devices (prefers Vulkan1).
+HW fix is user-side (reboot / Device Manager rescan / reseat); NOT done autonomously. Second known env
+fail re-confirmed: test_turn_without_model_is_502 (model live on :9104; same as previous entry). Built
+Kaggle shortlist greenfield: kaggle/bench_kernel.py (script kernel: nvidia-smi check -> Prism Linux CUDA
+tarball prism-b10687-5d80cff, cuda-12.8/12.4 + nvidia-wheel fallback -> hf_hub_download candidates ->
+same 4 probes as local sweep -> /kaggle/working/results.json; broken candidate never kills the run),
+scripts/kaggle_bench.py (check/push/status/pull; kernel-metadata.json gen, candidates inlined over
+__CANDIDATES__ marker, weekly quota ledger data/kaggle/quota_ledger.json 30h/wk ISO week, dry-run,
+pull to data/kaggle_runs/<slug>/), KAGGLE_BENCH.cmd, kaggle/candidates.json (seed: real PTQ1_0 entry +
+user-editable placeholders). pip kaggle installed into E: venv. Tests: test_kaggle_bench.py 14; suite
+80 total — 79 pass, only the known env-sensitive chores fail. USER TODO: download kaggle.json
+(kaggle.com -> Account -> API) into ~/.kaggle/; bring the RX 6600 back; then rerun sweep + HIP test
+(Prism bin-win-hip-radeon) + first Kaggle push.
+SUPERSEDED 2026-09-21: the RX 6600 is back (see next entry); sweep/HIP test can run again.
+
+## Cloud-as-build-farm session (2026-09-21): golden-reference track + HIP ladder + AMD v3 runbook; RX 6600 BACK
+CORRECTION: the 2026-09-20 "GPU vanished" note is stale - user confirms the RX 6600 is installed and
+Win32_VideoController shows "AMD Radeon RX 6600" Status OK driver 32.0.21043.19003. Also: an earlier
+explorer report claimed a local HIP runtime at Z:/Models/runtime/llama-prism-b10709-hip - FALSE, no
+local HIP build exists (only vulkan/cpu runtimes); the fork's HIP/ROCm assets must be downloaded.
+User reframe approved: cloud = build farm for the PTQ1_0 weakest links (ranked: ternary kernels,
+no ROCm/HIP build, broken Vulkan path). Built, all tested:
+- Golden-reference (CUDA ground truth, free): kaggle/golden_prompts.json (FROZEN spec: 8 prompts,
+  greedy temp 0 seed 42, top_logprobs 10, detail 64 tokens; editing it forks the reference),
+  kaggle/golden_kernel.py (push --golden; deterministico + logprobs via capability probe +
+  test-backend-ops MUL_MAT si viene en el tarball; -> /kaggle/working/golden.json),
+  scripts/golden_capture.py (mismo spec contra un server LOCAL vivo -> dump comparable),
+  scripts/golden_check.py (compara dumps: primera divergencia char/token, deltas logprob;
+  exit 0/1/2). candidates.json: bonsai2-ptq10 marcado golden:true. kaggle_bench.py push --golden
+  (slug gold-<stamp>, est 0.9 h, misma cuota); pull resume golden.json.
+- HIP ladder sin construir: scripts/hip_prebuilt_test.ps1 (L0 enum GPU, aborta si llama-server
+  vivo, baja bin-win-hip-radeon-x64.zip prism-b10687-5d80cff, llama-bench PTQ1_0 con/sin
+  HSA_OVERRIDE_GFX_VERSION=10.3.0 -> data/hip_prebuilt/; exit codes 0-5) +
+  docs/HIP_PREBUILT_LADDER.md (L0 hecho; L1 win-hip esperable FAIL; L2 ubuntu-rocm-7.2 en
+  WSL2 con riesgo driver consumer / USB-boot fallback; L3 = nube).
+- AMD cloud v3: docs/AMD_HIP_BUILD_WORKFLOW.md (mision build gfx1032, NO bench; de-risk prebuilt
+  rocminfo+test-backend-ops en gfx942 primero; cmake AMDGPU_TARGETS=gfx942;gfx1032; validar;
+  empaquetar; hipify = contingencia de dias). v2 Vulkan queda como track alternativo, sin
+  paralelizar.
+Tests: test_kaggle_bench 17, test_golden_check 7 (24 relacionados OK; suite completa sin nuevas
+roturas). PENDING user: kaggle.json en ~/.kaggle/; detener llama-server y correr
+hip_prebuilt_test.ps1 (L1); reclamar creditos AMD si L2 falla; luego gold-<stamp> push.
+
+## L1 cerrado + bug URL Kaggle arreglado (2026-09-21, tarde)
+- BUG LATENTE arreglado: el tag prism-b10687-5d80cff SOLO tiene zips cudart companion (sin
+  tarballs linux) y los assets reales llevan prefijo llama- (ej.
+  llama-prism-b10709-9a9394a-bin-linux-cuda-12.8-x64.tar.gz). bench_kernel.py/golden_kernel.py/
+  hip_prebuilt_test.ps1/docs apuntaban a URLs 404; todos actualizados a b10709-9a9394a.
+  Nunca se detecto porque el push de Kaggle aun no se ejecuta.
+- L1 RESULTADO: FAIL (esperado, cerrado). Win-hip prebuilt (307 MB) bajado a
+  Z:/Models/runtime/llama-prism-hip-win; llama-server --list-devices -> (none) con y sin
+  HSA_OVERRIDE_GFX_VERSION=10.3.0; ggml-hip.dll no carga (LoadLibrary err=126; amdhip64.dll
+  del sistema v10.0.3584.0 demasiado viejo). Aunque se instalara HIP SDK actual, gfx1032 no
+  esta en la matriz Windows. T3 queda respondido; NO instalar el SDK.
+- Estado de gates: llama-server vivo (PID 21704, no tocado), kaggle.json sigue FALTA, WSL2 sin
+  distros (`wsl -l -v` vacio) -> L2 requiere wsl --install -d Ubuntu (o USB-boot) + asset
+  llama-prism-b10709-9a9394a-bin-ubuntu-rocm-7.2-x64.tar.gz.
+
+## Golden CUDA conseguida + toolchain local Vulkan LISTA + baseline reproducido (2026-09-22 madrugada)
+- Kaggle: token KGAT -> ~/.kaggle/access_token (kaggle_bench kaggle_conf soporta token-file,
+  username via config view cacheado). v1 kernel ERROR (json.dumps mete true/false en python:
+  arreglado con repr()); v2 COMPLETE. Golden CUDA en data/kaggle_runs/gold-20260921/golden.json
+  (spec 25005c6c2ea1d69c, 8 prompts 501 tokens top-logprobs, server b10709 CUDA T4; PTQ1_0
+  11.9-17 t/s en T4; backend_ops ausente en tarball). Cuota 1.8/30h.
+- Toolchain local (user aprobo "use our resources"): C:/tools ~4.5GB portatil (llvm-mingw,
+  cmake/ninja via pip venv, glslang 16.6 renombrado a glslangValidator.exe, Vulkan/SPIRV
+  headers, libvulkan-1.a via dlltool) + SHIM glslc.exe (C compila a glslangValidator: flags,
+  #include expansion, silencio stdout/stderr, errores de extension traducidos) porque el build
+  exige glslc (shaderc solo en SDK 1GB). Ver docs/LOCAL_VULKAN_BUILD.md (todo el how-to).
+- Build fork @prism-b10709-9a9394a EXITOSO tras 4 parches minimos (cstdlib x3, setenv/unsetenv
+  shim) y flags _WIN32_WINNT=0x0A00. llama-server 76MB, llama-bench 70MB, test-backend-ops 62MB.
+  C: QUEMO 99%: solo targets nombrados, nunca ninja pelado (rellena con ~50 tests).
+- BASELINE REPRODUCIDO EXACTO (server bonsai2 coexistiendo): MUL_MAT n=1 m=4096 k=14336:
+  ptq1_0 601.17us/195.35 GFLOPS (doc decia 602/195), tq2_0 94.60us/1.24 TFLOPS, q4_0 94.32us.
+  Correctness 39/39 OK. Fix LUT de ptq1_0.glsl ahora es 100% local: edit -> ninja
+  test-backend-ops -> perf; validacion final = golden_check vs golden CUDA.
+- Proximo: escribir el shader LUT (objetivo 602 -> ~100us => decode 3.3 -> 20-24 t/s), luego
+  golden_check + A/B calidad. L2/AMD cloud solo si Vulkan fix falla.
+
+## PTQ1_0 matvec especializado: CORRECTO, 601->441us (195->266 GFLOPS), decode 3.3->4.5 t/s (2026-09-22)
+- Nuevo shader ggml-vulkan/vulkan-shaders/mul_mat_vec_ptq1_0.comp (modelo tq2_0: 16 threads/bloque,
+  thread = 8 elementos contiguos, trit index uniforme por thread, cadena base-3 desenrollada).
+  Registrado: gen tool mapping +type "ptq1_0" (ya estaba en type_names, NO duplicar) y pipelines
+  matvec SIEMPRE con params stdq ({2*rm_stdq}, use_subgroups, [reduc]); los subgroup16/rm_kq de
+  tq2_0 DAN RESULTADOS INCORRECTOS aqui (falla + lento global).
+- Bugs encontrados y arreglados: y_idx olvidaba i*QUANT_K (todos los bloques leian las mismas
+  128 activaciones); vectorizacion ivec4 del trit-decode fue MAS LENTA (502us, revertida) ->
+  el limite es ANCHO DE BANDA (33 GB/s logrados vs 132 de tq2_0), no la aritmetica. Siguiente
+  palanca: loads u32/packed16 del bloque + tuning workgroup.
+- VERIFICACION: test-backend-ops MUL_MAT ptq1_0 3/3 OK; llama-bench PTQ1_0 RX 6600 (GPU
+  exclusiva): tg32 4.50 ± 0.02 t/s (antes 3.3), pp128 59.5 t/s. TQ2_0 sigue ganando 12-13.
+- Toolchain notes: llama-bench de este build necesita PATH con llvm-mingw/bin (libc++/libomp
+  dinamicos); el exe linkado durante el disco lleno quedo corrupto (rc 127 silencioso, relink
+  curo); -c no es flag de llama-bench en el fork; GPU via GGML_VK_VISIBLE_DEVICES=1.
+- Parches nuevos acumulados en C:/src (ademas de los 4 anteriores): CMakeLists ggml-vulkan
+  -O1 para TUs generados (clang LLVM OOM con 16GB + server residente).
+- bonsai2 :9103 DETENIDO para el bench (user: relanzar con MODELS.cmd 1). Golden CUDA sigue
+  pendiente de usar para validacion end-to-end del kernel nuevo (golden_capture vs Kaggle).
+
+## Veredicto Kaggle-shader + sweep: -O y loads descartados; queda config pipeline (2026-09-22 mediodia)
+- W1 Kaggle-compile WORKS: kernel CPU (sin cuota GPU) shader-20260922 compila las variantes con
+  glslang+spirv-opt -O (== glslc -O); 8 spv + manifest. Import via shim bypass: clave
+  mul_mat_vec_ptq1_0.<fnv1a64 sobre fuente expandida sin \r>.<f32|f16>[_sub].spv en
+  C:/tools/bin/spv-precompiled/ (shim las sirve byte-a-byte, verificado cmp).
+- W2 VEREDICTO: spv OPTIMO = 441.19us/266.19 GFLOPS == unoptimized (441.56/265.96), 3/3 OK.
+  -O NO era el cuello. Hipotesis del user testeada y cerrada.
+- W3 sweep local (scripts/shader_sweep.py, JSON en data/shader_sweep/): v0_scalar 438.68us/267.7
+  GANA; v1_packed16 (u32 loads + unpack8 + chain vec) 460.52us/255.0 = PEOR. Tipos: packed16
+  struct ptq1_0 aniadido a types.glsl (compila bien). Aritmetica y ancho de loads descartados.
+- CONCLUSION tecnicas: kernel bound por config pipeline/reduccion, no por shader-micro. tq2_0
+  corre con wg=subgroup_size16 + reduccion SUBGROUP ([reduc16], force16) + wg_denoms {rm_kq};
+  ptq1_0 usa wg=subgroup(32) + SHMEM reduction. Intento copiar config tq2_0 tal cual FALLO
+  correctitud (sospecha: spec constants {wg,rm_kq,i+1} fijan NUM_ROWS/it_size y la combinacion
+  requiere ajustar el shader o el driver no soporta force16 en este pipeline). NEXT SESSION:
+  leer create_pipeline spec-constant layout + probar config subgroup16 CON el shader ajustado
+  (it_size=1) paso a paso. Alternativa: PR upstream del kernel actual (1.36x) + issue pidiendo
+  la config.
+- Nota meta: pipeline Kaggle->local de shaders reutilizable (shader_variants/ + push --shader +
+  bypass) para cualquier experimento futuro de shaders sin instalar SDK.
+
+## LUT WINS al nivel kernel + DIAGNOSTICO DECISIVO del camino de decode (2026-09-22 tarde)
+- T1: spec constants = ID0 BLOCK_SIZE(=wg.x), ID1 NUM_ROWS, ID2 NUM_COLS. subgroup_size16 =
+  max(subgroup,16) = 32 en RX 6600 (tq2_0 NO corre 16-wide aqui). Enum reduccion: SHMEM0/HYBRID1/SUBGROUP2.
+- T2: env GGML_PTQ1_0_MATVEC (stdq|sub16|sub16hyb) en las 2 lineas de pipeline matvec ptq1_0
+  (sin rebuild por iteracion). sub16hyb FALLO en createComputePipeline (ErrorUnknown) en este driver.
+- v2_lut.comp (shader_variants/): LUT shared 5x256 (trit j del byte b), fill una vez por
+  workgroup + barrier; lookup = ~4 ops/elemento vs ~14 de la cadena. RESULTADO: matvec
+  441 -> 247-250us (470-475 GFLOPS), 3/3 OK con stdq y sub16. 2.4x sobre el 601 original.
+- PERO llama-bench tg32 SIGUE 4.5 t/s con el kernel nuevo (y 4.67 con pipeline ROTO sub16hyb)
+  => EL DECODE DEL MODELO NO USA pipeline_dequant_mul_mat_vec_*_f32/f16: usa la tercera
+  familia, pipeline_dequant_mul_mat_vec_q8_1 (mul_mat_vecq.comp, B cuantizada a q8_1).
+  El acelerador de decode real = rama ptq1_0 de mul_mat_vecq.comp / mul_mat_vecq_funcs.glsl
+  => aplicar la MISMA tecnica LUT ahi (next session; el truco del pipeline roto diagnostica
+  que camino corre). Nota: los 4.5 t/s ya logrados probablemente vienen del header ptq1_0.glsl
+  desenrollado que SI consume vecq.
+- Canonical actual en C:/src = v2_lut (sub16 por env). bonsai2 relanzado.
+
+## RESULTADO FINAL sesion shader: PTQ1_0 3.3 -> 6.4 t/s; LUT verificado vs golden CUDA (2026-09-22 tarde-2)
+- Dispatcher understood: quantize_y (MMVQ via q8_1) activo por integer_dot_product en RX 6600
+  (ggml-vulkan.cpp:9640). A/B switch GGML_PTQ1_0_NO_MMVQ=1 (edit guardado en el arbol local).
+- llama-bench REBUILDADO con todo el shader set actual: tg32 6.35 (MMVQ) vs 6.43 (NO_MMVQ =
+  LUT matvec) — EMPATE; el 4.5 anterior era un llama-bench con shaders viejos embebidos
+  (leccion: EMBEDED shaders — relink llama-bench tras cada cambio de shader).
+- TOTAL sesion: decode 3.3 -> 6.35-6.43 t/s (+92%); matvec op 601 -> 247us (2.4x, 3/3).
+- GOLDEN VERIFICACION end-to-end (NO_MMVQ, LUT path): 7/8 prompts IDENTICOS char-a-char al
+  golden CUDA T4 (spec 25005c6c match; lp_d max 0.05); toolcall diverge en token 0 por
+  top-2 a 0.007 nats en CUDA (coin-flip numerico, no bug). Dump:
+  data/golden/bonsai2-ptq10-lut-vulkan-20260922-131535.json (+lut-renamed.json).
+- Posicion: TQ2_0 sigue 12-13 t/s pero PTQ1_0 ahora 6.4 con ~1 GB menos VRAM (ctx 16K+ viable).
+- SIGUIENTE (semana proxima, budget aparte): LUT en la rama ptq1_0 de mul_mat_vecq (MMVQ):
+  ahi vive el 2x restante (35 vs 80 GB/s efectivos). Upstream PR material listo: kernel v2_lut
+  + env A/B + golden methodology + numeros.
+- GOTCHA golden_check: compara por model name (usar --name bonsai2-ptq10 en captures futuros).
+
+## CIERRE shader-dev (2026-09-22 noche): cut-off alcanzado, PTQ1_0 decode ~6.4-6.7 t/s es el techo del rig
+- Vecq port COMPLETADO y CORRECTO: ptq1_0 anadido a mul_mat_vecq (K_PER_ITER=16, repack4
+  region-uniform con LUT shared 5x256 + offset +8, correccion 4*dsb.y heredada de Q2_0;
+  parches: comp K_PER_ITER+shmem+fill, funcs get_dm/repack4/mmvq_dot_product, gen tool x2
+  listas (string_to_spv q8_1 + arr_dmmv decl), vulkan.cpp pipeline create).
+- A/B FINAL (GPU exclusivo, misma sesion): vecq 6.32-6.67, NO_MMVQ LUT-matvec 6.40-6.43,
+  matvec 16x8 LUT 247-250us, matvec 8x16 u32-loads 265us, closed-form ptq1_0.glsl igual.
+  CINCO disenos de matmul independientes => 6.3-6.7 SIEMPRE. El cuello de decode NO es el
+  decode de trits ni el matmul: el techo esta fuera (sched/attention/otras ops por-token).
+  pp128 llego a 77 con GPU exclusivo (vs 59 con server coexistiendo; revisar comparaciones
+  antiguas: muchas corrian con bonsai2 vivo).
+- Config final del arbol: v2_lut matvec (247us, el mejor medido) + closed-form accessor +
+  vecq port + env switches GGML_PTQ1_0_MATVEC / GGML_PTQ1_0_NO_MMVQ. 3/3 correcto todo.
+- Veredicto budget:shader work CERRADO. PTQ1_0: 3.3 -> ~6.4-6.7 t/s (+95%), 1 GB menos VRAM
+  que TQ2_0 (que sigue 12.2 en el mismo binario). Material upstream PR listo (kernel+vecq+
+  env+metodologia golden+numeros); siguiente palanca real seria fuera del shader (HIP path,
+  o investigar el bottleneck no-matmul con perfilador si algun dia importa).
+- bonsai2 :9103 relanzado al cerrar.
+
+STANDING RULE (user, 2026-09-22): C: esta CRONICAMENTE lleno (99%, era 96% antes de todo esto)
+- ser mindful: nada nuevo grande en C:; descargas/caches/modelos -> Z:; solo `ninja` con
+  targets nombrados en C:/src (nunca pelado); borrar zips instaladores tras extraer; vigilar
+  >=1.5-2GB libres. Footprint actual del build en C: ~1.6GB (tools 860MB + src/build 780MB
+  tras limpiar tests/exes/.git/temp); el loop de shader solo reemplaza ~62MB por relink.
+
+## Golden-check de TQ2_0 (NO pasa el bar) + preset largo 32K adoptado (2026-09-22 noche-2)
+- TAREA 1 del assessment (golden-check del daily driver): capture contra :9103 vivo
+  (TQ2_0, runtime shipped llama-prism-b10685-vulkan, 8K q8 KV, reasoning-effort medium,
+  GPU exclusiva) -> `data/golden/bonsai2-tq2_0-goldencheck-20260922.json`, spec
+  25005c6c2ea1d69c match, 8 prompts con top-logprobs. Sin editar golden_prompts.json.
+- RESULTADO vs golden CUDA T4 (PTQ1_0): 4/8 DIVERGENTES => el bar (<=1/8) NO se cumple.
+  OK: count300 (320 tok), tocents, arith, elements. DIVERGEN: code_summary (token 18),
+  toolcall (token 1), es_mar (token 6), fox_cont (token 1).
+- En los 4 casos TQ2_0 elige el token rank-2/3 del golden; gap top1-top2 del golden en ese
+  paso: 0.13 / 0.45 / 1.34 / 0.62 nats. NO son coin-flips tipo PTQ1_0 (0.007 nats):
+  es_mar tenia 1.34 nats de separacion => desvio numerico real de la doble cuantizacion.
+- PERO el contenido sobrevive: los 4 textos siguen gramaticales y correctos en sustancia
+  (es_mar: 'bajo la luz del sol' vs 'bajo el sol del mediodia'; code_summary solo pierde
+  'argument'; fox_cont cambia la continuacion pero es coherente; toolcall pasa de refusal
+  seco a refusal con oferta de ayuda). Lectura: fidelity gap medible, NO corrupcion visible.
+- Control misma sesion: PTQ1_0 local (LUT b10709) = 7/8 identico => el backend Vulkan solo
+  aporta ~1/8; los 3 extra son de TQ2_0. Caveat de evidencia: no esta aislado TQ2_0-vs-runtime
+  (TQ2_0 corrio en b10685, PTQ1_0 en el fork b10709). Control limpio pendiente = capturar
+  PTQ1_0 en el MISMO b10685. Muestra: 8 prompts, 1 corrida.
+- TAREA 2 adopted: PRESETS['bonsai2']['high'] pasa de `{-c 32768}` (la vieja etiqueta decia
+  ~3 tok/s) a `{-c 32768 -ctk q4_0 -ctv q4_0}` = 10.9 tok/s con 16K de documento (T2 9/21).
+  Nota de STANDALONE['bonsai2'] y comentario de start_bonsai2.ps1 actualizados; el default
+  sigue -c 8192. Uso: `CATTS.cmd start bonsai2 --preset high` (hub: presets=mid,low,high).
+- Verificacion: standalone_args('bonsai2','high') devuelve -c 32768 -ctk q4_0 -ctv q4_0 con
+  device resuelto; tests del proyecto (hub/smol) sin roturas.
+- Siguiente (del assessment, sin empezar): profilear el piso no-matmul con el build de
+  C:/src (task 3), PR upstream (task 4), gpu_sweep real (task 5), HIP L2 (task 6).

@@ -1,0 +1,8 @@
+{
+  "_comment": "Candidatos para el bench en Kaggle (T4 16GB). Rellena repo+file de HuggingFace; los de repo vacio se saltan. ctx opcional (default 16384); kv opcional (default q8_0); b/ub opcionales (default 256/128, mismos que el sweep local). golden=true marca los que entran al kernel golden-reference (push --golden); sin ninguna marca, el kernel usa el primero valido. El primero es real (PTQ1_0, 5.5 GB, la reparacion del shader lo haria viable); agrega ahi tus candidatos 7B-27B.",
+  "items": [
+    {"name": "bonsai2-ptq10", "repo": "prism-ml/Ternary-Bonsai-2-27B-gguf", "file": "Ternary-Bonsai-2-27B-PTQ1_0.gguf", "ctx": 16384, "golden": true},
+    {"name": "EJEMPLO-coder-14b-q4", "repo": "", "file": "", "ctx": 16384},
+    {"name": "EJEMPLO-coder-7b-q5", "repo": "", "file": "", "ctx": 16384}
+  ]
+}

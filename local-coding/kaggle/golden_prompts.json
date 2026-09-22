@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "note": "Frozen golden-reference prompt set. Do NOT edit: any change forks the reference (spec_hash changes and old/new dumps stop being comparable). Sampling is greedy; determinism across backends is measured by scripts/golden_check.py, not assumed.",
+  "sampling": {"temperature": 0, "seed": 42, "top_p": 1.0, "enable_thinking": false},
+  "top_logprobs": 10,
+  "detail_tokens": 64,
+  "prompts": [
+    {"id": "count300", "max_tokens": 320,
+     "prompt": "Count from 1 to 300, digits only, comma separated, one line."},
+    {"id": "code_summary", "max_tokens": 64,
+     "prompt": "```js\nfunction f0(a){return a + 0;}\nfunction f1(a){return a + 1;}\nfunction f2(a){return a + 2;}\nfunction f3(a){return a + 3;}\n```\nSummarize what this code does in one short sentence."},
+    {"id": "toolcall", "max_tokens": 192,
+     "prompt": "Call read_file with path AGENTS.md now. Do not answer in prose."},
+    {"id": "tocents", "max_tokens": 192,
+     "prompt": "Write a JavaScript function toCents(value) that converts a non-negative number of dollars to integer cents and throws on invalid input. Code only."},
+    {"id": "arith", "max_tokens": 64,
+     "prompt": "What is 17*23+5? Reply with the result number only."},
+    {"id": "es_mar", "max_tokens": 96,
+     "prompt": "Escribe una frase de exactamente diez palabras sobre el mar."},
+    {"id": "elements", "max_tokens": 64,
+     "prompt": "Name the first five chemical elements in order, comma separated."},
+    {"id": "fox_cont", "max_tokens": 96,
+     "prompt": "The quick brown fox jumps over the lazy dog. Continue this text naturally for two more sentences."}
+  ]
+}
