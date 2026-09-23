@@ -205,3 +205,39 @@ Recommended probe order: (1) WSL2 quick test if C: can be freed or VHDX relocate
 else (2) Ubuntu/CachyOS on external USB3 SSD, ROCm 7.x + override, build prism fork
 `-DGGML_HIP=ON`, PTQ1_0 vs golden_check. The CUDA ternary kernels (proven 11.9–17 t/s on
 T4) carry to HIP via hipify, so PTQ1_0 ≈ 8–12 t/s faithful is a plausible outcome.
+
+### Second pass — live Discord search (2026-09-22, same day)
+
+Independent agent drove the AMD Developer server search box directly and read messages.
+Corrections/additions to the addendum above:
+
+- **Headline negative:** NO gfx1032 + llama.cpp HIP success report exists in that server
+  (`gfx1032 llama`, `6600 llama.cpp`, `gfx1032 prebuilt` all empty as actually read;
+  multi-term counts were flaky, so only read messages count). The gfx1032 validation that
+  DOES exist lives in **TheRock PR #5719** — CI `-- Test targets:` include gfx1032/1030/
+  1031; independent RX 6800 Linux validation posted to complement "gfx1032 results already
+  shared on this PR". **Next read: that PR thread.**
+- **rocBLAS gap is real and dated:** `TensileLibrary_lazy_gfx1032.dat not found, failed to
+  verify manifest` while building TheRock with `gfx103x-dgpu` (nym, 2025-05). Mitigation
+  stands: build the fork with `AMDGPU_TARGETS=gfx1032` — ggml's own kernels compile
+  natively; the override/prebuilt-blob risk concentrates in the *math libraries*
+  (rocBLAS/hipBLASLt), which llama.cpp barely uses on the hot path.
+- **Cheapest probe identified:** `lemonade-sdk/llamacpp-rocm` publishes nightly llama.cpp
+  ROCm-7 builds on TheRock — IF gfx1032 math-libs are in them, that's a free stack smoke
+  test. **Caveat: those are STOCK llama.cpp — no ternary kernels.** Useful to validate
+  ROCm+override+bench a standard quant on the 6600 *before* spending effort on the prism
+  fork HIP build; it can never run Bonsai-2 itself.
+- **L1 verdict reinforced:** AMD's Windows HIP SDK page lists gfx1032 ❌; the
+  `win-rocm-7.14-x64` upstream prebuilt has `ggml-hip.dll` missing-import on `hipblas.dll`
+  (issue #26996) — same err=126 class as our L1 failure. Windows HIP dead end now backed by
+  AMD's own docs AND a packaging bug independent of arch.
+- **Expectation correction (important):** Phoronix ROCm 7.1 vs RADV + community reports put
+  **Vulkan ahead for decode, ROCm ahead for prefill** on RDNA2. My "PTQ1_0 ≈ 8–12 t/s
+  decode on HIP" estimate above is UNVERIFIED (T4 confound: 320 GB/s + mature CUDA path).
+  Honest position: HIP probe is more likely a **prefill / quality-path** win than the
+  missing decode 2×. Test both directions; don't pre-commit to decode.
+- **WSL2 hedge:** one fresh report of llama.cpp ROCm failing entirely on WSL2/Windows
+  (AJO, 2026-09-19 — but an RDNA4 card, not Navi 23). WSL2-first probe order kept, with
+  the C: 99% disk constraint still the practical blocker.
+- **Navi 23 memory faults:** no corroborating report (`gfx1032 fault` empty) — treat as
+  open question, not established.
