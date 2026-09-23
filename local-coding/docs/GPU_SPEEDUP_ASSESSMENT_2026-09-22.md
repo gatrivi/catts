@@ -276,3 +276,32 @@ hotspot; D3 iterate, `golden_check` after every change (fidelity regression = re
 D4 consolidate + backport to shipped runtime. Odds: honest ~50/50 that the overhead is in
 fixable shader/dispatch territory (→ 1.5–2×) vs deep in ggml-vulkan scheduling (→ small
 gains). Orthogonal to the requant — do both; requant fixes fidelity, this fixes speed.
+
+
+### Resource/time budget for the profile-first plan (2026-09-22)
+
+Rig: Ryzen 5 PRO 4650G (6C/12T), 15.4 GB usable RAM (iGPU UMA takes ~5), RX 6600 8 GB,
+weights on Z: HDD, C: at 99% (standing risk for build artifacts).
+
+| Step | Wall time | CPU | RAM peak | GPU |
+|---|---|---|---|---|
+| D1 scripts + timestamp instrumentation in `C:/src` | 1–2 h | build peaks all 6 cores ~5–10 min | ~1 GB | idle |
+| D1 capture set (5–10 runs × ~130 tok @12.5 t/s ≈ 10 s decode each; **HDD model load dominates: 1–3 min cold each**) | 1–2 h | light (1–2 cores) | ~5.5 GB (3 GB server + OS) | **exclusive** |
+| D1 RGP capture + CSV export/parse | ~30 min | light | +0.5 GB | exclusive |
+| D1 triage (large model reads per-op breakdown) | ~1 h | — | — | — |
+| D2–3 fix iterations: build (min) + bench 5 min + `golden_check` 10–15 min | 4–8 × ~45 min = 3–6 h | build peaks | ~5.5 GB | exclusive per iter |
+| D4 verification: sustained bench + golden + roster update | 1–1.5 h | light | ~5.5 GB | exclusive |
+| **Total, success path** | **~12–16 h focus ≈ 2–3 days** | | | |
+| **Total, no-fixable-hotspot path** | **stop after D1 ≈ half a day**, negative result documented | | | |
+
+- **Driver model:** NeoHorse CPU-only (weights ~4.5 GB mmap) runs *between* captures only —
+  resident-during-capture would break the no-contended-GPU rule. If resident alongside
+  server: 3 + 4.5 + 5 UMA ≈ 12.5/15.4 GB — works but tight; MiniCPM5 (2.5 GB) is the
+  safer co-resident, and it must not write code.
+- **Nothing needs >6 GB free RAM at any point** — within the ~8 GB free-RAM cap directive.
+- **Real blockers, not compute:** (1) C: at 99% — need ~1 GB headroom for incremental
+  build artifacts, free it first; (2) HDD cold loads inflate capture wall-clock — keep the
+  model resident (restart-less captures) once the first load warms it.
+- **Contingency is built in:** if the profile convicts an area we can't fix (deep
+  ggml-vulkan scheduling), we cut losses at D1 with the measurement in hand — that artifact
+  alone justifies the spend (feeds upstream PR + item 3).
