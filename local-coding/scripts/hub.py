@@ -9,6 +9,7 @@ Uso: CATTS.cmd            (menu interactivo)
      CATTS.cmd stop --all
      CATTS.cmd chat mini
      CATTS.cmd check      (no carga nada; valida rutas, manifiestos y argv)
+     CATTS.cmd profile [preflight]   (day-1 baseline del GPU; GPU exclusivo)
 """
 import argparse, json, os, socket, subprocess, sys, time
 from pathlib import Path
@@ -154,7 +155,17 @@ def print_status(servers=None, verbose=True):
 
 def log_path(name):
  LOG_DIR.mkdir(parents=True, exist_ok=True)
- return LOG_DIR / f'{name}.log'
+ # Las claves smol traen ':' (smol:mini): en NTFS eso crea un flujo alternativo,
+ # invisible en el Explorador; se reemplaza para que el log sea un archivo normal.
+ return LOG_DIR / f"{name.replace(':', '-')}.log"
+
+
+def tail(name, lines=40):
+ """Ultimas lineas del log de un modelo/app (comando 'l N' y error de carga)."""
+ path = log_path(name)
+ try: text = path.read_text(encoding='utf-8', errors='replace')
+ except OSError: return f'(no hay log en {path})'
+ return '\n'.join(text.splitlines()[-lines:]) or '(log vacio)'
 
 
 
@@ -207,7 +218,7 @@ def start(key, preset=None, context=None, force=False, wait=True):
   raise RuntimeError(f'Necesito {floor // 1024} GB de RAM libre y hay {free_ram_gb()} GB.')
  argv = build_argv(key, preset, context)
  shown = ' '.join(argv[:1] + argv[1:3]) + ' ...'
- print(f"Cargando {spec['label']} en : {port} (log data/hub/logs/{key}.log)")
+ print(f"Cargando {spec['label']} en : {port} (log data/hub/logs/{key.replace(':', '-')}.log)")
  print(f'  {shown}')
  env = os.environ.copy()
  env['GGML_VK_DISABLE_HOST_VISIBLE_VMEM'] = '1'
@@ -352,7 +363,8 @@ def chat(key, limit=512):
 def zed_hint(key):
  spec = SPECS[key]
  provider, model = spec.get('zed', ('?', '?'))
- return f"  Zed -> provider '{provider}', model '{model}' (Settings > Language Models, o el selector del agente)"
+ return (f"  Zed -> provider '{provider}', model '{model}' (Settings > Language Models, o el selector del agente)\n"
+         f"  omp -> --model {provider}/{model} (el picker de omp lo muestra; responde solo con el modelo arriba)")
 
 
 def actions():
@@ -382,7 +394,7 @@ def print_menu(rows, servers):
         f"{'ENCENDIDO' if key in live else 'apagado':9}" + (f" presets: {presets}" if presets else ''))
  print('\n  s N [preset] arrancar | w N [preset] cambiar | x N apagar | a apagar modelos')
  print('  c N chat directo | l N ver log | z N: que elegir en Zed | r refrescar')
- print('  t Taller (sesion) | m Smol (sesion) | q salir | qa salir y apagar todo')
+ print('  t Taller (sesion) | m Smol (sesion) | q salir | qa salir y apagar todo | h ayuda')
 
 
 def resolve(token, rows):
@@ -434,9 +446,24 @@ def check():
  return problems
 
 
+HELP_TEXT = """
+  Ordenes del menu:
+    N o s N [preset]   arrancar el modelo numero N (ej: 6, s 6, s 14 mid)
+    w N [preset]       cambiar: apaga el modelo actual y arranca N
+    x N | x all        apagar un modelo | todo (modelos y apps)
+    a                  apagar todos los modelos
+    c N                chat directo con N
+    l N                ultimas lineas del log de N
+    z N                que provider/model elegir en Zed para N
+    t / m              sesion Taller / Smol (en esta misma ventana)
+    r                  refrescar la pantalla
+    q                  salir (los modelos quedan arriba)
+    qa                 salir y apagar todo
+  N es el numero de la lista (1-19) o el nombre (mini, qwen35, bonsai2...)."""
+
+
 def menu():
  rows = actions()
- live_keys = [key for _, key in rows]
  while True:
   servers = print_status()
   print_menu(rows, servers)
@@ -451,18 +478,21 @@ def menu():
    if cmd in ('q', 'salir', 'exit'): return 0
    if cmd in ('qa', 'quit-all'):
     print(stop(everything=True, include_apps=True)); return 0
+   if cmd in ('h', 'help', 'ayuda', '?'):
+    print(HELP_TEXT); continue
    if cmd in ('r', 'refrescar'): continue
    if cmd == 'a':
     print(stop(everything=True, include_apps=False)); continue
    if cmd == 't': taller_session(); continue
    if cmd == 'm': smol_session(); continue
    if cmd == 'check': check(); continue
+   if cmd.isdigit(): cmd, arg = 's', cmd  # numero suelto = arrancar ese modelo
    if cmd in ('s', 'start', 'w', 'switch', 'x', 'stop', 'c', 'chat', 'l', 'logs', 'z', 'zed'):
     if cmd in ('x', 'stop') and arg in (None, 'all', 'todo'):
      print(stop(everything=True, include_apps=True)); continue
     key = resolve(arg or '', rows)
     if not key:
-     print(f'  numero del 1 al {len(live_keys)} o nombre del modelo.'); continue
+     print(f'  numero del 1 al {len(rows)} o nombre del modelo (ej: "s 6" o "mini").'); continue
     if cmd in ('s', 'start'): start(key, preset)
     elif cmd in ('w', 'switch'): switch(key, preset)
     elif cmd in ('x', 'stop'): print(stop(key))
@@ -470,7 +500,7 @@ def menu():
     elif cmd in ('l', 'logs'): print(tail(key))
     else: print(zed_hint(key))
     continue
-   print('  no entiendo esa orden; usa h para la ayuda.')
+   print('  orden no reconocida. Para arrancar: "6" o "s 6". Escribi "h" para la ayuda.')
   except RuntimeError as exc:
    print(f'  {exc}')
   except KeyboardInterrupt:
@@ -480,7 +510,7 @@ def menu():
 def main():
  parser = argparse.ArgumentParser(description='Centro de control de modelos locales y apps de CATTS')
  parser.add_argument('action', nargs='?', default='menu',
-  choices=['menu', 'status', 'check', 'start', 'stop', 'switch', 'restart', 'chat', 'logs', 'list'])
+  choices=['menu', 'status', 'check', 'profile', 'start', 'stop', 'switch', 'restart', 'chat', 'logs', 'list'])
  parser.add_argument('target', nargs='?', help='clave o numero del modelo/app')
  parser.add_argument('--preset', help='preset de arranque (mid/low/high, fast/balanced/max, long)')
  parser.add_argument('--context', type=int, help='contexto para la ranura Smol')
@@ -495,6 +525,13 @@ def main():
   print_status(); return 0
  if opts.action == 'check':
   return 1 if check() else 0
+ if opts.action == 'profile':
+  # Day-1 baseline del GPU (GPU exclusivo): ver docs/GPU_SPEEDUP_ASSESSMENT_2026-09-22.md
+  cmd = ['powershell.exe', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File',
+         str(ROOT / 'scripts' / 'profile_day1.ps1')]
+  if opts.target == 'preflight':
+   cmd.append('-Preflight')
+  return subprocess.call(cmd)
  if opts.action == 'menu':
   return menu()
  if opts.action in ('logs', 'chat', 'start', 'switch', 'restart'):
