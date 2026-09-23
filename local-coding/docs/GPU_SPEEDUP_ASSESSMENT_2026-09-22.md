@@ -241,3 +241,38 @@ Corrections/additions to the addendum above:
   the C: 99% disk constraint still the practical blocker.
 - **Navi 23 memory faults:** no corroborating report (`gfx1032 fault` empty) — treat as
   open question, not established.
+
+## Bespoke RDNA2 kernel path — feasibility + ceiling math (2026-09-22)
+
+User proposal: agent crawls card architecture → bespoke kernels → "fantastic" Bonsai in 3–4
+days. Calibration:
+
+**What's proven:** we CAN build kernels — LUT matvec v2 was a real 2.5× shader win
+(601µs→247µs), and the local toolchain (`C:/tools` + `C:/src` fork) rebuilds in minutes.
+
+**What's bounded by physics (RX 6600: 224 GB/s, decode = read all weights once per token):**
+
+| Model | Size | Absolute ceiling (100% BW) | Realistic (65–75% BW) | Today | Headroom |
+|---|---|---|---|---|---|
+| TQ2_0 | 6.94 GB | ~32 t/s | 21–24 t/s | 12.2–13 t/s (~40%) | **~1.6–1.9×** |
+| PTQ1_0 | 8.05 GB | ~28 t/s | 18–21 t/s | 6.4–6.7 t/s (~24%) | **~2.7–3.1×** |
+
+So "fantastic" has a number: **~20–24 t/s TQ2_0 is the realistic best case this card can
+ever do**, no matter how bespoke the software. That IS worth having.
+
+**Why 5 matmul designs plateaued at 6.3–6.7:** per-token time is dominated by work OUTSIDE
+the trit matmul (attention shaders, elementwise ops, dispatch/sync overhead — nobody has
+measured which). The missing input is NOT architecture specs (RDNA2 is fully documented;
+the crawl adds nothing we can't look up) — it's a **profile of where the 31 ms/token
+actually goes**. That is item 3, still unstarted, and `gpu_sweep.py` never produced data.
+
+**The crawl, redirected to what's useful:** have the agent collect MEASURED numbers, not
+specs — Vulkan timestamp-query per-op breakdown on TQ2_0 decode in the C:/src build, one
+RGP capture, memory-bandwidth microbench, subgroup/occupancy stats. That output is what a
+large model triages against the shader sources.
+
+**Realistic 3–4 day plan:** D1 instrument + profile (per-op ms/token); D2 attack the #1
+hotspot; D3 iterate, `golden_check` after every change (fidelity regression = revert);
+D4 consolidate + backport to shipped runtime. Odds: honest ~50/50 that the overhead is in
+fixable shader/dispatch territory (→ 1.5–2×) vs deep in ggml-vulkan scheduling (→ small
+gains). Orthogonal to the requant — do both; requant fixes fidelity, this fixes speed.
