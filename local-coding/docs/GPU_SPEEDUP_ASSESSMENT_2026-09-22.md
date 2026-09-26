@@ -278,8 +278,130 @@ fixable shader/dispatch territory (→ 1.5–2×) vs deep in ggml-vulkan schedul
 gains). Orthogonal to the requant — do both; requant fixes fidelity, this fixes speed.
 
 
-### Resource/time budget for the profile-first plan (2026-09-22)
+## D1 profile RESULT — the missing 2x is INSIDE the matvec, not outside (2026-09-24)
 
+First real run of the day-1 harness (`CATTS.cmd profile` / `scripts/profile_day1.ps1`)
+plus a new per-op capture (`scripts/d1_perop_profile.py`) using the fork's built-in
+`GGML_VK_PERF_LOGGER` (timestamp queries; no rebuild needed). C:/src build (LUT), 8K
+ctx, TQ2_0 KV q4_0 / PTQ1_0 KV q8_0, GPU exclusive, user active on the PC (free RAM
+~2.5 GB — caveat below). JSON: `data/profile/d1_perop_20260924-{151504,152010}.json`,
+baseline `data/profile/d1_20260924-150704.json`.
+
+| Decode step | TQ2_0 | PTQ1_0 |
+|---|---|---|
+| GPU-busy sum (timestamps) | **81.8 ms/tok (→12.2 t/s)** | **157.8 ms/tok (→6.3 t/s)** |
+| MUL_MAT share | 83.7% (68.4 ms) | 92.4% (145.8 ms) |
+| Matmul effective BW | **95 GB/s** (42% of 224 peak) | **55 GB/s** (25%) |
+| All non-matmul ops | 16.3% (13.3 ms) | 7.6% (12.0 ms) |
+| FLASH_ATTN_EXT | 3.8% (3.1 ms) | 1.2% (1.8 ms) |
+
+**Findings:**
+
+1. **The "bottleneck is outside the matmul" hypothesis is REFUTED.** Attention is
+   1–4%; everything non-matmul is 8–16% (12–13 ms/tok). There is no hidden 30–50 ms
+   in scheduling/attention/other ops.
+2. **Wall ≈ GPU-sum at healthy RAM** for both models (roster 12.2–13 t/s ≈ 81.8 ms;
+   6.4–6.7 t/s ≈ 150–156 ms) → host/dispatch overhead is small when RAM is fine.
+   At ~2.5 GB free RAM the shipped-runtime baseline measured 9.36 t/s (not 12–13)
+   — low system RAM costs ~25–30% decode (matches the 2026-09-19 observation).
+   Baselines MUST record free RAM (the harness does).
+3. **Why PTQ1_0 is 2x slower than TQ2_0: per-instance kernel efficiency, not size.**
+   Identical shapes, per-instance times: gate/up m=17408·k=5120 483 µs vs 209 µs
+   (2.31x); down 470 vs 239 (1.97x); qkv 291 vs 125 (2.33x); lm_head 6686 vs 2802
+   (2.39x). Weight-byte ratio is only 1.24x. PTQ1_0 matvec instances run at
+   **~36–38 GB/s** vs TQ2_0's ~110 GB/s.
+4. **The microbench flattered us:** LUT matvec was validated on m=4096 k=14336
+   (59 GB/s) but production decode uses m=17408 k=5120-class shapes at 36 GB/s.
+   The five-designs plateau (6.3–6.7 t/s) is per-instance BW on production shapes,
+   consistent with the 2026-09-22 "config pipeline/reducción" conclusion.
+5. Low-RAM 3-run baseline: mean 9.36 t/s (probe-1), loads 127–150 s (HDD under
+   user-session contention). Re-run for a clean number at ≥4 GB free.
+
+**Next lever (D2), now measurable:** raise ptq1_0 matvec on production shapes from
+36 → TQ2_0-parity 110 GB/s ⇒ 157.8 → ~85 ms ⇒ **~11.5 t/s faithful**; beyond that,
+TQ2_0's own 95 → ~130–160 GB/s ⇒ 20–24 t/s (the physics-table realistic case).
+Attack via `test-backend-ops` MUL_MAT **at production shapes** (m=17408 k=5120,
+m=5120 k=17408, m=10240 k=5120, m=248320 k=5120 — 128/64/48/1 instances per step
+respectively), not the old microbench shape; `golden_check` after every change.
+Caveats: 1 capture per model (48-token tail), perf-logger overhead inflates wall
+(GPU sums are timestamp-based and trustworthy), captures at ~2.5 GB free RAM.
+
+### D2 prep — production shapes added to the suite; Infinity-Cache confound found (2026-09-24, token-free)
+
+Patched `C:/src/llama.cpp/tests/test-backend-ops.cpp` to register the seven production
+shapes for q4_0/PTQ1_0/TQ2_0 (n=1) and rebuilt the named target (~2 min). No model, no
+tokens — seconds of GPU per sweep. Results (µs/instance):
+
+| shape m×k (instances/token) | q4_0 | ptq1_0 | tq2_0 | ptq/tq2 |
+|---|---|---|---|---|
+| 4096×14336 (old micro) | 94.7 | 245.8 | 93.8 | 2.6 |
+| 17408×5120 (×128) | 234.8 | 374.1 | 132.8 | 2.8 |
+| 5120×17408 (×64) | 234.8 | 350.7 | 141.7 | 2.5 |
+| 10240×5120 (×48) | 72.3 | 225.5 | 80.2 | 2.8 |
+| 6144×5120 (×48) | 50.9 | 143.7 | 50.1 | 2.9 |
+| 5120×6144 (×48) | 44.5 | 139.5 | 50.9 | 2.7 |
+| 12288×5120 (×16) | 116.7 | 268.8 | 95.1 | 2.8 |
+| 248320×5120 (×1, lm_head) | 3300 | 6698 | 2956 | 2.3 |
+
+**Findings:**
+
+1. **Infinity-Cache confound (measurement hygiene):** the suite re-reads the same
+   tensor every run; tensors ≤ 32 MB stay in the RX 6600's 32 MB IC → inflated.
+   tq2_0: 161 GB/s in-suite vs **102 GB/s cold** (production); ptq1_0: 52 → **41**.
+   The 280 MB lm_head shape is IC-immune and matches production almost exactly
+   (6698 vs 6686 µs) — use IT for kernel A/Bs, or distrust sub-32 MB numbers.
+   All pre-2026-09-24 test-backend-ops figures (incl. the 94.6 µs "1.24 TFLOPS"
+   tq2_0 reference) carry this inflation.
+2. **The ptq1_0 kernel is 2.3–2.9x slower per byte than tq2_0 at EVERY shape** —
+   the shape was never the issue; the kernel's memory access / decode path is.
+   tq2_0 uses repack4 + integer dot (6600 has `int dot: 1`); ptq1_0 does base-3
+   decode (LUT) + f32 FMA. Cold effective BW: tq2_0 ≈ 102 GB/s (46% of peak),
+   ptq1_0 ≈ 41 GB/s (18%).
+3. **D2 iteration protocol (token-free):** edit shader → `ninja test-backend-ops`
+   (named target, ~2 min) → perf on the lm_head shape (cold-true) + correctness
+   test → repeat. One short real decode (per-op capture) only to confirm
+   end-to-end. Expect: ptq1_0 at tq2_0-parity BW ⇒ ~14 t/s faithful; the earlier
+   "5 designs plateaued" is explained by IC-inflated microbenches pointing at the
+   wrong target, not by a hardware wall.
+
+### D2 session — vecq path found BROKEN (never compiled), repaired; third design tie (2026-09-24 evening)
+
+Token-free kernel iteration, round 1. Findings, in order of importance:
+
+1. **`mul_mat_vecq_funcs.glsl` had been uncompilable since the 09-22 session.** The
+   appended fork delta (a single bad paste at EOF) contained: duplicate IQ1_S/IQ1_M
+   sections (byte-identical), a duplicate per-element PTQ1_0 repack4, a stray
+   `return mul_q8_1(...);}` fragment and one extra `#endif`. Consequence: the
+   embedded vecq spv predates the PTQ1_0 vecq branch — **every ptq1_0 MUL_MAT with
+   MMVQ enabled (suite AND production decode) has been silently falling back to the
+   f32 matvec path**. That is why all env configs tied in every suite run.
+   Repair: reconstructed the file = pristine `prism-b10709-9a9394a` + the ONE
+   region-uniform PTQ1_0 section (with u32/packed16 loads added: 3×u32 + unpack8
+   per 16 elems instead of byte loads; qh via one u16). Compiles now; 68/68
+   correctness (ptq1_0/tq2_0/q2_k/q6_k/q4_0); end-to-end decode unchanged
+   (157.1 ms/tok GPU-sum).
+2. **Third tie, the decisive one:** true vecq (int-dot, u32 loads, region-uniform
+   repack4) = 381/231/6771 µs on gate/up/qkv/lm_head — identical to the f32 LUT
+   matvec and closed-form variants. Eliminated as the bottleneck: LDS-vs-ALU
+   decode, byte-vs-u32 load granularity, f32-vs-q8_1 activation path, pipeline
+   config (stdq/sub16). All known ptq1_0 matvec designs cluster at ~50 GB/s
+   in-suite / ~41 GB/s cold; tq2_0 does 102 cold on the same 16-threads-per-block
+   row-walk structure.
+3. **What that isolates:** the remaining structural difference is the per-warp
+   walk itself — ptq1_0's 28-byte blocks (56 B contiguous per warp, 1120 B row
+   stride) vs tq2_0's 66-byte blocks (132 B per warp) and the overall
+   rows-per-workgroup / blocks-per-thread shape. Next lever (D2 round 2, bigger
+   job): redesign the walk — larger elements-per-thread (32+), multi-row per
+   thread pass, or an RGP capture for per-instruction truth. Not a micro-tweak;
+   schedule as its own session.
+
+Toolchain note: ninja lives in `E:/zengatrivi-drive-e/catts/.venv/Scripts`; shader
+edits need `touch ggml/src/ggml-vulkan/vulkan-shaders/mul_mat_vecq.comp` to force
+spv regen. The funcs.glsl repair makes every future `ninja` regen ALL vecq shaders
+(K-quants back to pristine + PTQ1_0 section).
+
+
+### Resource/time budget for the profile-first plan (2026-09-22)
 Rig: Ryzen 5 PRO 4650G (6C/12T), 15.4 GB usable RAM (iGPU UMA takes ~5), RX 6600 8 GB,
 weights on Z: HDD, C: at 99% (standing risk for build artifacts).
 
@@ -305,3 +427,77 @@ weights on Z: HDD, C: at 99% (standing risk for build artifacts).
 - **Contingency is built in:** if the profile convicts an area we can't fix (deep
   ggml-vulkan scheduling), we cut losses at D1 with the measurement in hand — that artifact
   alone justifies the spend (feeds upstream PR + item 3).
+### E2 RESULT — int8 LUT WINS: PTQ1_0 6.4 → ~7.4 t/s wall, fidelity intact (2026-09-24 night)
+
+The issue-rate theory was correct: the **5 KB float shared LUT** was capping occupancy
+(LDS/workgroup → ~12 wavefronts/CU) and serializing every element lookup. Fix: store the
+LUT as **int8 (trit+1)** — 5 KB → 1.25 KB — in both paths:
+`mul_mat_vec_ptq1_0.comp` (f32) and `mul_mat_vecq.comp` `ptq_lut` (vecq, trit+8 for the
+int8-dot lanes). ~15-line edits, no layout/GGUF changes.
+
+| PTQ1_0 decode step | float LUT | int8 LUT | Δ |
+|---|---|---|---|
+| GPU-busy sum | 157.8 ms/tok | **129.2 ms/tok** | **−18%** |
+| gate/up 17408×5120 (×128) | 483 µs | **377 µs** | −22% |
+| down 5120×17408 (×64) | 470 µs | **376 µs** | −20% |
+| lm_head 248320×5120 (×1) | 6683 µs | **5249 µs** | −21% |
+| wall (golden capture) | ~5.5 t/s | **7.44 t/s** (count300: 320 tok / 43 s) | +16% |
+
+- Correctness: 68/68 suite (incl. K-quant regression) — test mode only covers small shapes
+  (silent cull, see E1b); production shapes verified via the golden gate.
+- **Fidelity: golden 7/8 — PASSES** (`data/golden/confirm-20260924-195613.json`); the one
+  diverge is the same documented toolcall token-0 coin-flip. Numerically identical kernels.
+- E2b (zero-LDS closed-form) NOT needed: at 1.25 KB the LDS no longer caps; parked.
+- Caveats: kernels live in the **C:/src build only** — the shipped b10685 house runtime is
+  unchanged (promoting = rebuild/distribute that binary, separate decision). Numbers taken
+  at ~7 GB free RAM, warm file cache; the 02:30 night run re-verifies cold.
+- Next lever (E3): the int8 trick can't repeat; the remaining gap to tq2_0-class 102 GB/s
+  is the layout redundancy (5× byte re-reads for trit positions) — element-major repack is
+  the remaining idea, with 129.2 ms/tok as the measured baseline to beat.
+
+### V-C gate + E3 SKIPPED — the cheap ladder is exhausted (2026-09-24 night, same session)
+
+V-C (cooperative LDS load: 7 u32 load the block's 28 B once, all threads decode from LDS —
+kills the 4-5x redundant SSBO loads, zero layout change): **389/381/145/5599 µs — 5% SLOWER
+than the int8 direct kernel** (339/322/128/5306), 28/28 correct. The redundant loads were
+already cheap (L1 dedupe); staging them via LDS only added barriers and LDS traffic.
+
+**Consequence: E3 (element-major repack) is SKIPPED** — its premise (load redundancy) is
+disproven by V-C. The E2 win came from occupancy (LDS size), which is now banked; whatever
+holds the remaining 129.2 vs tq2_0's ~102-GB/s-class gap is not loads, not LUT size, not
+workgroup width, not the activation path, and not ALU decode style — five families of
+variants now tie or regress around the same issue-rate wall.
+
+**Track state after this session:**
+- PTQ1_0: 3.3 → 6.4 (09-22, LUT) → **7.4–7.9 t/s wall (09-24, int8 LUT)** = +125% total on
+  the fidelity path, golden 7/8 intact throughout. Banked in the C:/src build.
+- Remaining honest options: (a) RGP capture (installer on C: — user call), (b) upstream PR
+  (int8 LUT + vecq repair + golden methodology + all numbers), (c) close the track — the
+  daily driver TQ2_0 (12–13 t/s) is unaffected by all of this and stays as-is.
+- Shader .bak chain in `data/shader_baks/`: `.bak-e2` (pre-E2a float LUT), `.bak-e2a`
+  (int8 direct = current canonical).
+
+### CORRECTION — the TQ2_0 int-dot port was never a tie: production shows −35% (2026-09-25)
+
+The in-suite A/B ("vecq 131.4 vs f32 132.5 µs — tie") was an **IC-warm measurement
+artifact**: with the tensor cache-resident, both paths saturate at the same issue-limited
+plateau and the real difference is invisible. Production per-op captures (the only
+cold-true oracle) show the vecq int-dot path delivering **−35% decode GPU time on the
+daily driver**:
+
+| TQ2_0 decode (8192 ctx, q8 KV, C:/src build) | f32 path forced | vecq int-dot | Δ |
+|---|---|---|---|
+| GPU-sum | 81.0 ms/tok | **53.0 ms/tok** | **−35%** |
+| gate/up ×128 | 210 µs | **124.6 µs** | −41% |
+| lm_head ×1 | 2802 µs | **1582 µs (193 GB/s cold)** | −44% |
+| wall (with logger) | 10.25 t/s shipped-runtime baseline | **13.02 t/s** | +27% |
+
+Captures: `data/profile/d1_perop_20260925-{161234 (32K),195503..,}*.json`; A/B via
+`GGML_VK_DISABLE_MMVQ=1` (f32 forced) vs default — causality direct.
+
+**Methodology rule (upgrades all previous verdicts):** in-suite perf ties are NOT
+production ties — IC-warm runs saturate at the issue plateau and mask real differences.
+The six "tie" verdicts are demoted to "unproven in production"; cheap re-tests = perop
+captures with the env toggles. Also: the vecq int-dot approach generalizes — the win
+came from int-dot + 4×fewer redundant loads, the exact pattern now proven on the daily
+driver. lm_head at 193 GB/s cold = q4_0-class streaming from a 2-bit ternary kernel.

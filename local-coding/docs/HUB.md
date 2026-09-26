@@ -1,6 +1,7 @@
 # CATTS local (hub)
 
-Un solo terminal para todo: **CATTS.cmd** (o el acceso directo *CATTS local*).
+Un solo terminal para todo: **CATTS.cmd** (doble clic), **CATTS.ps1** (PowerShell /
+ops terminal) o el acceso directo *CATTS local*.
 No abre ventanas nuevas: cada modelo o app se lanza oculto, con su log en
 `data/hub/logs/`. Los lanzadores viejos (SMOL.cmd, TALLER.cmd, MODELS.cmd)
 siguen existiendo, pero el menu del hub es el camino normal.
@@ -8,17 +9,21 @@ siguen existiendo, pero el menu del hub es el camino normal.
 ## Menu
 
 ```
-s N [preset]   arrancar     w N [preset]   cambiar de modelo (apaga y arranca)
+s N [preset]   arrancar (tambien el numero solo: 6)   w N [preset]   cambiar de modelo (apaga y arranca)
 x N            apagar       a              apagar todos los modelos
 c N            chat directo l N            ver log
 z N            que elegir en Zed           t / m  sesion Taller / Smol
-r              refrescar    q salir        qa  salir y apagar todo
+r              refrescar    h              ayuda (todas las ordenes)
+q              salir        qa             salir y apagar todo
 ```
 
 La lista tiene 19 numeros: 1-5 modelos con puerto propio (Bonsai-2 :9103,
 Spark :9105, NeoHorse :9107, Qwen3.5 :9102, Qwen3.8-27B :9101), 6-16 la ranura
 Smol (:9104, un modelo a la vez) y 17-19 las apps (CATTS API :59200,
 Chores API :9111, gateway de voz :9110).
+
+En el menu el numero solo arranca ese modelo (`2` = Spark) y tambien valen los
+nombres (`mini`, `qwen35`); `h` muestra la ayuda completa.
 
 ## Sin menu (para scripts)
 

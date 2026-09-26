@@ -21,8 +21,8 @@ el modelo de memoria. Esc interrumpe una respuesta. `/resume` recupera sesiones;
 Se recuerda la ultima carpeta. Tambien podes arrastrar una carpeta sobre SMOL.cmd.
 
 Proyecto incluye lectura, edicion, busqueda y comandos para ejecutar pruebas.
-OMP pide aprobacion para escrituras y comandos. Las herramientas actuan en la
-carpeta elegida; aprobar un comando puede permitirle acceder a otras rutas.
+Aprobacion automatica (modo yolo): OMP no pide permiso por escritura ni comando;
+todo actua en la carpeta elegida. Si el trabajo es delicado, hace git commit antes.
 Chat no tiene herramientas. No hace falta una API key.
 
 Sin limite de minutos ni corte experimental de 8192 tokens por respuesta.

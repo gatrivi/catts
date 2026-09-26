@@ -27,3 +27,7 @@ whisper.cpp binary ~10-30 MB + models tiny 75 MB / base 150 MB /
 small 500 MB, CPU real-time on this Ryzen; or sherpa-onnx binary
 ~15 MB + streaming model ~200-400 MB, lower latency. Either is
 trivial next to the 20 GB models; home on Z:.
+
+## See also
+
+- [Phone -> voice -> local agents](../../docs/PHONE_VOICE_CONTROL.md) - options, verified state, runbook

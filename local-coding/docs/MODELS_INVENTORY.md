@@ -5,7 +5,7 @@ Measured on this rig (Ryzen 5 PRO 4650G, RX 6600 8 GB, 16 GB RAM) unless marked 
 
 | Model | File | Native ctx | Notes on ctx | Decode (measured here) | SWE evidence |
 |---|---|---|---|---|---|
-| NeoHorse-1-4B Q8 | 4.17 GB | 262144 | 16K tested | **36 tok/s** (26.8 ms/token); prefill 18-192 | no SWE published; agentic +6..+10 vs Qwen base |
+| NeoHorse-1-4B Q8 | 4.17 GB | 262144 | 32768 launcher default since 2026-09-23 (16K refused agent prompts) | **36 tok/s** (26.8 ms/token); prefill 18-192 | no SWE published; agentic +6..+10 vs Qwen base |
 | Qwen3.5-9B Q4_K_M | 5.29 GB | 262144 | 32K validated | 30-33 tok/s | 50.8 (author/3rd-party table) |
 | Qwen2.5-Coder-7B Q4_K_M | 4.36 GB | 32768 | 32K fits | 33-48 tok/s | unknown |
 | MiniCPM5-2B Q8 | 2.50 GB | 131072 | 32K validated | 48-60 tok/s | 46.4 Verified (3rd-party); local gate 3-4/12 |

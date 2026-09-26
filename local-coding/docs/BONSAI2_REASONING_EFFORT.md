@@ -105,3 +105,20 @@ Total ~1.5 h GPU-exclusive. Stop-other-models rule applies (Spark/Qwen/MiniCPM o
   PTQ1_0 Vulkan kernel still broken here (195 GFLOPS); we stay on TQ2_0.
 - Watch PrismML-Eng/llama.cpp PRs #217/#218 — a Vulkan port would change the
   roster's "dead end on AMD" line.
+
+## Addendum 2026-09-23 - author's evals ran at extra-high effort + 131k thinking
+Barron's 2026-09-22 thread (full capture: BONSAI2_AUTHOR_EVAL_THREAD_2026-09-22.md) states the
+published Bonsai-2 results ("95% of full-precision Qwen3.8 27B on IMO 2026") were taken at
+**extra-high reasoning, 131k thinking budget, stock llama.cpp, no tools**. Consequences for T1:
+- Score the effort A/B against the golden top-10 logprobs, not think-time alone: lowering effort
+  may spend part of that advertised 5% gap.
+- Our max_tokens 1200/2500 failures are a config mismatch vs their harness, not a model limit:
+  hard tasks need max_tokens >= 16k (sundoingX's 4K/medium truncation note agrees).
+
+### Independent confirmation of the template default (2026-09-23)
+A third-party re-upload of the same PTQ1_0 weights (`dealignai/Bonsai-2-27B-1bit-CRACK-GGUF`,
+recon in BONSAI2_CRACK_GGUF_RECON_2026-09-23.md) publishes the model's Jinja template:
+`reasoning_effort|default('xhigh')` and it `raise_exception`s for anything outside
+`('xhigh','medium','low')`. So: default really is xhigh, **"high" is not a legal level**, and the
+T1 A/B must use `xhigh` / `medium` / `low` (or `--reasoning-budget N`).
+

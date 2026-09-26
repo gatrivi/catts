@@ -10,7 +10,7 @@ Desde Z:\catts\local-coding:
 
 Tambien: `npm run e4b -- "C:\ruta\al\proyecto" --pause-qwen`.
 
-El editor usa E4B QAT sin MTP, solicita aprobacion antes de escribir y limita sus herramientas a leer, buscar y escribir archivos completos. Pedi una tarea pequena. Ejecuta vos los tests que indique. `/exit` cierra el editor y apaga E4B.
+El editor usa E4B QAT sin MTP, autoaprueba sus acciones (modo yolo) y limita sus herramientas a leer, buscar y escribir archivos completos. Pedi una tarea pequena. Ejecuta vos los tests que indique. `/exit` cierra el editor y apaga E4B.
 
 `--pause-qwen` pausa el Qwen2.5 conocido del puerto8123 y lo restaura con los mismos argumentos al salir. Puede interrumpir solicitudes en ese servidor; omiti la opcion si ya esta apagado. Otros servidores llama activos se preservan y bloquean el arranque para evitar competir por VRAM.
 
