@@ -281,3 +281,26 @@ DONDE VA EL 2x EN REALIDAD, por orden de attendu 的:
    (PR #218: el problema es el LAYOUT de los bloques de 28 B, no el ALU).
 3. Contexto: -np 2 necesita VRAM para 2 KV; con 8 GiB y 6.3 de pesos hay que
    medir antes de prometerlo.
+
+## Lane 2 (parcial) - concurrencia: 1.31x, con una reserva sobre el metodo
+
+`local-coding\data\np2_20260926.json`, server con `--parallel 2`, -c 2048,
+temp 0. n=1: 8.616 / 8.568 / 8.529 t/s. n=2: 10.896 / 11.295 / 11.372 agregado,
+por stream 7.38 / 6.86, 7.70 / 7.14, 7.65 / 7.13.
+
+=> **1.31x gratis y sin codigo**. Cada stream corre al ~86% de su velocidad solo
+y el agregado sube 31%. La GPU NO se satura con 2 streams, pero tampoco se
+estrangula: es el perfil de un muro de bandwidth con algo de compute mezclado.
+NO es el 2x (2.0x) y no hay que venderlo como tal.
+
+RESERVA DE METODO (importante, no la saltees): el script original paso
+`n_predict` mal a los `Start-Job` (no se pasa la variable del padre al runspace
+del job), asi que el brazo n=2 genero ~559 tokens por request en vez de 256.
+El t/s sigue siendo un rate valido, pero los dos brazos NO son length-matched.
+
+Por eso relanzo la curva completa con longitudes igualadas:
+`$env:TEMP\np_curve.ps1` -> `local-coding\data\np_curve_20260926.json`.
+Armas n=1,2,3,4, 2 corridas cada una, 256 tokens por stream, 4 prompts distintos
+(sin dos streams con el mismo texto, quefalsearia por cache), y captura por
+armada de la linea `offloaded N/M layers to GPU` para poder descartar que una
+medida se haya hecho con el modelo parcialmente en CPU.
