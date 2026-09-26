@@ -8,7 +8,7 @@ from api.deps import require_api_key
 from api.schemas import HealthResponse, LiveTTSRequest
 from config import OCR_ENGINE, WORKER_URL
 from db import get_voice, voice_dir
-from services import kokoro_tts, stt_client, translate_client
+from services import fish_tts, kokoro_tts, stt_client, translate_client
 from services.ocr_client import check_worker_health
 from services import pocket_tts
 from services.tts_client import engine_label, live_tts
@@ -36,6 +36,9 @@ async def health():
         tts_ready = True
     elif tts_engine == "gptsovits":
         tts_ready = bool(WORKER_URL)
+    elif tts_engine == "fish":
+        tts_ready = await fish_tts.ready()
+        tts_message = fish_tts.status_message(tts_ready)
     elif tts_engine == "kokoro":
         tts_ready = await kokoro_tts.ready()
         tts_message = kokoro_tts.status_message(tts_ready)
@@ -78,13 +81,13 @@ def _resolve_ref_audio(voice_id: str) -> Path | None:
 @router.post("/tts/live")
 async def tts_live(req: LiveTTSRequest, _: None = Depends(require_api_key)):
     tts_engine = engine_label()
-    max_words = 80 if tts_engine == "kokoro" else 12
+    max_words = 80 if tts_engine in {"kokoro", "fish"} else 12
     words = req.text.split()
     if len(words) > max_words:
         raise HTTPException(400, f"Live TTS limited to {max_words} words")
     voice_id = req.voice_id or resolve_default_voice_id()
     ref_audio = None
-    if tts_engine in {"xtts", "pocket", "chatterbox"}:
+    if tts_engine in {"xtts", "pocket", "chatterbox", "fish"}:
         if not voice_id:
             raise HTTPException(400, "No voice — save a voice sample first")
         ref_audio = _resolve_ref_audio(voice_id)
@@ -97,6 +100,11 @@ async def tts_live(req: LiveTTSRequest, _: None = Depends(require_api_key)):
             xtts = worker_status()
             if not xtts.get("ready", False):
                 raise HTTPException(503, xtts.get("message") or "XTTS is not ready")
+        if tts_engine == "fish":
+            if not fish_tts.configured():
+                raise HTTPException(503, "Fish Speech not configured — set CATTS_FISH_URL")
+            if not await fish_tts.ready():
+                raise HTTPException(503, fish_tts.status_message(False))
     elif tts_engine == "kokoro":
         from services import kokoro_tts
 

@@ -20,12 +20,21 @@ API_KEY = os.getenv("CATTS_API_KEY", "")
 
 WORKER_URL = os.getenv("CATTS_WORKER_URL", "").rstrip("/")
 OCR_ENGINE = os.getenv("CATTS_OCR_ENGINE", "none")  # unlimited | none
-TTS_ENGINE = os.getenv("CATTS_TTS_ENGINE", "kokoro")  # xtts | kokoro | pocket | edge | chatterbox | gptsovits
+TTS_ENGINE = os.getenv("CATTS_TTS_ENGINE", "kokoro")  # fish | xtts | kokoro | pocket | edge | chatterbox | gptsovits
 KOKORO_URL = os.getenv("CATTS_KOKORO_URL", "http://127.0.0.1:8880").rstrip("/")
 KOKORO_VOICE = os.getenv("CATTS_KOKORO_VOICE", "af_bella").strip()
+FISH_URL = os.getenv("CATTS_FISH_URL", "http://127.0.0.1:8080").rstrip("/")
+FISH_ROOT = os.getenv("CATTS_FISH_ROOT", "").strip()  # path to fish-speech-zluda clone
 DEFAULT_VOICE_ID = os.getenv("CATTS_DEFAULT_VOICE_ID", "").strip()
 STT_MODEL = os.getenv("CATTS_STT_MODEL", "small")  # faster-whisper: tiny|base|small|medium
 ACCEPT_COQUI_CPML = os.getenv("CATTS_ACCEPT_COQUI_CPML", "").lower() in ("1", "true", "yes")
+
+# Playback/speak rate: 0.9 = ~10% slower. Clamp 0.5–2.0.
+try:
+    TTS_SPEED = float(os.getenv("CATTS_TTS_SPEED", "0.9"))
+except ValueError:
+    TTS_SPEED = 0.9
+TTS_SPEED = max(0.5, min(TTS_SPEED, 2.0))
 
 MAX_CONCURRENT_JOBS = int(os.getenv("CATTS_MAX_CONCURRENT_JOBS", "1"))
 TTS_CHUNK_MIN = int(os.getenv("CATTS_TTS_CHUNK_MIN", "200"))
