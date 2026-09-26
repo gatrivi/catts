@@ -246,3 +246,38 @@ timeout al `Wait-Ready`, y no tomes "no arranco" como veredicto sin mirar la
 ultima linea del log del server (`$env:TEMP\dnA.err.log` en el relanzado).
 En CPU (`-ngl 0`) la carga ni siquiera termina: se cuelga paginando desde el
 share de red. Para cualquier prueba de MTP: GPU y patience.
+
+## VEREDICTO FINAL spec-decode: MTP DESCARTADO en este rig/modelo (2026-09-26 10:35)
+
+Medicion completa, mismo server, mismo modelo 27B PTQ1_0, GPU, -c 8192,
+temp 0, seed 42, n_predict 256. Datos: `data\spec_ab_20260926.json` y
+`data\spec_draftn4_20260926.json`.
+
+| config | t/s | aceptacion | mean len |
+|---|---|---|---|
+| base (sin draft) | **8.64 +- 0.06** (3 corridas) | - | - |
+| draft-mtp n=2 | 6.87 +- 0.04 (2 corridas) | 0.6087 (140/230) | 2.22 |
+| draft-mtp n=4 | 4.36 (4.235 / 4.478) | 0.4026 (157/390) | 2.60 |
+
+Es MONOTONO al PEOR: mas tokens por paso de draft = mas lento. Y la aceptacion
+tambien baja (0.61 -> 0.40), o sea que los drafts extra son ademaswrong.
+Aceptacion 0.40 esta por DEBAJO del umbral 0.43 del drafter sidecar.
+
+Por que: el head MTP no se amortiza sobre un target de 27B. Cada token draftado
+paga un forward del head y el costo crece mas rapido que lo que aporta.
+En el 4070 del autor (PR #221) esto daba 51 -> 103 tok/s porque el target era un
+modelo chico y el kernel INT8-LUT de ese fork hacia el head casi gratis. Aca
+nuestro PTQ1_0 va a 41-50 GB/s (31.8 tok/s) y el head se lleva el 60% del tiempo.
+
+CONSECUENCIA OPERATIVA: la slice `MTPLean` del dia 2 (manana) ya no puede
+"encontrar el 2x": el 2x NO esta en spec decode para este modelo. No la borres
+(que quede el registro con la referencia correcta = 8.64 t/s, no 66.9), pero no
+esperes de ella una mejora.
+
+DONDE VA EL 2x EN REALIDAD, por orden de attendu 的:
+1. Lane 2 `-np 2`: 2 streams concurrentes. La GPU es bandwidth-bound (185 GB/s)
+   y 1 stream no la satura. Es lo mas barato de probar: sin codigo, 5 min.
+2. Lane 3 kernel PTQ1_0: 41-50 GB/s contra un techo de 185. Ahi esta el 2x real
+   (PR #218: el problema es el LAYOUT de los bloques de 28 B, no el ALU).
+3. Contexto: -np 2 necesita VRAM para 2 KV; con 8 GiB y 6.3 de pesos hay que
+   medir antes de prometerlo.
