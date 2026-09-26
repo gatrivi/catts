@@ -200,3 +200,35 @@ FALTA (no lo di por hecho, no lo medido): el A/B de t/s con y sin
 `--spec-type draft-mtp`, 3 corridas por brazo, mismo prompt, temp 0, y el
 aceptaje de draft. Un unico pedido de 200 tokens no llego a terminar dentro de
 la ventana de 30 s del tooling, asi que NO hay numero que reportar todavia.
+
+## Resultado lane 1.2 (2026-09-26 09:55, ses_pixel) - MTP n=2 MEDIDO: PIERDE
+
+Modelo: `data\models\bonsai2-27b-ptq10-mtp\Ternary-Bonsai-2-27B-PTQ1_0-mtp-lean.gguf`
+(27B, 6.3 GB PTQ1_0). GPU, -ngl 99, -c 8192, temp 0, seed 42, n_predict 256.
+Script: `local-coding\scripts\spec_ab.ps1` (corre solo, escribe JSON).
+Datos: `local-coding\data\spec_ab_20260926.json`.
+
+| brazo | corrida | t/s |
+|---|---|---|
+| base (sin draft) | 1 | 8.695 |
+| base | 2 | 8.641 |
+| base | 3 | 8.577 |
+| draft-mtp n=2 | 1 | 6.906 |
+| draft-mtp n=2 | 2 | 6.828 |
+
+VEREDICTO: base 8.64 +- 0.06, draft n=2 6.87 +- 0.04 -> **0.79x, PIERDE**.
+Aceptacion del draft 0.6087 (140 aceptados / 230 generados), mean len 2.22:
+el drafter NO es el problema (rho 0.61 > 0.43 del drafter sidecar). El problema
+es el COSTO del head MTP: por cada paso de draft paga un forward extra del
+target+head, y con 27B eso no se amortiza con n=2.
+
+OJO numero: los 66.9 tok/s de las notas NO son de este modelo (eran del 9B). El
+baseline real del 27B PTQ1_0 en esta GPU es 8.6 t/s. Cualquier comparacion de
+"2x" contra 66.9 con este modelo es falsa.
+
+SIGUIENTE (en curso al cierre de esta sesion, script `$env:TEMP\dn_sweep.ps1`,
+salida en `local-coding\data\spec_draftn_sweep_20260926.json`): barrido de
+`--spec-draft-n-max` = 4 y 8, 2 corridas cada uno. Es el knob que decide si el
+head se amortiza. Regla de decision ya escrita: si n=4 no supera 8.64, MTP queda
+DESCARTADO para produccion y el 2x hay que buscarlo en la Lane 2 (`-np 2`) o en
+el kernel de PTQ1_0 (Lane 3), no en spec decode.

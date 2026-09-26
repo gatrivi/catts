@@ -185,3 +185,30 @@ Tres decisiones del user desbloquean valor real:
    las dos, hasta que el binario tenga el parche.
 3. **"dale con build_fresh"** -> escribo `scripts/build_fresh.ps1` (F3) + 3 líneas
    de preflight. Requiere que el claim de `ses_f253` sobre `scripts/*.ps1` cierre.
+
+## Correccion de F1 (2026-09-26 09:20) - el "revert del vecq" NO alcanzaba
+
+Lo que decia F1 (restaurar `mul_mat_vecq_funcs.glsl` desde `.bak-20260925b`)
+es INSUFICIENTE y deja el arbol sin compilar. Razon: las ediciones del agente
+opencode son un PAR, no una:
+
+1. `mul_mat_vec_ptq1_0.comp` (15:45): experimento E2 "threads-extra walk" a
+   medio escribir. Restaurado desde `.bak-20260925b` (7517 B). E2 ya estaba
+   REFUTADO.
+2. `mul_mat_vecq.comp` (15:38) borro la funcion `ptq_trit_lut` (comentario:
+   "No LUT needed"), pero el `.glsl` la sigue llamando -> si reverts solo el
+   `.glsl` te queda `ptq_trit_lut : no matching overloaded function found`.
+   Los `.cpp` generados en `build/` NO sirven para recuperarla: contienen
+   SPIR-V binario, no el texto GLSL.
+3. El `.glsl` nuevo (`.broken-20260925c`) tiene un bloque de 13 lineas (678-690)
+   que usa `qh0`/`qh1` sin declarar. Eso si es el error de build. Fix: borrar
+   SOLO ese bloque. El interleave correcto de los 8 trits altos sigue siendo un
+   bug SEMANTICO abierto y lo decide la suite 68/68, no una suposicion.
+
+Estado: `ninja -C build` VERDE. `llama-server.exe` 26/09 09:09:36,
+`qwen35.cpp.obj` 26/09 09:08:33. F2 CONFIRMADO (draft-mtp crea el contexto MTP
+y el server levanta, sin error de Hadamard). Detalle en
+`BRIEFS/05_PLAN_EJECUCION_2026-09-26.md`.
+
+SIN COMMITEAR en llama.cpp: los 2 shaders + `src/models/qwen35.cpp`. Son los 3
+archivos que hacen que esto funcione; un `git checkout .` los borra.
