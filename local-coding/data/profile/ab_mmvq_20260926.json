@@ -1,0 +1,25 @@
+﻿{
+    "captured":  "2026-09-26T20:19:09",
+    "model":  "Ternary-Bonsai-2-27B-PTQ1_0.gguf",
+    "note":  "A/B del vecq con el parche D1+D2 aplicado; suite MUL_MAT en verde. OFF = LUT (mul_mat_vec_ptq1_0), ON = int-dot vecq",
+    "off":  {
+                "arm":  "mmvq0",
+                "ggml_ptq1_0_mmvq":  false,
+                "file":  "d1_perop_20260926-201655.json",
+                "load_s":  55.9,
+                "step_ms":  120.35,
+                "tps":  8.31,
+                "mul_mat_vec_ptq1_0_ms":  100.95
+            },
+    "on":  {
+               "arm":  "mmvq1",
+               "ggml_ptq1_0_mmvq":  true,
+               "file":  "d1_perop_20260926-201813.json",
+               "load_s":  18.7,
+               "step_ms":  391.76,
+               "tps":  2.55,
+               "mul_mat_vec_ptq1_0_ms":  371.43
+           },
+    "delta_tps_pct":  -69.31,
+    "delta_matvec_pct":  267.93
+}

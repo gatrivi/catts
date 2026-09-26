@@ -1,0 +1,261 @@
+{
+  "captured": "2026-09-26T20:18:02",
+  "spec": "TQ2_0 ctx 8192 KV q4_0 C:/src build (LUT), GGML_VK_PERF_LOGGER, decode step",
+  "log": "Z:/catts/local-coding/data/profile/raw/perop-20260926-201655.log",
+  "load_s": 55.93700000003446,
+  "total_us_last_step": 120354.0,
+  "ops": [
+    {
+      "op": "MUL_MAT_VEC ptq1_0 m=17408 n=1 k=5120",
+      "calls": 128,
+      "avg_us": 353.406,
+      "total_us": 45236.0,
+      "gflops": 504.35
+    },
+    {
+      "op": "MUL_MAT_ADD MUL_MAT_VEC ptq1_0 m=5120 n=1 k=17408",
+      "calls": 64,
+      "avg_us": 325.945,
+      "total_us": 20860.5,
+      "gflops": 546.88
+    },
+    {
+      "op": "MUL_MAT_VEC ptq1_0 m=10240 n=1 k=5120",
+      "calls": 48,
+      "avg_us": 212.755,
+      "total_us": 10212.2,
+      "gflops": 492.808
+    },
+    {
+      "op": "MUL_MAT_VEC ptq1_0 m=6144 n=1 k=5120",
+      "calls": 48,
+      "avg_us": 131.627,
+      "total_us": 6318.12,
+      "gflops": 477.928
+    },
+    {
+      "op": "MUL_MAT_VEC ptq1_0 m=5120 n=1 k=6144",
+      "calls": 48,
+      "avg_us": 128.758,
+      "total_us": 6180.4,
+      "gflops": 488.585
+    },
+    {
+      "op": "MUL_MAT_VEC ptq1_0 m=248320 n=1 k=5120",
+      "calls": 1,
+      "avg_us": 4991.96,
+      "total_us": 4991.96,
+      "gflops": 509.329
+    },
+    {
+      "op": "MUL_MAT_VEC ptq1_0 m=12288 n=1 k=5120",
+      "calls": 16,
+      "avg_us": 252.867,
+      "total_us": 4045.88,
+      "gflops": 497.56
+    },
+    {
+      "op": "FLASH_ATTN_EXT dst(256,24,1,1),  q(256,1,24,1),  k(256,256,4,1),  v(256,256,4,1),  m(256,1,1,1)",
+      "calls": 16,
+      "avg_us": 197.822,
+      "total_us": 3165.16,
+      "gflops": 31.8035
+    },
+    {
+      "op": "MUL_MAT_VEC f32 m=1024 n=5 k=1024",
+      "calls": 130,
+      "avg_us": 17.417,
+      "total_us": 2264.24,
+      "gflops": 601.74
+    },
+    {
+      "op": "MUL_MAT_ADD MUL_MAT_VEC ptq1_0 m=5120 n=1 k=6144",
+      "calls": 16,
+      "avg_us": 131.225,
+      "total_us": 2099.6,
+      "gflops": 479.401
+    },
+    {
+      "op": "GET_ROWS",
+      "calls": 97,
+      "avg_us": 19.211,
+      "total_us": 1863.48,
+      "gflops": null
+    },
+    {
+      "op": "RMS_NORM_MUL RMS_NORM(5120,1,1,1)",
+      "calls": 129,
+      "avg_us": 12.674,
+      "total_us": 1635.04,
+      "gflops": null
+    },
+    {
+      "op": "MUL",
+      "calls": 322,
+      "avg_us": 4.262,
+      "total_us": 1372.48,
+      "gflops": null
+    },
+    {
+      "op": "MUL_MAT_VEC f32 m=1024 n=6 k=1024",
+      "calls": 64,
+      "avg_us": 18.59,
+      "total_us": 1189.8,
+      "gflops": 676.511
+    },
+    {
+      "op": "MUL_MAT f32 m=1024 n=17 k=1024",
+      "calls": 64,
+      "avg_us": 18.273,
+      "total_us": 1169.52,
+      "gflops": 1950.02
+    },
+    {
+      "op": "MUL_MAT_VEC bf16 m=48 n=1 k=5120",
+      "calls": 96,
+      "avg_us": 11.794,
+      "total_us": 1132.28,
+      "gflops": 41.6693
+    },
+    {
+      "op": "CPY",
+      "calls": 96,
+      "avg_us": 11.278,
+      "total_us": 1082.72,
+      "gflops": null
+    },
+    {
+      "op": "GATED_DELTA_NET",
+      "calls": 48,
+      "avg_us": 21.884,
+      "total_us": 1050.44,
+      "gflops": null
+    },
+    {
+      "op": "MUL_MAT_VEC ptq1_0 m=1024 n=1 k=5120",
+      "calls": 32,
+      "avg_us": 31.533,
+      "total_us": 1009.08,
+      "gflops": 332.493
+    },
+    {
+      "op": "ADD",
+      "calls": 96,
+      "avg_us": 4.61,
+      "total_us": 442.64,
+      "gflops": null
+    },
+    {
+      "op": "GLU",
+      "calls": 112,
+      "avg_us": 3.888,
+      "total_us": 435.48,
+      "gflops": null
+    },
+    {
+      "op": "CONCAT",
+      "calls": 48,
+      "avg_us": 6.808,
+      "total_us": 326.8,
+      "gflops": null
+    },
+    {
+      "op": "RMS_NORM_MUL RMS_NORM(128,48,1,1)",
+      "calls": 48,
+      "avg_us": 5.32,
+      "total_us": 255.4,
+      "gflops": null
+    },
+    {
+      "op": "CONT",
+      "calls": 64,
+      "avg_us": 3.741,
+      "total_us": 239.44,
+      "gflops": null
+    },
+    {
+      "op": "SSM_CONV_SILU SSM_CONV",
+      "calls": 48,
+      "avg_us": 4.763,
+      "total_us": 228.64,
+      "gflops": null
+    },
+    {
+      "op": "L2_NORM",
+      "calls": 48,
+      "avg_us": 4.512,
+      "total_us": 216.6,
+      "gflops": null
+    },
+    {
+      "op": "SIGMOID",
+      "calls": 64,
+      "avg_us": 3.35,
+      "total_us": 214.44,
+      "gflops": null
+    },
+    {
+      "op": "MUL_MAT f32 m=256 n=24 k=256",
+      "calls": 16,
+      "avg_us": 12.595,
+      "total_us": 201.52,
+      "gflops": 249.272
+    },
+    {
+      "op": "SET_ROWS",
+      "calls": 32,
+      "avg_us": 5.817,
+      "total_us": 186.16,
+      "gflops": null
+    },
+    {
+      "op": "SOFTPLUS",
+      "calls": 48,
+      "avg_us": 3.665,
+      "total_us": 175.92,
+      "gflops": null
+    },
+    {
+      "op": "ROPE",
+      "calls": 32,
+      "avg_us": 4.86,
+      "total_us": 155.52,
+      "gflops": null
+    },
+    {
+      "op": "MUL_MAT_VEC f32 m=256 n=4 k=256",
+      "calls": 16,
+      "avg_us": 6.615,
+      "total_us": 105.84,
+      "gflops": 79.1026
+    },
+    {
+      "op": "RMS_NORM_MUL RMS_NORM(256,24,1,1)",
+      "calls": 16,
+      "avg_us": 5.4,
+      "total_us": 86.4,
+      "gflops": null
+    },
+    {
+      "op": "RMS_NORM_MUL RMS_NORM(256,4,1,1)",
+      "calls": 16,
+      "avg_us": 4.445,
+      "total_us": 71.12,
+      "gflops": null
+    },
+    {
+      "op": "MUL_MAT f32 m=64 n=16 k=64",
+      "calls": 16,
+      "avg_us": 4.23,
+      "total_us": 67.68,
+      "gflops": 30.7442
+    },
+    {
+      "op": "MUL_MAT f32 m=64 n=96 k=64",
+      "calls": 16,
+      "avg_us": 4.092,
+      "total_us": 65.48,
+      "gflops": 190.663
+    }
+  ]
+}
