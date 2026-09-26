@@ -80,3 +80,13 @@ Appendear al final de ESTE archivo:
   `AAAA-MM-DD HH:MM | <tu-id> | BRIEFS/06_*.md | +2h | verificar por que MTP pierde | ACTIVO`
   y cerralo con DONE al terminar.
 - Leelo todo antes de responder. Cita todo. Si algo no esta, decilo.
+
+## Dato nuevo (10:12) que acota tu tarea
+
+La concurrencia YA se midio: `-np 2` da 11.19 t/s agregado contra 8.57 de un
+stream solo = **1.31x, gratis**. O sea que el 2x NO sale de correr dos streams
+sino del KERNEL (PTQ1_0 a 41-50 GB/s contra un techo de 185 GB/s). Eso hace que
+tu tarea sea la bisagra: si el head MTP se puede arreglar, el 2x vuelve a estar
+disponible sin tocar el kernel; si es INTRINSICO, el 2x depende de Space Bunny
+en la Lane 3 y tu veredicto decide si esa lane vale la pena. Por eso las 6
+preguntas, y sobre todo P1, P2 y P6.
