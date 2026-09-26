@@ -140,3 +140,37 @@ Weights + pagefile = thrash = ~40 tok/s (falso resultado, ya paso).
      en data\campaign\knowledge.jsonl.
 5.4  Correr `powershell -File scripts\night_campaign.ps1 -PreflightOnly` y pegar la
      salida. NO correr slices reales de noche fuera de la ventana 02:30.
+
+## Resultado lane 0 y 5.1 (2026-09-26 09:10, ses_pixel)
+
+ESTADO: LANE 0 COMPLETA. El arbol compila y los binarios se relinkearon.
+
+1. El "revert del vecq" que decia F1 era INSUFICIENTE: habia DOS ediciones
+   incompletas del agente opencode, no una, y son un par (el .comp de 15:38
+   borro la LUT `ptq_trit_lut` que el .glsl sigue llamando).
+   - `mul_mat_vec_ptq1_0.comp`: restaurado desde `.bak-20260925b` (7517 B). Era
+     el experimento E2 "threads-extra walk" (ya REFUTADO) a medio escribir.
+   - `mul_mat_vecq_funcs.glsl`: restaurado desde `.broken-20260925c` (el par que
+     el .comp necesita) y eliminado SOLO el bloque de 13 lineas 678-690, que
+     usaba `qh0`/`qh1` sin declarar. NO se reconstruyo el interleave de los 8
+     trits altos: eso sigue siendo el bug semantico abierto y lo decide la
+     suite 68/68, no una suposicion.
+   PASA SI de 0.2: `ninja -C build` -> sin FAILED, sin "undeclared identifier".
+   Ojo: `ninja` NO esta en PATH; el binario es
+   `E:\zengatrivi-drive-e\catts\.venv\Scripts\ninja.exe` (CMAKE_MAKE_PROGRAM).
+2. 0.3 PASA SI: `build\bin\llama-server.exe` = 26/09 09:09:36 (83.274.240 B) y
+   `qwen35.cpp.obj` = 26/09 09:08:33. El fix de MTP quedo COMPILADO (el .obj
+   contiene la cadena `hadamard`); el binario de las 02:18 ya no se usa.
+3. 5.1 hecho: `night_campaign.ps1` linea 210: el gate de RAM bajo de 11000 a
+   8000 MB (con 7.2 GB libres la slice MTPLean se saltaba TODAS las noches y el
+   dia 2 la tiene agendada).
+4. SIN commitear en llama.cpp (la regla del repo es commit solo a pedido). Quedan
+   sin commitear los 3 archivos que hacen que esto funcione: los 2 shaders y
+   `src/models/qwen35.cpp`. Un `git checkout .` de cualquier agente los borra.
+5. Log del build: `C:\src\llama.cpp\build-20260926c.log`.
+
+LO QUE FALTA (requiere GPU, ~5 min, 8 GB RAM libres): correr
+`llama-server -m local-coding\data\campaign\models\mtp-lean.gguf --spec-type
+draft-mtp --spec-draft-n-max 2` y confirmar que YA NO aparece
+`failed to inverse Hadamard matrix`. Con el binario viejo ese error era
+esperado; con el nuevo es la unica prueba valida.
