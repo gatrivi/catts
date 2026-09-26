@@ -30,3 +30,4 @@ usuario antes de escribir. Ver `03_PROTOCOLO_ANTI_CHOQUE_2026-09-25.md`.
 
 
 | 09-26 00:05 | ses_pixel (esta sesion) | `BRIEFS/05_PLAN_EJECUCION_2026-09-26.md`, `local-coding/scripts/night_campaign.ps1` (gate RAM), `C:\src\llama.cpp\build\` (solo binarios) | 09-26 06:00 | plan de ejecucion para agentes sin criterio + desbloquear build/MTP; commit pendiente de OK del usuario | ACTIVO |
+| 09-26 09:12 | ses_pixel (esta sesion) | lane 0 DONE (build verde, binarios 09:09) + lane 5.1 DONE (gate RAM 8000). Sin commitear en llama.cpp: 2 shaders + qwen35.cpp | 09-26 12:00 | falta test de GPU de draft-mtp y commit | ACTIVO (build desclaimed) |

@@ -174,3 +174,29 @@ LO QUE FALTA (requiere GPU, ~5 min, 8 GB RAM libres): correr
 draft-mtp --spec-draft-n-max 2` y confirmar que YA NO aparece
 `failed to inverse Hadamard matrix`. Con el binario viejo ese error era
 esperado; con el nuevo es la unica prueba valida.
+
+## Resultado lane 1.1 (2026-09-26 09:35, ses_pixel) - F2 CONFIRMADO
+
+Con el binario NUEVO (build 26/09 09:09), sobre GPU, con el modelo real de la
+slice (`data\models\bonsai2-27b-ptq10-mtp\Ternary-Bonsai-2-27B-PTQ1_0-mtp-lean.gguf`,
+6.3 GB; el path `data\campaign\models\mtp-lean.gguf` del plan NO existe):
+
+    common_speculative_init_result: creating MTP draft context against the target model
+    llama_server: model loaded
+    llama_server: listening on http://127.0.0.1:9199
+
+CERO errores de Hadamard. El veredicto "draft-mtp INCOMPATIBLE con nuestro
+build, requiere el build del autor" era FALSO por binario viejo. F2 cerrado.
+
+Cosas que costaron tiempo y conviene no repetir:
+- `ninja` NO esta en PATH: es `E:\zengatrivi-drive-e\catts\.venv\Scripts\ninja.exe`.
+- `llama-server.exe` necesita `C:\tools\llvm-mingw\bin` en el PATH; sin eso
+  muere al instante SIN escribir un solo byte de log (ni stdout ni stderr).
+  Por eso el primer test parecio "sin salida".
+- Cargar con `-ngl 0` desde el share Z: deja la RAM en 2.6 GB libres y se
+  cuelga (thrash). Para verificarArrancar que el modelo carga hay que usar GPU.
+
+FALTA (no lo di por hecho, no lo medido): el A/B de t/s con y sin
+`--spec-type draft-mtp`, 3 corridas por brazo, mismo prompt, temp 0, y el
+aceptaje de draft. Un unico pedido de 200 tokens no llego a terminar dentro de
+la ventana de 30 s del tooling, asi que NO hay numero que reportar todavia.
