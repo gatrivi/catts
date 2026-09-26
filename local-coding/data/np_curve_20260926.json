@@ -1,0 +1,82 @@
+﻿[
+    {
+        "np":  1,
+        "run":  1,
+        "streams":  1,
+        "tokens":  256,
+        "wall_s":  32.87,
+        "tps_agg":  7.788,
+        "tps_per_stream":  7.788,
+        "gpu":  ""
+    },
+    {
+        "np":  1,
+        "run":  2,
+        "streams":  1,
+        "tokens":  256,
+        "wall_s":  32.28,
+        "tps_agg":  7.931,
+        "tps_per_stream":  7.931,
+        "gpu":  ""
+    },
+    {
+        "np":  2,
+        "run":  1,
+        "streams":  2,
+        "tokens":  512,
+        "wall_s":  39.09,
+        "tps_agg":  13.098,
+        "tps_per_stream":  6.549,
+        "gpu":  ""
+    },
+    {
+        "np":  2,
+        "run":  2,
+        "streams":  2,
+        "tokens":  512,
+        "wall_s":  38.7,
+        "tps_agg":  13.23,
+        "tps_per_stream":  6.615,
+        "gpu":  ""
+    },
+    {
+        "np":  3,
+        "run":  1,
+        "streams":  3,
+        "tokens":  768,
+        "wall_s":  48.2,
+        "tps_agg":  15.934,
+        "tps_per_stream":  5.311,
+        "gpu":  ""
+    },
+    {
+        "np":  3,
+        "run":  2,
+        "streams":  3,
+        "tokens":  768,
+        "wall_s":  48.05,
+        "tps_agg":  15.983,
+        "tps_per_stream":  5.328,
+        "gpu":  ""
+    },
+    {
+        "np":  4,
+        "run":  1,
+        "streams":  4,
+        "tokens":  1024,
+        "wall_s":  57.22,
+        "tps_agg":  17.896,
+        "tps_per_stream":  4.474,
+        "gpu":  ""
+    },
+    {
+        "np":  4,
+        "run":  2,
+        "streams":  4,
+        "tokens":  1024,
+        "wall_s":  56.59,
+        "tps_agg":  18.095,
+        "tps_per_stream":  4.524,
+        "gpu":  ""
+    }
+]

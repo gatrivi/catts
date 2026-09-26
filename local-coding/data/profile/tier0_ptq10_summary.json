@@ -1,0 +1,29 @@
+﻿{
+    "captured":  "2026-09-26T18:53:29",
+    "model":  "Ternary-Bonsai-2-27B-PTQ1_0.gguf (PTQ1_0, 5.5GB)",
+    "gpu":  "RX 6800 (esta caja) - PRIMER per-op de este modelo",
+    "contaminated":  false,
+    "note":  "decode_step_ms = suma de un paso de decode; tps_from_step es el techo SIN overhead de server/sampling",
+    "runs":  [
+                 {
+                     "run":  1,
+                     "file":  "d1_perop_20260926-185045.json",
+                     "load_s":  108.73400000005495,
+                     "step_ms":  120.53,
+                     "tps_from_step":  8.30,
+                     "top_op":  "MUL_MAT_VEC ptq1_0 m=17408 n=1 k=5120",
+                     "top_op_us":  45330.2,
+                     "ops_count":  36
+                 },
+                 {
+                     "run":  2,
+                     "file":  "d1_perop_20260926-185255.json",
+                     "load_s":  17.234000000054948,
+                     "step_ms":  120.27,
+                     "tps_from_step":  8.31,
+                     "top_op":  "MUL_MAT_VEC ptq1_0 m=17408 n=1 k=5120",
+                     "top_op_us":  45326.2,
+                     "ops_count":  36
+                 }
+             ]
+}
