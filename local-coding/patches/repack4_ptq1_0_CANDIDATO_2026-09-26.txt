@@ -1,0 +1,71 @@
+// ============================================================================
+// CANDIDATO de reemplazo para repack4() en
+//   C:\src\llama.cpp\ggml\src\ggml-vulkan\vulkan-shaders\mul_mat_vecq_funcs.glsl
+//   (funcion actual: lineas 632-684; la rama rota es 666-678 y el packing 680-683)
+//
+// Estado: NO APLICADO. Escrito a 15% de CPU, sin poder compilar. Validar con
+//   test-backend-ops MUL_MAT + GGML_PTQ1_0_MMVQ=1 (hoy falla; cuando pase 68/68
+//   el interleave esta bien). NO on-by-default hasta 68/68 + golden 7/8.
+//
+// Oraculo del layout (dos fuentes que pasan la suite y leen los mismos bloques):
+//   ptq1_0.glsl:15-45            b = qh[t & 1], n = t >> 1   para e >= 120
+//   mul_mat_vec_ptq1_0.comp:57-61 (l>>1)*256 + ((l&1)==0 ? qhw&0xFF : qhw>>8)
+//
+// Contrato de repack4 (verificado contra las 2 primeras ramas, que son correctas):
+//   devuelve los 16 elementos CONSECUTIVOS ebase..ebase+15, con
+//   ebase = (ib_a & 3)*32 + b_qs*16, empaquetados lo0=[0..3] lo1=[4..7]
+//   hi0=[8..11] hi1=[12..15].
+//
+// Los 3 defectos que arregla:
+//   D1  rama e>=120: usaba trits4(qh_bytes,0) y (..,1). Como trits4 fija la
+//       posicion n para las 4 lanes, hi0 salia con lanes 2-3 duplicadas y hi1
+//       con las 4 mal. Correcto: 2 trit-bytes alternando, 2 por posicion.
+//   D2  packing sin mascara: trits4 devuelve i32 {-1,0,1} (linea 629 hace -1).
+//       -1 == 0xFFFFFFFF, y `a | (b<<8) | (c<<16) | (d<<24)` propaga ese FF a
+//       TODAS las lanes de la palabra. Un trit=0 en cualquier lane corrompia
+//       los otros 3. cache_b_qs es qs de q8_1 (int8 con signo) => el dot es
+//       firmado => hay que preservar el byte de cada lane, no el palabra.
+//   D3  (fuera de esta funcion) mul_mat_vecq.comp:29-30 dice "No LUT needed" y
+//       el .glsl llamaba a ptq_trit_lut. Dejar .comp/.glsl de acuerdo.
+//
+// ABIERTO (decidir con el oraculo, no a adivinar): si ademas el dot espera A
+//   sesgado {0,1,2} en vez de {-1,0,1}, hay que sacar el `- 1` de trits4 en
+//   este camino (o sumar 1 al empaquetar). Con D1+D2 el resultado pasa de
+//   claramente-malo a posiblemente-correcto; la suite decide el resto.
+// ============================================================================
+
+    } else {
+        // ebase == 112 -> elementos 112..127
+        //   112..119: qs[16..23] en posicion de trit 4 (5a posicion de esos bytes)
+        //   120..127: qh[0],qh[1] con byte = t&1 y trit = t>>1  (t = e-120)
+        //             o sea 2 elementos por posicion, alternando los 2 bytes.
+        const uint q4 = uint(data_a_packed16[ib].qs[8])  | (uint(data_a_packed16[ib].qs[9])  << 16u);
+        const uint q5 = uint(data_a_packed16[ib].qs[10]) | (uint(data_a_packed16[ib].qs[11]) << 16u);
+        const uvec4 b4 = unpack8(q4);   // qs reales 16..19
+        const uvec4 b5 = unpack8(q5);   // qs reales 20..23
+        lo0 = trits4(b4, 4u);           // e 112..115
+        lo1 = trits4(b5, 4u);           // e 116..119
+
+        // qh[0] = byte bajo del u16, qh[1] = alto. Lane j par -> qh[0], impar -> qh[1].
+        const uint   qhw       = uint(data_a_packed16[ib].qh[0]);
+        const uvec4  qh_bytes  = uvec4(qhw & 0xFFu, qhw >> 8u, qhw & 0xFFu, qhw >> 8u);
+
+        // e 120..123 -> t=0..3 -> (b0,n0) (b1,n0) (b0,n1) (b1,n1)
+        const i32vec4 h0 = trits4(qh_bytes, 0u);
+        const i32vec4 h1 = trits4(qh_bytes, 1u);
+        hi0 = i32vec4(h0.x, h0.y, h1.z, h1.w);
+
+        // e 124..127 -> t=4..7 -> (b0,n2) (b1,n2) (b0,n3) (b1,n3)
+        const i32vec4 h2 = trits4(qh_bytes, 2u);
+        const i32vec4 h3 = trits4(qh_bytes, 3u);
+        hi1 = i32vec4(h2.x, h2.y, h3.z, h3.w);
+    }
+
+    // D2: enmascarar lane a lane. Sin esto, cualquier trit = -1 contamina las
+    // otras 3 lanes de la palabra (0xFFFFFFFF por OR).
+    return i32vec4(
+        int((uint(lo0.x) & 0xFFu) | ((uint(lo0.y) & 0xFFu) << 8u) | ((uint(lo0.z) & 0xFFu) << 16u) | ((uint(lo0.w) & 0xFFu) << 24u)),
+        int((uint(lo1.x) & 0xFFu) | ((uint(lo1.y) & 0xFFu) << 8u) | ((uint(lo1.z) & 0xFFu) << 16u) | ((uint(lo1.w) & 0xFFu) << 24u)),
+        int((uint(hi0.x) & 0xFFu) | ((uint(hi0.y) & 0xFFu) << 8u) | ((uint(hi0.z) & 0xFFu) << 16u) | ((uint(hi0.w) & 0xFFu) << 24u)),
+        int((uint(hi1.x) & 0xFFu) | ((uint(hi1.y) & 0xFFu) << 8u) | ((uint(hi1.z) & 0xFFu) << 16u) | ((uint(hi1.w) & 0xFFu) << 24u)));
+}
