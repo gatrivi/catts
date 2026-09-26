@@ -1,4 +1,4 @@
-﻿# 05 - PLAN DE EJECUCION 2026-09-26 (escrito para agentes con poco criterio)
+# 05 - PLAN DE EJECUCION 2026-09-26 (escrito para agentes con poco criterio)
 
 Quien ejecuta NO DECIDE. Cada paso dice PASA SI. Si no pasa exacto: stop, reportar,
 no improvisar. Este brief manda sobre su tarea; `CLAIMS.md` manda sobre quien
@@ -194,7 +194,7 @@ Cosas que costaron tiempo y conviene no repetir:
   muere al instante SIN escribir un solo byte de log (ni stdout ni stderr).
   Por eso el primer test parecio "sin salida".
 - Cargar con `-ngl 0` desde el share Z: deja la RAM en 2.6 GB libres y se
-  cuelga (thrash). Para verificarArrancar que el modelo carga hay que usar GPU.
+  cuelga (thrash). Para verificar que el modelo arranca que el modelo carga hay que usar GPU.
 
 FALTA (no lo di por hecho, no lo medido): el A/B de t/s con y sin
 `--spec-type draft-mtp`, 3 corridas por brazo, mismo prompt, temp 0, y el
