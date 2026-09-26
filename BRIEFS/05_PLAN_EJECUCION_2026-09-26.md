@@ -232,3 +232,17 @@ salida en `local-coding\data\spec_draftn_sweep_20260926.json`): barrido de
 head se amortiza. Regla de decision ya escrita: si n=4 no supera 8.64, MTP queda
 DESCARTADO para produccion y el 2x hay que buscarlo en la Lane 2 (`-np 2`) o en
 el kernel de PTQ1_0 (Lane 3), no en spec decode.
+
+### Gotcha: el timeout de arranque tiene que ser >= 900 s con MTP
+
+El primer barrido de `draft-n-max` (4 y 8) no dio veredicto: el script daba por
+fallido un server a los 300 s, pero con el modelo de 27B LEYENDOSE DE RED (Z:) y
+cache frio, el arranque con contexto MTP tardo 2m45s en `creating MTP draft
+context` y nunca llego a `listening` dentro de la ventana. No era un fallo del
+build ni del flag: era el script contando mal.
+
+Regla: `-ngl 99` + `--spec-type draft-mtp` sobre este modelo = dale 900 s de
+timeout al `Wait-Ready`, y no tomes "no arranco" como veredicto sin mirar la
+ultima linea del log del server (`$env:TEMP\dnA.err.log` en el relanzado).
+En CPU (`-ngl 0`) la carga ni siquiera termina: se cuelga paginando desde el
+share de red. Para cualquier prueba de MTP: GPU y patience.
