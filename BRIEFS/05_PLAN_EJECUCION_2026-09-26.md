@@ -304,3 +304,36 @@ Armas n=1,2,3,4, 2 corridas cada una, 256 tokens por stream, 4 prompts distintos
 (sin dos streams con el mismo texto, quefalsearia por cache), y captura por
 armada de la linea `offloaded N/M layers to GPU` para poder descartar que una
 medida se haya hecho con el modelo parcialmente en CPU.
+
+## Lane 2 (final) - CURVA DE CONCURRENCIA: el 2x es gratis, con -np 3
+
+`local-coding\data\np_curve_20260926.json`. 27B PTQ1_0, GPU, temp 0, 256 tokens
+por stream, 4 prompts distintos, 2 corridas por brazo, longitudes IGUALADAS.
+
+Metodo (importante): el `wall` del script incluye ~3 s de spawn de cada
+`Start-Job`. Esa constante se calibro con el log del server en n=1: el server
+reporta 8.53 t/s mientras el wall da 7.79 -> 3.0 s de overhead. La tabla usa
+`tokens / (wall - 3.0)`, o sea la tasa real de decode.
+
+| np | t/s agregado | x vs 1 stream | t/s por stream |
+|---|---|---|---|
+| 1 | 8.57 | 1.00x | 8.57 |
+| 2 | 14.19 / 14.35 | **1.66x / 1.67x** | ~7.1 |
+| 3 | 17.00 / 17.06 | **1.98x / 1.99x** | ~5.3 |
+| 4 | pendiente al cierre | - | - |
+
+**El 2x existe y no cuesta una linea de codigo**: `--parallel 3`. Cada agente
+corre a ~5.3 t/s (62% de su velocidad solo) y la caja entrega 17 t/s. Para un
+runtime multi-agente en casa esa es LA configuracion: 3 slots, no 1.
+
+Correccion importante: el "1.31x" que quede escrito antes estaba mal (generos
+desiguales por un bug de paso de variables + el mismo overhead). El numero bueno
+es 1.99x.
+
+Lo que esto cambia en la estrategia:
+1. El 2x esta BANCO. No hace falta tocar un kernel para Conseguirlo.
+2. La Lane 3 (layout de PTQ1_0, 41-50 GB/s contra 185) pasa de "conseguir el 2x"
+   a "ir mas alla del 2x" = bajar LATENCIA por stream, que es otra pregunta y
+   otra justificacion (interactividad, no throughput).
+3. Antes de invertir en la Lane 3, esperar el veredicto del brief 06: si el head
+   MTP resulta ARREGLABLE, el spec decode puede volver a sumar sobre top de esto.
