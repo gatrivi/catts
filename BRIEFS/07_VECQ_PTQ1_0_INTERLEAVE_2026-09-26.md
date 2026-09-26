@@ -90,3 +90,44 @@ tocar un shader.
 - Los 3 archivos sin commitear (2 shaders + `src/models/qwen35.cpp`) son los que
   hacen funcionar esto: **nunca** `git checkout .` / `git clean -fd` sin permiso.
 - No tocar `night_campaign.ps1` ni los modelos.
+
+## Addendum (11:10) - no es un bug de 6 lineas: son TRES, y hay oraculo
+
+Derivado contra las dos fuentes VALIDADAS que leen los mismos bloques:
+`ptq1_0.glsl:15-45` (lo usan dequant/mul_mm, pasa 68/68) y
+`mul_mat_vec_ptq1_0.comp:57-61` (el matvec LUT que hoy da los 8.64 t/s).
+Ambas coinciden: para e>=120, `b = qh[t & 1]`, `n = t >> 1` (t = e-120).
+
+### D1 - mapa de lanes mal (lineas 666-678)
+Los 8 tritos altos son **2 por posicion alternando bytes**, no 4 con el mismo
+indice. `trits4(bytes, n)` fija `n` para las 4 lanes, así que NO se puede
+expresar en una sola llamada. El codigo actual (`hi0 = trits4(qh_bytes, 0)`,
+`hi1 = trits4(qh_bytes, 1)`) acierta las lanes 0-1 y falla las 2-3 de cada uno.
+Forma correcta: 4 llamadas (n=0..3) y mezclar lanes a mano.
+
+### D2 - packing SIN mascara de 8 bits (lineas 680-683) - el peor
+`trits4` devuelve `i32vec4(...) - 1` => valores CON SIGNO {-1, 0, 1}
+(linea 629 y el `- 1` de 624-628). Y el packing es
+`lo0.x | (lo0.y << 8) | (lo0.z << 16) | (lo0.w << 24)` sin `& 0xFF`.
+`-1` es `0xFFFFFFFF`, entonces un solo trit 0 en cualquier lane convierte la
+palabra entera en `0xFFFFFFFF` => las 4 lanes valen -1. **Cualquier bloque con
+un trit=0 da mal**, no solo los elementos 120..127. Fix: `(v & 0xFF)` por lane
+antes del `|`.
+
+### D3 - `.comp` y `.glsl` desincronizados
+`mul_mat_vecq.comp:29-30` dice "No LUT needed" porque le borraron
+`ptq_trit_lut`; el `.glsl` la seguia llamando (eso fue el error de build de
+esta manana). Elegir UN camino (LUT o aritmetica) y dejar los dos de acuerdo.
+
+### Alcance real y oraculo (no adivinar)
+`repack4` (633-684) necesita reescritura, no un parche de 6 lineas: hay que
+respetar el contrato de orden que define `ebase = (ib_a & 3) * 32 + b_qs * 16`
+y el layout de `cache_b_qs` (B = q8_1 firmado, `dot4packed_i8x4`).
+Oraculo mecanico, cero adivinanza: correr `test-backend-ops` MUL_MAT con
+`GGML_PTQ1_0_MMVQ=1`. Hoy eso falla; cuando pase 68/68 el interleave esta bien.
+El diff de la suite dice QUE lane esta mal, asi que se itera por datos.
+
+### Impacto en la decision
+Esto no cambia el ranking (sigue siendo la tarea 1), pero sube el costo real de
+"6 lineas" a "re-escribir repack4 + validar". Y refuerza lo otro: con `-np 3`
+en 1.99x ya hay 2x banco sin tocar un shader.
