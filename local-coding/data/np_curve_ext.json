@@ -1,0 +1,67 @@
+[
+    {
+        "np": 1,
+        "run": 1,
+        "streams": 1,
+        "ctx_total": 2048,
+        "kv": "q8_0",
+        "tokens_per_stream": 256,
+        "tokens_total": 256,
+        "wall_s": 31.46,
+        "tps_agg": 8.138,
+        "tps_per_stream": 8.138,
+        "msgs_s": 0.0318
+    },
+    {
+        "np": 2,
+        "run": 1,
+        "streams": 2,
+        "ctx_total": 4096,
+        "kv": "q8_0",
+        "tokens_per_stream": 256,
+        "tokens_total": 512,
+        "wall_s": 37.87,
+        "tps_agg": 13.52,
+        "tps_per_stream": 6.76,
+        "msgs_s": 0.0528
+    },
+    {
+        "np": 5,
+        "run": 1,
+        "streams": 5,
+        "ctx_total": 10240,
+        "kv": "q8_0",
+        "tokens_per_stream": 256,
+        "tokens_total": 1280,
+        "wall_s": 65.82,
+        "tps_agg": 19.448,
+        "tps_per_stream": 3.89,
+        "msgs_s": 0.076
+    },
+    {
+        "np": 6,
+        "run": 1,
+        "streams": 6,
+        "ctx_total": 12288,
+        "kv": "q8_0",
+        "tokens_per_stream": 256,
+        "tokens_total": 1536,
+        "wall_s": 78.77,
+        "tps_agg": 19.499,
+        "tps_per_stream": 3.25,
+        "msgs_s": 0.0762
+    },
+    {
+        "np": 8,
+        "run": 1,
+        "streams": 8,
+        "ctx_total": 16384,
+        "kv": "q8_0",
+        "tokens_per_stream": 256,
+        "tokens_total": 2048,
+        "wall_s": 109.87,
+        "tps_agg": 18.641,
+        "tps_per_stream": 2.33,
+        "msgs_s": 0.0728
+    }
+]
