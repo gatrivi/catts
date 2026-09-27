@@ -778,6 +778,9 @@
       if (msg.includes('kokoro') || msg.includes('8880')) {
         return 'Start Kokoro: .\\scripts\\start_kokoro.ps1 (port 8880), then retry.';
       }
+      if (msg.includes('fish') || msg.includes('8080') || msg.includes('Fish Speech')) {
+        return 'Start Fish: .\\scripts\\start_fish_api.ps1 (port 8080), then retry.';
+      }
       if (msg.includes('catts_accept_coqui_cpml') || msg.includes('coqui') || msg.includes('cpml')) {
         return 'Accept/reject Coqui terms; if accepted, set CATTS_ACCEPT_COQUI_CPML=1 and restart.';
       }
@@ -1364,6 +1367,12 @@ Gracias. Esta muestra enseÃ±arÃ¡ a CATTS a sonar como yo.`
           } else {
             setStatus('liveStatus', 'err', '<strong>Kokoro offline.</strong> Run <code>scripts\\start_kokoro.ps1</code> in another terminal.');
           }
+        } else if (h.tts_engine === 'fish') {
+          if (h.tts_ready) {
+            setStatus('liveStatus', 'ok', '<strong>Fish ready.</strong> ZLUDA/AMD clone — uses your voice sample.');
+          } else {
+            setStatus('liveStatus', 'err', '<strong>Fish offline.</strong> Run <code>scripts\\start_fish_api.ps1</code>. See docs/FISH_ZLUDA_RX6600.md');
+          }
         } else if (h.tts_engine === 'xtts') {
           if (!h.xtts_installed) {
             setStatus('liveStatus', 'err', '<strong>Live interpreting unavailable.</strong> XTTS not installed — run <code>scripts/setup_xtts.ps1</code> and restart the server.');
@@ -1384,7 +1393,9 @@ Gracias. Esta muestra enseÃ±arÃ¡ a CATTS a sonar como yo.`
       if (liveHint) {
         liveHint.textContent = h.tts_engine === 'kokoro'
           ? 'Kokoro mode: type a phrase (up to 80 words). No voice sample required.'
-          : 'XTTS mode: short phrase (max 12 words), uses your saved voice sample.';
+          : h.tts_engine === 'fish'
+            ? 'Fish mode: phrase up to 80 words, uses your saved voice sample (RX 6600 / ZLUDA).'
+            : 'XTTS mode: short phrase (max 12 words), uses your saved voice sample.';
       }
       const banner = document.getElementById('ttsBanner');
       if (localStorage.getItem('catts_hide_tts_banner') === '1') {

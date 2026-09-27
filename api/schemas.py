@@ -24,7 +24,7 @@ class HealthResponse(BaseModel):
     worker_reachable: bool
     worker_url: str
     ocr_engine: str
-    tts_engine: str  # xtts | kokoro | pocket | edge | chatterbox | gptsovits
+    tts_engine: str  # fish | xtts | kokoro | pocket | edge | chatterbox | gptsovits
     tts_ready: bool = False
     tts_message: str = ""
     stt_engine: str  # whisper | none

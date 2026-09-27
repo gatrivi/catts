@@ -1,4 +1,4 @@
-# CATTS (v0.7.2)
+# CATTS (v0.7.3)
 
 Local **audiobook + voice** tool for CPU/AMD (no NVIDIA required).
 
@@ -32,15 +32,20 @@ CATTS_API_KEY=
 CATTS_API_PORT=59200
 CATTS_WORKER_URL=
 CATTS_OCR_ENGINE=none
-CATTS_TTS_ENGINE=xtts
+CATTS_TTS_ENGINE=fish
+CATTS_FISH_URL=http://127.0.0.1:8080
+CATTS_FISH_ROOT=
 CATTS_KOKORO_URL=http://127.0.0.1:8880
 CATTS_KOKORO_VOICE=af_bella
 CATTS_DEFAULT_VOICE_ID=
 CATTS_ACCEPT_COQUI_CPML=
 ```
 
+**AMD RX 6600 (recomendado):** Fish Speech + ZLUDA — ver `docs/FISH_ZLUDA_RX6600.md`.  
+`.\scripts\setup_fish_zluda.ps1` → `.\scripts\start_fish_api.ps1` → `CATTS_TTS_ENGINE=fish`.
+
 XTTS v2 requiere aceptar explícitamente los términos Coqui CPML/comerciales. Solo después de leerlos, seteá `CATTS_ACCEPT_COQUI_CPML=1`.
-Para probar TTS local sin clonación ni gate de XTTS, arrancá Kokoro-FastAPI y seteá `CATTS_TTS_ENGINE=kokoro`.
+Kokoro (`CATTS_TTS_ENGINE=kokoro`) sigue como sanity check sin clonación.
 
 ## Run (API + UI)
 
@@ -75,8 +80,9 @@ La UI es `static/index.html`.
 ## Motores (qué usa)
 
 Resumen (según `services/*`):
-- **TTS rápido local**: Kokoro-FastAPI (`CATTS_TTS_ENGINE=kokoro`, sin clonación)
-- **Voice clone TTS**: XTTS v2 (vía worker persistente, requiere aceptar términos Coqui)
+- **TTS AMD GPU (RX 6600)**: Fish Speech ZLUDA (`CATTS_TTS_ENGINE=fish`, clonación + calidad)
+- **TTS rápido local (CPU)**: Kokoro-FastAPI (`CATTS_TTS_ENGINE=kokoro`, sin clonación)
+- **Voice clone TTS (alt)**: XTTS v2 (vía worker persistente, requiere aceptar términos Coqui)
 - **STT + script match**: faster-whisper (`small` por defecto)
 - **Translate EN↔ES**: Argos offline (subproceso en `.venv`)
 - **Lectura de libros**: extracción + partición en capítulos en CPU
@@ -118,5 +124,6 @@ La UI y el smoke usan el header `X-API-Key` si `CATTS_API_KEY` está seteada.
 - Verificación MVP: `docs/MVP_VERIFICATION.md`
 - Handoff: LiteUI integration: `docs/HANDOFF_LiteUI_Integration.md`
 - Handoff: Pocket-TTS engine: `docs/HANDOFF_PocketTTS_Engine.md`
+- Fish Speech ZLUDA / RX 6600: `docs/FISH_ZLUDA_RX6600.md`
 - Cambios: `CHANGELOG.md`
 

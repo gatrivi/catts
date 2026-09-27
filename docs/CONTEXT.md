@@ -1,4 +1,4 @@
-# CATTS context (v0.7)
+# CATTS context (v0.7.3)
 
 Local **audiobook + voice** tool for AMD/CPU (no NVIDIA required).
 
@@ -18,7 +18,9 @@ Local **audiobook + voice** tool for AMD/CPU (no NVIDIA required).
 
 | Feature | Engine | Setup |
 |---------|--------|-------|
-| Voice clone TTS | Coqui XTTS v2 | `scripts/setup_xtts.ps1` |
+| AMD GPU TTS + clone | Fish Speech ZLUDA (`fish`) | `docs/FISH_ZLUDA_RX6600.md` |
+| Fast no-clone TTS | Kokoro-FastAPI | `scripts/setup_kokoro.ps1` |
+| Voice clone TTS (alt) | Coqui XTTS v2 | `scripts/setup_xtts.ps1` + CPML gate |
 | STT + script match | faster-whisper `small` | `scripts/setup_stt.ps1` |
 | Translate EN↔ES | Argos | same STT setup |
 | Books | pymupdf / ebooklib / python-docx | `requirements.txt` |
